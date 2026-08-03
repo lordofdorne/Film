@@ -1,0 +1,23 @@
+{
+  "assets": [
+    { "id": "asset_iv_identity_name",        "kind": "interview", "questionId": "identity_name",           "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_identity_age",         "kind": "interview", "questionId": "identity_age",            "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_identity_birth_year",  "kind": "interview", "questionId": "identity_birth_year",     "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_longevity",            "kind": "interview", "questionId": "longevity",               "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_greatest_lesson",      "kind": "interview", "questionId": "greatest_lesson",         "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_advice",               "kind": "interview", "questionId": "advice_for_young_people", "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_meaning_of_group",     "kind": "interview", "questionId": "meaning_of_group",        "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_love_lesson",          "kind": "interview", "questionId": "love_lesson",             "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_closing_message",      "kind": "interview", "questionId": "closing_message",         "durationMs": 90000, "width": 1920, "height": 1080 },
+    { "id": "asset_iv_bonus",                "kind": "interview", "questionId": "bonus_interviewer",       "durationMs": 90000, "width": 1920, "height": 1080 },
+
+    { "id": "asset_photo_early",             "kind": "photo", "slotId": "photo_early",       "width": 1200, "height": 1600 },
+    { "id": "asset_photo_personality",       "kind": "photo", "slotId": "photo_personality", "width": 3000, "height": 2000 },
+    { "id": "asset_photo_group",             "kind": "photo", "slotId": "photo_group",       "width": 2400, "height": 2400 },
+    { "id": "asset_keepsake",                "kind": "photo", "slotId": "keepsake",          "width": 2000, "height": 1500 },
+
+    { "id": "asset_broll_environment",       "kind": "video", "slotId": "video_environment", "durationMs": 12000, "width": 1920, "height": 1080 },
+    { "id": "asset_broll_group",             "kind": "video", "slotId": "video_group",       "durationMs": 12000, "width": 1920, "height": 1080 },
+    { "id": "asset_broll_personality",       "kind": "video", "slotId": "video_personality", "durationMs": 12000, "width": 1920, "height": 1080 }
+  ]
+}
