@@ -5,3 +5,6 @@ export * from "./schema/speech.js";
 export * from "./schema/edl.js";
 export * from "./schema/manifest.js";
 export * from "./schema/selection.js";
+export * from "./validate/context.js";
+export * from "./validate/issues.js";
+export * from "./validate/index.js";

@@ -9,7 +9,7 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
-    "typecheck": "tsc -b --pretty",
+    "typecheck": "tsc -b --pretty && tsc -p tsconfig.test.json --pretty",
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "tsx scripts/generate-fixtures.ts",
