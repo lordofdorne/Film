@@ -140,8 +140,8 @@ const baseVisual = {
   startMs: MsInt,
   durationMs: MsPositive,
   transitionIn: TransitionSchema,
-  /* [ADDITION — needs approval, see §8.4] optional template text key rendered
-     over any segment using the reduced title treatment. */
+  /* [APPROVED 2026-08-03, §8.4] optional template text key rendered over any
+     segment using the reduced `overlay` treatment. Available on every kind. */
   overlayTextKey: TextKey.optional(),
 };
 
@@ -310,25 +310,58 @@ export const LIFE_ADVICE_V1 = {
     "optional-bonus", "dedication",
   ],
 
-  /* [PROPOSED — see §8.1] which question feeds each structural beat */
+  /* [APPROVED 2026-08-03, §8.1] which question feeds each structural beat.
+     `range: 2` marks a second, later excerpt of an answer already used earlier —
+     it now appears exactly once, for the deliberate cold-open device (§8.11). */
   beatSources: {
     "opening-context":           { kind: "slot",     slotId: "video_personality" },
     "cold-open":                 { kind: "question", questionId: "greatest_lesson", range: 1 },
     "main-title":                { kind: "title",    textKey: "mainTitle" },
     "identity":                  { kind: "questions", questionIds: ["identity_name","identity_age","identity_birth_year"] },
-    "longevity":                 { kind: "question", questionId: "longevity",                range: 1 },
-    "greatest-lesson":           { kind: "question", questionId: "greatest_lesson",          range: 2 },
-    "advice-for-younger-people": { kind: "question", questionId: "advice_for_young_people",  range: 1 },
-    "relationships":             { kind: "question", questionId: "meaning_of_group",         range: 1 },
-    "love":                      { kind: "question", questionId: "meaning_of_group",         range: 2 },
-    "closing-message":           { kind: "question", questionId: "advice_for_young_people",  range: 2 },
+    "longevity":                 { kind: "question", questionId: "longevity" },
+    "greatest-lesson":           { kind: "question", questionId: "greatest_lesson", range: 2 },
+    "advice-for-younger-people": { kind: "question", questionId: "advice_for_young_people" },
+    "relationships":             { kind: "question", questionId: "meaning_of_group" },
+    "love":                      { kind: "question", questionId: "love_lesson" },
+    "closing-message":           { kind: "question", questionId: "closing_message" },
     "keepsake-or-group-photo":   { kind: "slot",     slotId: "keepsake", fallbackSlotId: "photo_group" },
     "end-title":                 { kind: "title",    textKey: "endTitle" },
     "optional-bonus":            { kind: "question", questionId: "bonus_interviewer", optional: true },
     "dedication":                { kind: "title",    textKey: "closing" },
   },
 
-  questions: [ /* exactly as specified in the brief, verbatim */ ],
+  /* [AMENDED 2026-08-03, §8.1] brief's eight questions verbatim, plus
+     `love_lesson` and `closing_message`. 9 required + 1 optional = 10 takes. */
+  questions: [
+    { id: "identity_name",           order:  1, text: "What is your name?",
+      narrativeRole: "introduction",  required: true },
+    { id: "identity_age",            order:  2, text: "How old are you?",
+      narrativeRole: "introduction",  required: true },
+    { id: "identity_birth_year",     order:  3, text: "What year were you born?",
+      narrativeRole: "introduction",  required: true },
+    { id: "longevity",               order:  4,
+      text: { default: "What is the secret to living a long life?",
+              variants: [{ when: "subject.age >= 100",
+                           text: "What is the secret to living past 100?" }] },
+      narrativeRole: "personality",   required: true },
+    { id: "greatest_lesson",         order:  5, text: "What is the greatest lesson life has taught you?",
+      narrativeRole: "wisdom",        required: true },
+    { id: "advice_for_young_people", order:  6, text: "What advice would you give to younger people?",
+      narrativeRole: "wisdom",        required: true },
+    { id: "meaning_of_group",        order:  7, text: "What does this family or group mean to you?",
+      narrativeRole: "relationships", required: true },
+    // NEW — deliberately does not presume a spouse; works for a subject who
+    // never married or outlived a partner, and asks for a lesson not a definition.
+    { id: "love_lesson",             order:  8, text: "What have you learned about love?",
+      narrativeRole: "love",          required: true },
+    // NEW — presupposes an answer ("is there anything…" invites "not really")
+    // and produces direct address to camera, which a closing message needs.
+    { id: "closing_message",         order:  9, text: "What would you like to say to whoever watches this?",
+      narrativeRole: "closing",       required: true },
+    { id: "bonus_interviewer",       order: 10,
+      text: "What do you think of {{interviewerName}}, your {{interviewerRelationship}}?",
+      narrativeRole: "bonus",         required: false },
+  ],
 
   photoSlots:    [ /* photo_early, photo_personality, photo_group — verbatim */ ],
   videoSlots:    [ /* video_environment, video_group, video_personality — verbatim */ ],
@@ -387,6 +420,9 @@ export const LIFE_ADVICE_V1 = {
   styling: {
     // placeholder treatments — swappable config, no component reads a literal
     fontFamily: "InterVariable",            // vendored OFL file, see §8.7
+    // [APPROVED 2026-08-03, §8.10] every word of every speech segment is
+    // captioned regardless of what the picture is doing.
+    captionPolicy: "all-speech",            // "all-speech" | "interview-only" | "emphasis-only"
     caption:  { weightAxis: 480, sizeVh: 0.045, tracking: -0.005, fill: "#F4F1EC",
                 shadow: "0 2px 18px rgba(0,0,0,0.55)", anchor: "bottom", maxLines: 2 },
     title:    { weightAxis: 300, sizeVh: 0.085, tracking: -0.02,  fill: "#F4F1EC",
@@ -450,6 +486,8 @@ See [`sample-edl.json`](./sample-edl.json) — 33 visual segments, 11 speech seg
 | `asset_iv_greatest_lesson` | interview | `greatest_lesson` | ″ |
 | `asset_iv_advice` | interview | `advice_for_young_people` | ″ |
 | `asset_iv_meaning_of_group` | interview | `meaning_of_group` | ″ |
+| `asset_iv_love_lesson` | interview | `love_lesson` | ″ |
+| `asset_iv_closing_message` | interview | `closing_message` | ″ |
 | `asset_iv_bonus` | interview | `bonus_interviewer` | ″ |
 | `asset_photo_early` | photo | `photo_early` | **1200×1600 portrait — deliberately low-res, triggers QC warning** |
 | `asset_photo_personality` | photo | `photo_personality` | 3000×2000 landscape |
@@ -573,13 +611,13 @@ The b-roll case is the same mechanism: `BrollSegment` has no audio field, so "so
 
 Numbered so you can answer by number. **1–4 are blocking-ish** (I made a choice to keep moving; if you disagree the sample EDL changes). 5–8 are decisions I made unilaterally and want on the record. 9–14 are open questions that do not block Phase 1.
 
-**1. Structure has 14 beats but only 8 questions.** `relationships`, `love` and `closing-message` have no dedicated question. My mapping: `relationships` and `love` are two separate continuous ranges of `meaning_of_group`; `closing-message` is a second range of `advice_for_young_people`. This is invented. Alternatives: add questions to `life-advice@2`, or collapse beats. **Confirm or replace.**
+**1. ✅ RESOLVED 2026-08-03 — two questions added to `life-advice@1`.** `love_lesson` ("What have you learned about love?", order 8) and `closing_message` ("What would you like to say to whoever watches this?", order 9), both required; `bonus_interviewer` moves to order 10. No beat now depends on an invented split of another answer. Consequences: the fixed question set is **10 questions, 9 required**, so a customer records ten takes — a real completion-rate risk for an elderly subject in one sitting, and the strongest argument for the save-and-resume behaviour in Phase 3. Fixture manifest grows to ten interview clips. Sample EDL `v24`/`v26`/`s09` now source `asset_iv_love_lesson` and `v27`/`s10` source `asset_iv_closing_message`; all four lip-sync overlaps re-derived and verified. *Question wording is still open to redline — changing it later needs `life-advice@2`.*
 
 **2. `end-title` has no text key.** I added `endTitle`, identical to `mainTitle`, as a literal callback ("94 years of stories" bookending the film). Confirm the wording — a variant ("94 years, and counting") may read better.
 
 **3. `dedication` vs `closing-message`.** I read `LIFE_ADVICE_TEXT.closing` ("love you {{displayName}}") as the **dedication card**, leaving `closing-message` as a spoken beat. Confirm.
 
-**4. `overlayTextKey` is a schema addition.** The `opening` line ("I interviewed my 94 year old grandmother") is the idiom's signature — text over a candid shot, not a black card. Nothing in the given schema can express text over `broll`. I added optional `overlayTextKey` to `BaseVisual`. If you'd rather keep the schema exactly as specified, the alternative is a `black` card with `textKey: "opening"` before the candid shot, which changes how the film opens. **Needs approval.**
+**4. ✅ RESOLVED 2026-08-03 — `overlayTextKey` approved on `BaseVisual`,** available on every segment kind, rendered with the `styling.overlay` treatment. The film opens on a candid moving image with the line over it. Guard to enforce in review, since the field is now broadly available: overlay text is template config only (a `textKey`, never a literal), and a segment may not carry both `overlayTextKey` and its own `textKey` — the validator rejects that combination on `title` and `black` (`OVERLAY_TEXT_COLLISION`).
 
 **5. Placeholder track bpm 72 → 75.** At 72 bpm a bar is 3 333.33 ms and downbeats never land on a frame, so beat-alignment assertions would be approximate on synthetic media. 75 bpm gives 800 ms beats / 3 200 ms bars / exactly 75 bars over 240 s, all frame-exact. Real licensed tracks won't cooperate — for those, compose snaps to the nearest downbeat *then* to the nearest frame, and the validator allows ±1 frame. The brief's cue times are unchanged. Say the word and I'll revert to 72.
 
@@ -591,7 +629,7 @@ Numbered so you can answer by number. **1–4 are blocking-ish** (I made a choic
 
 **9. `musicStartMs` semantics.** I read it as *offset into the track* played at timeline 0 (so cue at track time C appears at timeline `C − musicStartMs`). The sample uses 0. Confirm.
 
-**10. Are standard captions always on?** I assumed yes — every word of every speech segment is captioned, including under photos and b-roll. The alternatives (captions only over the interview shot, or only for emphasis lines) are meaningfully different films. This is the single biggest unstated creative choice in the brief.
+**10. ✅ RESOLVED 2026-08-03 — captions always on, all speech.** Every word of every speech segment is captioned regardless of what the picture is doing, recorded as `styling.captionPolicy: "all-speech"` so the alternatives remain swappable template config rather than a rewrite. Two consequences for the renderer: captions sit over photos and b-roll for roughly a third of this film, so the caption treatment must stay legible against a bright photo (hence the shadow in `styling.caption`, which needs a golden frame over `asset_photo_personality` specifically); and `<Captions>` reads only `edl.speechSegments`, never the visual track, which keeps it independent of what is on screen.
 
 **11. Cold-open reuse.** I used a distinct, earlier range of `greatest_lesson` for the cold open and a later range for the greatest-lesson beat, so no line is heard twice. The bookend alternative — repeat the cold-open line at the end — is a different and also defensible film.
 

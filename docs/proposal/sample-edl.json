@@ -292,9 +292,9 @@
       "startMs": 141000,
       "durationMs": 12000,
       "transitionIn": { "type": "cut", "durationMs": 0 },
-      "assetId": "asset_iv_meaning_of_group",
-      "sourceInMs": 41800,
-      "sourceOutMs": 53800,
+      "assetId": "asset_iv_love_lesson",
+      "sourceInMs": 3800,
+      "sourceOutMs": 15800,
       "scale": 1
     },
     {
@@ -314,9 +314,9 @@
       "startMs": 158000,
       "durationMs": 11000,
       "transitionIn": { "type": "cut", "durationMs": 0 },
-      "assetId": "asset_iv_meaning_of_group",
-      "sourceInMs": 58800,
-      "sourceOutMs": 69800,
+      "assetId": "asset_iv_love_lesson",
+      "sourceInMs": 20800,
+      "sourceOutMs": 31800,
       "scale": 1.1
     },
     {
@@ -325,9 +325,9 @@
       "startMs": 169000,
       "durationMs": 13000,
       "transitionIn": { "type": "cut", "durationMs": 0 },
-      "assetId": "asset_iv_advice",
-      "sourceInMs": 39800,
-      "sourceOutMs": 52800,
+      "assetId": "asset_iv_closing_message",
+      "sourceInMs": 2800,
+      "sourceOutMs": 15800,
       "scale": 1
     },
     {
@@ -706,12 +706,12 @@
     },
     {
       "id": "s09_love",
-      "questionId": "meaning_of_group",
-      "assetId": "asset_iv_meaning_of_group",
+      "questionId": "love_lesson",
+      "assetId": "asset_iv_love_lesson",
       "startMs": 141200,
       "durationMs": 24600,
-      "sourceInMs": 42000,
-      "sourceOutMs": 66600,
+      "sourceInMs": 4000,
+      "sourceOutMs": 28600,
       "emphasis": { "startWord": 11, "endWord": 18, "tone": "funny" },
       "captions": [
         { "text": "Love", "startMs": 200, "endMs": 750 },
@@ -757,12 +757,12 @@
     },
     {
       "id": "s10_closing",
-      "questionId": "advice_for_young_people",
-      "assetId": "asset_iv_advice",
+      "questionId": "closing_message",
+      "assetId": "asset_iv_closing_message",
       "startMs": 169200,
       "durationMs": 10800,
-      "sourceInMs": 40000,
-      "sourceOutMs": 50800,
+      "sourceInMs": 3000,
+      "sourceOutMs": 13800,
       "captions": [
         { "text": "That", "startMs": 200, "endMs": 710 },
         { "text": "is", "startMs": 770, "endMs": 1280 },
