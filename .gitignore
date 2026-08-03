@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build output
+dist/
+build/
+.next/
+.turbo/
+*.tsbuildinfo
+
+# Generated fixture media — reproducible via scripts/generate-fixtures.ts.
+# Never commit binary media to this repository.
+fixtures/
+
+# Render output
+out/
+*.mp4
+*.mov
+*.wav
+*.mp3
+*.m4a
+
+# Remotion
+.remotion/
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+# Golden-frame diffs are artifacts; the committed goldens under
+# packages/render/test/golden/ are force-added and stay tracked.
+**/__diff_output__/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.DS_Store
+.idea/
+*.swp
