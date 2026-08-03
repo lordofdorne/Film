@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/edl" },
+    { "path": "packages/formats" },
+    { "path": "packages/music" },
+    { "path": "packages/templates" },
+    { "path": "packages/render" }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "name": "life-advice",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=22.4.0"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "tsc -b --pretty",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "fixtures": "tsx scripts/generate-fixtures.ts",
+    "film": "tsx scripts/render-fixture-film.ts",
+    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo out"
+  },
+  "devDependencies": {
+    "@remotion/bundler": "^4.0.505",
+    "@remotion/renderer": "^4.0.505",
+    "@types/node": "^22.10.5",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

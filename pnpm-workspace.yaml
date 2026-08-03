@@ -1,0 +1,6 @@
+packages:
+  - packages/*
+
+# esbuild ships a platform binary via postinstall; tsx cannot run without it.
+onlyBuiltDependencies:
+  - esbuild
