@@ -15,7 +15,7 @@
  *     -> FFmpeg verification             (fails the render if out of tolerance)
  */
 import { execFile } from "node:child_process";
-import { mkdir, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -23,6 +23,8 @@ import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 
+import { withoutMusicDuck } from "../packages/render/src/fixture.js";
+import type { FilmProps } from "../packages/render/src/props.js";
 import { generateFixtures } from "./generate-fixtures.js";
 import { webpackOverride } from "./webpack-override.js";
 
@@ -133,7 +135,28 @@ const main = async (): Promise<void> => {
   step("3/5  Rendering mezzanine");
   // The EDL is validated inside buildFixtureProps at module load, so reaching
   // this point already means the document passed every invariant.
-  const composition = await selectComposition({ serveUrl, id: "LifeAdvice" });
+
+  // Silent interview audio (reference-music mode) has nothing for the bed to
+  // duck under — leave music up so loudnorm can hit -14 LUFS.
+  let inputProps: FilmProps | undefined;
+  try {
+    const mode = (await readFile(join(FIXTURES, "interview", ".speech-mode"), "utf8")).trim();
+    if (mode === "silent") {
+      const defaults = (
+        await selectComposition({ serveUrl, id: "LifeAdvice" })
+      ).props as FilmProps;
+      inputProps = withoutMusicDuck(defaults);
+      note("speech mode silent - music ducking disabled for this render");
+    }
+  } catch {
+    /* marker absent: keep authored ducking */
+  }
+
+  const composition = await selectComposition({
+    serveUrl,
+    id: "LifeAdvice",
+    ...(inputProps !== undefined ? { inputProps } : {}),
+  });
   note(
     `${composition.width}x${composition.height} @ ${String(composition.fps)}fps, ` +
       `${String(composition.durationInFrames)} frames ` +
@@ -144,6 +167,7 @@ const main = async (): Promise<void> => {
   await renderMedia({
     serveUrl,
     composition,
+    ...(inputProps !== undefined ? { inputProps } : {}),
     codec: "h264",
     crf: 18,
     outputLocation: MEZZANINE,

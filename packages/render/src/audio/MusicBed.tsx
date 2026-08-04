@@ -18,8 +18,8 @@ export const MusicBed = ({ props }: { readonly props: FilmProps }) => {
   const intervals = speechIntervals(edl);
 
   const config: EnvelopeConfig = {
-    musicGainDb: edl.audio.musicGainDb,
-    duckDb: edl.audio.duckDb,
+    musicGainDb: props.audio.musicGainDb ?? edl.audio.musicGainDb,
+    duckDb: props.audio.duckDb ?? edl.audio.duckDb,
     attackMs: props.audio.duckAttackMs,
     releaseMs: props.audio.duckReleaseMs,
     fadeInMs: props.audio.fadeInMs,

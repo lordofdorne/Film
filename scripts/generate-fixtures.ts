@@ -15,7 +15,7 @@
  * Real fixture media replaces these later with no code changes.
  */
 import { execFile } from "node:child_process";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -115,6 +115,17 @@ const STILLS = [
 
 const MUSIC_SECONDS = 240;
 
+/**
+ * Optional creative-reference source. When present, the fixture bed is the
+ * first REFERENCE_MUSIC_CLIP_SECONDS of that file, looped to MUSIC_SECONDS so
+ * the film is fully covered. The source itself is never committed (fixtures/
+ * and *.mp3 are gitignored). Set REFERENCE_MUSIC_SRC to override the path.
+ */
+const REFERENCE_MUSIC_CLIP_SECONDS = 62;
+const referenceMusicSource = (): string =>
+  process.env.REFERENCE_MUSIC_SRC?.trim() ||
+  join(FIXTURES_DIR, "music", "reference-source.mp3");
+
 /* ── FFmpeg helpers ──────────────────────────────────────────────────── */
 
 const esc = (text: string): string =>
@@ -162,7 +173,13 @@ type Job = { readonly path: string; readonly build: () => Promise<void> };
 
 /* ── generators ──────────────────────────────────────────────────────── */
 
-const interviewJob = (spec: InterviewSpec, font: string): Job => {
+const interviewJob = (
+  spec: InterviewSpec,
+  font: string,
+  /** When true, speech audio is silent so a real music bed is not overlaid
+   *  with the fixture warble. Captions and ducking still follow the EDL. */
+  silentSpeech: boolean,
+): Job => {
   const path = join(FIXTURES_DIR, "interview", `${spec.id}.mp4`);
   return {
     path,
@@ -170,17 +187,19 @@ const interviewJob = (spec: InterviewSpec, font: string): Job => {
       const filters = [
         `[0:v]${diagnosticFilters(spec.label, font).join(",")}[v]`,
       ].join(";");
+      // Default: a speech-band warble (200-700Hz sweep) so ducking is audible
+      // against the synthetic tone bed. With a real reference track, that
+      // warble is the "weird sound" under every caption — use silence instead.
+      const audioInput = silentSpeech
+        ? `anullsrc=channel_layout=stereo:sample_rate=48000`
+        : `aevalsrc='0.28*sin(2*PI*t*(200+250*(1+sin(2*PI*t*0.7))))*` +
+          `(0.55+0.45*sin(2*PI*t*3.1))':s=48000:d=${INTERVIEW_SECONDS}`;
       await ffmpeg(
         [
           "-f", "lavfi",
           "-i", `color=c=${spec.hue}:s=${VIDEO_W}x${VIDEO_H}:r=${FPS}:d=${INTERVIEW_SECONDS}`,
-          // A speech-band warble: a 200-700Hz sweep gated on and off roughly
-          // once a second, so the ducking envelope is audible in the mezzanine
-          // and speech-band energy is measurable in the audio tests.
           "-f", "lavfi",
-          "-i",
-          `aevalsrc='0.28*sin(2*PI*t*(200+250*(1+sin(2*PI*t*0.7))))*` +
-            `(0.55+0.45*sin(2*PI*t*3.1))':s=48000:d=${INTERVIEW_SECONDS}`,
+          "-i", audioInput,
           "-filter_complex", filters,
           "-map", "[v]", "-map", "1:a",
           "-c:v", "libx264", "-preset", "veryfast", "-crf", "30", "-pix_fmt", "yuv420p",
@@ -259,6 +278,31 @@ const musicJob = (): Job => {
   return {
     path,
     build: async () => {
+      const source = referenceMusicSource();
+      if (await exists(source)) {
+        // Crop the reference to the first minute+2s, then loop until the bed
+        // is long enough for the fixture film (and the registry duration).
+        const clipPath = join(FIXTURES_DIR, "music", "reference-clip-62s.wav");
+        await ffmpeg(
+          [
+            "-i", source,
+            "-t", String(REFERENCE_MUSIC_CLIP_SECONDS),
+            "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
+          ],
+          clipPath,
+        );
+        await ffmpeg(
+          [
+            "-stream_loop", "-1",
+            "-i", clipPath,
+            "-t", String(MUSIC_SECONDS),
+            "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
+          ],
+          path,
+        );
+        return;
+      }
+
       // A slow two-note bed at 75bpm. Not music; enough to hear the ducking
       // envelope open and close against speech.
       await ffmpeg(
@@ -283,9 +327,19 @@ export const generateFixtures = async (
   { force = FORCE, quiet = false }: { force?: boolean; quiet?: boolean } = {},
 ): Promise<void> => {
   const font = await findFont();
+  const silentSpeech = await exists(referenceMusicSource());
+  const speechMode = silentSpeech ? "silent" : "warble";
+  const speechModeMarker = join(FIXTURES_DIR, "interview", ".speech-mode");
+  const previousMode = (await exists(speechModeMarker))
+    ? (await readFile(speechModeMarker, "utf8")).trim()
+    : null;
+  // No marker + warble: assume existing interview files are already warble.
+  // No marker + silent: regenerate — those files almost certainly still warble.
+  const speechModeChanged =
+    previousMode === null ? silentSpeech : previousMode !== speechMode;
 
-  const jobs: Job[] = [
-    ...INTERVIEWS.map((s) => interviewJob(s, font)),
+  const interviewJobs = INTERVIEWS.map((s) => interviewJob(s, font, silentSpeech));
+  const otherJobs: Job[] = [
     ...BROLL.map((s) => brollJob(s, font)),
     ...STILLS.map((s) => stillJob(s, font)),
     musicJob(),
@@ -295,13 +349,27 @@ export const generateFixtures = async (
     if (!quiet) process.stdout.write(`${message}\n`);
   };
 
+  if (speechModeChanged && previousMode !== null) {
+    log(
+      `fixtures: speech mode ${previousMode} → ${speechMode}; regenerating interview audio`,
+    );
+  }
+
   const pending: Job[] = [];
-  for (const job of jobs) {
+  for (const job of interviewJobs) {
+    if (!force && !speechModeChanged && (await exists(job.path))) continue;
+    pending.push(job);
+  }
+  for (const job of otherJobs) {
     if (!force && (await exists(job.path))) continue;
     pending.push(job);
   }
 
+  const jobs = [...interviewJobs, ...otherJobs];
+
   if (pending.length === 0) {
+    await mkdir(dirname(speechModeMarker), { recursive: true });
+    await writeFile(speechModeMarker, `${speechMode}\n`, "utf8");
     log(`fixtures: all ${jobs.length} assets present (--force to regenerate)`);
     return;
   }
@@ -325,6 +393,9 @@ export const generateFixtures = async (
     }
   };
   await Promise.all(Array.from({ length: CONCURRENCY }, worker));
+
+  await mkdir(dirname(speechModeMarker), { recursive: true });
+  await writeFile(speechModeMarker, `${speechMode}\n`, "utf8");
 
   log(`fixtures: done in ${((Date.now() - started) / 1000).toFixed(1)}s`);
 };
