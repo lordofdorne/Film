@@ -12,12 +12,14 @@
     "typecheck": "tsc -b --pretty && tsc -p tsconfig.test.json --pretty",
     "test": "vitest run",
     "test:watch": "vitest",
-    "fixtures": "tsx scripts/generate-fixtures.ts",
+    "studio": "remotion studio packages/render/src/entry.ts",
     "film": "pnpm build && tsx scripts/render-fixture-film.ts",
+    "fixtures": "tsx scripts/generate-fixtures.ts",
     "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo out"
   },
   "devDependencies": {
     "@remotion/bundler": "^4.0.505",
+    "@remotion/cli": "4.0.505",
     "@remotion/renderer": "^4.0.505",
     "@types/node": "^22.10.5",
     "@types/pngjs": "^6.0.5",
@@ -25,6 +27,7 @@
     "@types/react-dom": "^19.2.4",
     "pixelmatch": "^7.2.0",
     "pngjs": "^7.0.0",
+    "tslib": "^2.8.1",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^2.1.8"
