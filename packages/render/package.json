@@ -12,5 +12,14 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "dependencies": { "@film/edl": "workspace:*", "@film/formats": "workspace:*", "@film/music": "workspace:*", "@film/templates": "workspace:*", "react": "^19.0.0", "react-dom": "^19.0.0", "remotion": "^4.0.0" }
+  "dependencies": {
+    "@film/edl": "workspace:*",
+    "@film/formats": "workspace:*",
+    "@film/music": "workspace:*",
+    "@film/templates": "workspace:*",
+    "@fontsource-variable/inter": "^5.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "remotion": "^4.0.0"
+  }
 }

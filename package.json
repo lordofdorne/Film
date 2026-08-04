@@ -13,7 +13,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "fixtures": "tsx scripts/generate-fixtures.ts",
-    "film": "tsx scripts/render-fixture-film.ts",
+    "film": "pnpm build && tsx scripts/render-fixture-film.ts",
     "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo out"
   },
   "devDependencies": {
