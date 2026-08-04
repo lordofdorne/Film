@@ -50,6 +50,7 @@ export type TextConfig = {
 };
 
 export type CaptionPolicy = "all-speech" | "interview-only" | "emphasis-only";
+export type QuestionPromptMode = "live-interviewer" | "recorded-interviewer" | "text-only";
 
 export type Template = {
   readonly id: string;
@@ -61,6 +62,12 @@ export type Template = {
   readonly structure: readonly string[];
   readonly beatSources: Readonly<Record<string, BeatSource>>;
   readonly questions: readonly Question[];
+  readonly questionPrompt: {
+    readonly defaultMode: QuestionPromptMode;
+    readonly supportedModes: readonly QuestionPromptMode[];
+    /** Silence between the completed question treatment and the answer. */
+    readonly answerGapMs: number;
+  };
   readonly photoSlots: readonly MediaSlot[];
   readonly videoSlots: readonly MediaSlot[];
   readonly optionalSlots: readonly MediaSlot[];
@@ -99,6 +106,10 @@ export type TemplateStyling = {
     readonly maxLines: number;
     readonly bottomInsetVh: number;
   };
+  readonly question: TextStyle & {
+    readonly shadow: string;
+    readonly revealFadeMs: number;
+  };
   readonly title: TextStyle & {
     readonly background: string;
     readonly revealPerWordMs: number;
@@ -123,5 +134,6 @@ export const toConformance = (t: Template): TemplateConformance => ({
   requiredVideoSlotIds: t.conformance.requiredVideoSlotIds,
   questionIds: t.questions.map((q) => q.id),
   interviewScales: (t.editing["interviewScales"] as readonly number[] | undefined) ?? [1],
+  minPromptAnswerGapMs: t.questionPrompt.answerGapMs,
   targetDurationMs: t.targetDurationMs,
 });

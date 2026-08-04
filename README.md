@@ -1,7 +1,8 @@
 # Life Advice
 
-A template engine that turns a guided, self-recorded interview plus personal photos and short
-supplementary videos into a polished short documentary.
+A template engine that turns a guided, interviewer-led conversation plus personal photos and short
+supplementary videos into a polished short documentary. Questions can use a live off-screen
+interviewer, a separate interviewer recording, or timed text only.
 
 **Not a general AI video editor.** Each film type is an authored template; the engine is generic.
 The first — and the only one until it works well — is `life-advice@1`.
@@ -31,7 +32,7 @@ Produces `out/life-advice-fixture.mp4`: 3:34, 1440×1080, delivered at −14 LUF
 Roughly 9 minutes at concurrency 1 under software GL. Zero network calls.
 
 ```bash
-pnpm test        # 115 tests, ~13s
+pnpm test        # 135 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
@@ -41,14 +42,15 @@ UPDATE_GOLDENS=1 pnpm vitest run goldenFrames   # after an intended visual chang
 ## Layout
 
 ```
-packages/edl         Zod schemas + the validator. Zero package dependencies.
+packages/edl         Zod schemas + the validator, including visual, prompt and answer timelines.
 packages/formats     Format registry (landscape-classic only).
 packages/music       MusicTrack schema, track registry, cue sheets.
 packages/templates   LIFE_ADVICE_V1 and text interpolation.
 packages/render      Remotion composition, framing, captions, audio envelope.
 scripts/             Fixture generator and the render pipeline.
 sample/              The handwritten EDL, its asset manifest, and subject data.
-docs/proposal/       Design record, including the open questions.
+docs/proposal/       Phase design record, including the open questions.
+docs/adr/            Accepted cross-phase product and architecture decisions.
 ```
 
 Dependencies flow one way: `edl → (zod)`, `templates → edl, formats, music`, `render → all`.
@@ -66,8 +68,9 @@ engine changes true rather than aspirational. Keep it that way.
 
 **Audio doubling is prevented by making it unrepresentable.** `InterviewSegment` and `BrollSegment`
 have no audio field and both are strict, so an EDL that unmutes picture is a parse error.
-`PictureOnlyVideo` is the only module that renders a video element and exposes no volume prop. All
-speech comes from `SpeechTrack`. Do not add a fourth place that emits audio.
+`PictureOnlyVideo` is the only module that renders a video element and exposes no volume prop.
+Storyteller answers come from `SpeechTrack`; off-screen questions come from `PromptTrack`; music
+comes from `MusicBed`. Keep those three routes explicit and separate.
 
 ## Determinism
 

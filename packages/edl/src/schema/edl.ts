@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { Id, MsInt, MsPositive } from "./primitives.js";
+import { QuestionPromptSegmentSchema } from "./prompt.js";
 import { SpeechSegmentSchema } from "./speech.js";
 import { VisualSegmentSchema } from "./visual.js";
 
@@ -39,6 +40,8 @@ export const EdlSchema = z
     totalDurationMs: MsPositive,
     audio: EdlAudioSchema,
     visualSegments: z.array(VisualSegmentSchema).min(1),
+    /** Questions shown over picture, with optional off-screen interviewer audio. */
+    promptSegments: z.array(QuestionPromptSegmentSchema),
     speechSegments: z.array(SpeechSegmentSchema).min(1),
   })
   .strict();

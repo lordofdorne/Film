@@ -74,6 +74,21 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
     });
   }
 
+  if (!t.questionPrompt.supportedModes.includes(t.questionPrompt.defaultMode)) {
+    issues.push({
+      severity: "error",
+      message:
+        `default question-prompt mode "${t.questionPrompt.defaultMode}" is not among ` +
+        "supportedModes",
+    });
+  }
+  if (new Set(t.questionPrompt.supportedModes).size !== t.questionPrompt.supportedModes.length) {
+    issues.push({ severity: "error", message: "question-prompt modes are not unique" });
+  }
+  if (t.questionPrompt.answerGapMs < 0) {
+    issues.push({ severity: "error", message: "question-prompt answerGapMs cannot be negative" });
+  }
+
   // Every beat must be sourced, and every source must exist.
   const questionIds = new Set(t.questions.map((q) => q.id));
   const slotIds = new Set(

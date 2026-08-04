@@ -114,6 +114,7 @@ const STILLS = [
 ] as const;
 
 const MUSIC_SECONDS = 240;
+const PROMPT_SECONDS = 5;
 
 /**
  * Optional creative-reference source. When present, the fixture bed is the
@@ -321,6 +322,29 @@ const musicJob = (): Job => {
   };
 };
 
+const promptAudioJob = (): Job => {
+  const path = join(FIXTURES_DIR, "prompt", "asset_prompt_closing.wav");
+  return {
+    path,
+    build: async () => {
+      // A distinct speech-band signal representing a separately recorded
+      // interviewer question. It is deliberately different from the interview
+      // warble so prompt routing is audible in the fixture film.
+      await ffmpeg(
+        [
+          "-f", "lavfi",
+          "-i",
+          `aevalsrc='0.26*sin(2*PI*t*(310+90*sin(2*PI*t*0.9)))` +
+            `*(0.62+0.38*sin(2*PI*t*2.4))':s=48000:d=${PROMPT_SECONDS}`,
+          "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
+          "-t", String(PROMPT_SECONDS),
+        ],
+        path,
+      );
+    },
+  };
+};
+
 /* ── entry point ─────────────────────────────────────────────────────── */
 
 export const generateFixtures = async (
@@ -342,6 +366,7 @@ export const generateFixtures = async (
   const otherJobs: Job[] = [
     ...BROLL.map((s) => brollJob(s, font)),
     ...STILLS.map((s) => stillJob(s, font)),
+    promptAudioJob(),
     musicJob(),
   ];
 

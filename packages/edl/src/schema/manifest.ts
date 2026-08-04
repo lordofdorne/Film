@@ -6,43 +6,55 @@ import { Id, MsPositive } from "./primitives.js";
  * `assets` table in production and from a fixture description offline; either
  * way the EDL itself never carries dimensions, durations or URLs.
  */
-export const AssetEntrySchema = z
+const visualAssetFields = {
+  id: Id,
+  durationMs: MsPositive.optional(),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+};
+
+export const InterviewAssetEntrySchema = z
+  .object({
+    ...visualAssetFields,
+    kind: z.literal("interview"),
+    questionId: Id,
+    durationMs: MsPositive,
+  })
+  .strict();
+
+export const PhotoAssetEntrySchema = z
+  .object({
+    ...visualAssetFields,
+    kind: z.literal("photo"),
+    slotId: Id,
+  })
+  .strict();
+
+export const VideoAssetEntrySchema = z
+  .object({
+    ...visualAssetFields,
+    kind: z.literal("video"),
+    slotId: Id,
+    durationMs: MsPositive,
+  })
+  .strict();
+
+/** A normalised, audio-only interviewer recording bound to one question. */
+export const AudioAssetEntrySchema = z
   .object({
     id: Id,
-    kind: z.enum(["interview", "photo", "video"]),
-    /** Interview clips are bound to the question they answer. */
-    questionId: Id.optional(),
-    /** Photos and supplementary videos are bound to a named template slot. */
-    slotId: Id.optional(),
-    /** Required for interview and video; meaningless for a still. */
-    durationMs: MsPositive.optional(),
-    width: z.number().int().positive(),
-    height: z.number().int().positive(),
+    kind: z.literal("audio"),
+    questionId: Id,
+    durationMs: MsPositive,
   })
-  .strict()
-  .superRefine((a, ctx) => {
-    if (a.kind !== "photo" && a.durationMs === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["durationMs"],
-        message: `${a.kind} assets require durationMs`,
-      });
-    }
-    if (a.kind === "interview" && a.questionId === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["questionId"],
-        message: "interview assets require questionId",
-      });
-    }
-    if (a.kind !== "interview" && a.slotId === undefined) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["slotId"],
-        message: `${a.kind} assets require slotId`,
-      });
-    }
-  });
+  .strict();
+
+export const AssetEntrySchema = z.discriminatedUnion("kind", [
+  InterviewAssetEntrySchema,
+  PhotoAssetEntrySchema,
+  VideoAssetEntrySchema,
+  AudioAssetEntrySchema,
+]);
 
 export const AssetManifestSchema = z
   .object({ assets: z.array(AssetEntrySchema).min(1) })

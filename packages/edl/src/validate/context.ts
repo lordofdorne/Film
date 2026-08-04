@@ -44,6 +44,7 @@ export type TemplateConformance = {
   readonly requiredVideoSlotIds: readonly string[];
   readonly questionIds: readonly string[];
   readonly interviewScales: readonly number[];
+  readonly minPromptAnswerGapMs: number;
   readonly targetDurationMs: { readonly min: number; readonly max: number };
 };
 

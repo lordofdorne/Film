@@ -4,3 +4,9 @@ packages:
 # esbuild ships a platform binary via postinstall; tsx cannot run without it.
 onlyBuiltDependencies:
   - esbuild
+
+# recast (transitive, under Remotion's studio server) requires tslib without
+# declaring it. pnpm's strict layout is right and recast is wrong, but hoisting
+# is the only fix available on this side.
+publicHoistPattern:
+  - tslib

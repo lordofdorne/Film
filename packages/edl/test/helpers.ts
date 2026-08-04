@@ -59,6 +59,7 @@ export const CONFORMANCE = {
     "bonus_interviewer",
   ],
   interviewScales: [1, 1.06, 1.1],
+  minPromptAnswerGapMs: 200,
   targetDurationMs: { min: 210_000, max: 230_000 },
 } as const;
 
@@ -82,7 +83,10 @@ export type Rec = Record<string, unknown>;
 
 export const clone = (): Rec => structuredClone(VALID_EDL) as Rec;
 
-const list = (edl: Rec, track: "visualSegments" | "speechSegments"): Rec[] =>
+const list = (
+  edl: Rec,
+  track: "visualSegments" | "promptSegments" | "speechSegments",
+): Rec[] =>
   edl[track] as Rec[];
 
 export const visual = (edl: Rec, id: string): Rec => {
@@ -97,7 +101,14 @@ export const speech = (edl: Rec, id: string): Rec => {
   return found;
 };
 
+export const prompt = (edl: Rec, id: string): Rec => {
+  const found = list(edl, "promptSegments").find((s) => s["id"] === id);
+  if (found === undefined) throw new Error(`no prompt segment "${id}" in sample`);
+  return found;
+};
+
 export const visuals = (edl: Rec): Rec[] => list(edl, "visualSegments");
+export const prompts = (edl: Rec): Rec[] => list(edl, "promptSegments");
 export const speeches = (edl: Rec): Rec[] => list(edl, "speechSegments");
 export const audio = (edl: Rec): Rec => edl["audio"] as Rec;
 

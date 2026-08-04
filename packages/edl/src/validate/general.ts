@@ -1,6 +1,7 @@
 import type { EDL } from "../schema/edl.js";
 import { indexManifest, type AssetEntry } from "../schema/manifest.js";
 import { isFrameAligned } from "../schema/primitives.js";
+import { isRecordedPrompt } from "../schema/prompt.js";
 import { hasSlot } from "../schema/visual.js";
 import type { ValidationContext } from "./context.js";
 import type { IssueCollector } from "./issues.js";
@@ -39,7 +40,7 @@ export const checkGeneral = (
     );
   }
 
-  // Ids are unique across BOTH tracks. Segment ids appear in render logs and
+  // Ids are unique across every track. Segment ids appear in render logs and
   // golden-frame names, where a collision between a visual and a speech
   // segment would be quietly confusing.
   const seen = new Set<string>();
@@ -82,11 +83,45 @@ export const checkGeneral = (
         `${s.kind} segment references a "${asset.kind}" asset; expected "${expected}"`,
       );
     }
-    if (hasSlot(s) && asset.slotId !== s.slotId) {
+    if (hasSlot(s) && (!("slotId" in asset) || asset.slotId !== s.slotId)) {
       c.error(
         "ASSET_SLOT_MISMATCH",
         `${path}.slotId`,
-        `segment claims slot "${s.slotId}" but asset "${asset.id}" fills "${asset.slotId}"`,
+        `segment claims slot "${s.slotId}" but asset "${asset.id}" fills ` +
+          `"${"slotId" in asset ? asset.slotId : "no slot"}"`,
+      );
+    }
+  });
+
+  edl.promptSegments.forEach((prompt, i) => {
+    const path = `promptSegments[${i}]`;
+    noteId(prompt.id, `${path}.id`);
+    checkGridAndLength(prompt, path, edl.fps, minDurationMs, c);
+
+    if (!isRecordedPrompt(prompt)) return;
+    const asset = assets.get(prompt.assetId);
+    if (asset === undefined) {
+      c.error(
+        "UNKNOWN_ASSET",
+        `${path}.assetId`,
+        `asset "${prompt.assetId}" is not in the manifest`,
+      );
+      return;
+    }
+    const expectedKind = prompt.mode === "live-interviewer" ? "interview" : "audio";
+    if (asset.kind !== expectedKind) {
+      c.error(
+        "ASSET_KIND_MISMATCH",
+        `${path}.assetId`,
+        `${prompt.mode} prompt references a "${asset.kind}" asset; expected "${expectedKind}"`,
+      );
+    }
+    if (!("questionId" in asset) || asset.questionId !== prompt.questionId) {
+      c.error(
+        "ASSET_QUESTION_MISMATCH",
+        `${path}.questionId`,
+        `prompt claims question "${prompt.questionId}" but asset "${asset.id}" belongs to ` +
+          `"${"questionId" in asset ? asset.questionId : "no question"}"`,
       );
     }
   });
@@ -107,6 +142,7 @@ export const checkGeneral = (
         `${path}.assetId`,
         `speech references a "${asset.kind}" asset; speech comes from interview clips`,
       );
+      return;
     }
     if (asset.questionId !== s.questionId) {
       c.error(
