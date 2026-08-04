@@ -15,7 +15,7 @@
  *     -> FFmpeg verification             (fails the render if out of tolerance)
  */
 import { execFile } from "node:child_process";
-import { mkdir, rm, stat } from "node:fs/promises";
+import { mkdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
@@ -23,6 +23,8 @@ import { promisify } from "node:util";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 
+import { withoutMusicDuck } from "../packages/render/src/fixture.js";
+import type { FilmProps } from "../packages/render/src/props.js";
 import { generateFixtures } from "./generate-fixtures.js";
 import { webpackOverride } from "./webpack-override.js";
 
@@ -140,10 +142,24 @@ const main = async (): Promise<void> => {
       `(${(composition.durationInFrames / composition.fps).toFixed(1)}s)`,
   );
 
+  // Silent interview audio (reference-music mode) has nothing for the bed to
+  // duck under — leave music at full authored gain so loudnorm can hit ?14.
+  let inputProps: FilmProps | undefined;
+  try {
+    const mode = (await readFile(join(FIXTURES, "interview", ".speech-mode"), "utf8")).trim();
+    if (mode === "silent") {
+      inputProps = withoutMusicDuck(composition.props as FilmProps);
+      note("speech mode silent — music ducking disabled for this render");
+    }
+  } catch {
+    /* marker absent: keep authored ducking */
+  }
+
   let lastReported = -1;
   await renderMedia({
     serveUrl,
     composition,
+    ...(inputProps !== undefined ? { inputProps } : {}),
     codec: "h264",
     crf: 18,
     outputLocation: MEZZANINE,

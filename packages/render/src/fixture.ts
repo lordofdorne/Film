@@ -1,7 +1,3 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-
 import {
   AssetManifestSchema,
   assertValidEdl,
@@ -18,18 +14,6 @@ import {
   type Template,
 } from "@film/templates";
 import type { FilmProps } from "./props.js";
-
-const FIXTURES_DIR = join(fileURLToPath(new URL("../../..", import.meta.url)), "fixtures");
-
-/** True when interview fixtures were generated without speech audio. */
-const interviewSpeechIsSilent = (): boolean => {
-  try {
-    const mode = readFileSync(join(FIXTURES_DIR, "interview", ".speech-mode"), "utf8").trim();
-    return mode === "silent";
-  } catch {
-    return false;
-  }
-};
 
 /**
  * Where the fixture generator writes each kind of asset, relative to the
@@ -91,14 +75,8 @@ export const buildFixtureProps = (input: BuildInput): FilmProps => {
     assetSizes[asset.id] = { width: asset.width, height: asset.height };
   }
 
-  // Silent interview audio + music ducking leaves long near-zero stretches and
-  // loudnorm can't hit −14 LUFS. With nothing to duck under, leave the bed up.
-  const renderEdl: EDL = interviewSpeechIsSilent()
-    ? { ...edl, audio: { ...edl.audio, duckDb: 0 } }
-    : edl;
-
   return {
-    edl: renderEdl,
+    edl,
     format,
     styling: template.styling,
     text: text.text,
@@ -118,3 +96,17 @@ export const buildFixtureProps = (input: BuildInput): FilmProps => {
     },
   };
 };
+
+/**
+ * When interview fixtures are silent (reference-music mode), zero out ducking
+ * so the bed isn't suppressed under empty speech — loudnorm cannot hit −14
+ * LUFS otherwise. Applied via render inputProps, not inside the Remotion
+ * bundle (which cannot read the fixtures/ marker).
+ */
+export const withoutMusicDuck = (props: FilmProps): FilmProps => ({
+  ...props,
+  edl: {
+    ...props.edl,
+    audio: { ...props.edl.audio, duckDb: 0 },
+  },
+});
