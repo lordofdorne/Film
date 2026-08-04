@@ -26,6 +26,13 @@ export type FilmProps = {
     readonly duckReleaseMs: number;
     readonly fadeInMs: number;
     readonly fadeOutMs: number;
+    /**
+     * Optional render-time overrides of the EDL audio gains. Used by the
+     * fixture pipeline when interview speech is silent so the bed is not
+     * ducked under empty segments.
+     */
+    readonly musicGainDb?: number;
+    readonly duckDb?: number;
   };
 };
 
