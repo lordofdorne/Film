@@ -101,11 +101,16 @@ export const framePhoto = (input: FramingInput): Frame => {
   let x = outWidth / 2 - focalPoint.x * width;
   let y = outHeight / 2 - focalPoint.y * height;
 
-  // 4. Pan travels across whatever horizontal slack the overscan created.
+  // 4. Pan travels across the available horizontal slack.
   //    panRight moves the VIEW right, so the image slides left.
+  //
+  //    Travel is scaled by intensity, not just by the overscan it produces. A
+  //    wide source has slack from the aspect mismatch alone, so without this a
+  //    panLeft at intensity 0 still drifts — and intensity would not mean what
+  //    it says. Zero intensity is zero movement, for every motion.
   if (motion === "panLeft" || motion === "panRight") {
     const slack = Math.max(0, width - outWidth);
-    const travel = slack * PAN_TRAVEL * (t - 0.5);
+    const travel = slack * PAN_TRAVEL * strength * (t - 0.5);
     x += motion === "panRight" ? -travel : travel;
   }
 
