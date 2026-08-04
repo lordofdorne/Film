@@ -115,6 +115,17 @@ const STILLS = [
 
 const MUSIC_SECONDS = 240;
 
+/**
+ * Optional creative-reference source. When present, the fixture bed is the
+ * first REFERENCE_MUSIC_CLIP_SECONDS of that file, looped to MUSIC_SECONDS so
+ * the film is fully covered. The source itself is never committed (fixtures/
+ * and *.mp3 are gitignored). Set REFERENCE_MUSIC_SRC to override the path.
+ */
+const REFERENCE_MUSIC_CLIP_SECONDS = 62;
+const referenceMusicSource = (): string =>
+  process.env.REFERENCE_MUSIC_SRC?.trim() ||
+  join(FIXTURES_DIR, "music", "reference-source.mp3");
+
 /* ── FFmpeg helpers ──────────────────────────────────────────────────── */
 
 const esc = (text: string): string =>
@@ -259,6 +270,31 @@ const musicJob = (): Job => {
   return {
     path,
     build: async () => {
+      const source = referenceMusicSource();
+      if (await exists(source)) {
+        // Crop the reference to the first minute+2s, then loop until the bed
+        // is long enough for the fixture film (and the registry duration).
+        const clipPath = join(FIXTURES_DIR, "music", "reference-clip-62s.wav");
+        await ffmpeg(
+          [
+            "-i", source,
+            "-t", String(REFERENCE_MUSIC_CLIP_SECONDS),
+            "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
+          ],
+          clipPath,
+        );
+        await ffmpeg(
+          [
+            "-stream_loop", "-1",
+            "-i", clipPath,
+            "-t", String(MUSIC_SECONDS),
+            "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
+          ],
+          path,
+        );
+        return;
+      }
+
       // A slow two-note bed at 75bpm. Not music; enough to hear the ducking
       // envelope open and close against speech.
       await ffmpeg(
