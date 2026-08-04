@@ -6,6 +6,8 @@ import {
   clone,
   codesOf,
   describeResult,
+  prompt,
+  prompts,
   speech,
   speeches,
   visual,
@@ -39,8 +41,12 @@ describe("the valid sample", () => {
   it("passes every invariant", () => {
     const result = expectValid(VALID_EDL);
     expect(result.edl.totalDurationMs).toBe(214_000);
-    expect(result.edl.visualSegments).toHaveLength(33);
+    expect(result.edl.visualSegments).toHaveLength(34);
+    expect(result.edl.promptSegments).toHaveLength(3);
     expect(result.edl.speechSegments).toHaveLength(11);
+    expect(new Set(result.edl.promptSegments.map((p) => p.mode))).toEqual(
+      new Set(["text-only", "recorded-interviewer", "live-interviewer"]),
+    );
   });
 
   it("produces no warnings — every boundary is frame-aligned and in target", () => {
@@ -109,10 +115,16 @@ describe("schema", () => {
     visual(edl, "v12_photo_personality")["focalPoint"] = { x: 1.4, y: 0.5 };
     expectError(edl, "SCHEMA_INVALID");
   });
+
+  it("makes audio unrepresentable on a text-only prompt", () => {
+    const edl = clone();
+    prompt(edl, "p01_love_text")["assetId"] = "asset_prompt_closing";
+    expectError(edl, "SCHEMA_INVALID");
+  });
 });
 
 describe("general", () => {
-  it("rejects a duplicate segment id across the two tracks", () => {
+  it("rejects a duplicate segment id across tracks", () => {
     const edl = clone();
     speech(edl, "s05_longevity")["id"] = "v13_iv_greatest_a";
     expectError(edl, "DUPLICATE_SEGMENT_ID");
@@ -139,6 +151,18 @@ describe("general", () => {
   it("rejects speech attributed to the wrong question", () => {
     const edl = clone();
     speech(edl, "s05_longevity")["questionId"] = "greatest_lesson";
+    expectError(edl, "ASSET_QUESTION_MISMATCH");
+  });
+
+  it("rejects a separately recorded prompt pointing at an interview asset", () => {
+    const edl = clone();
+    prompt(edl, "p02_closing_recorded")["assetId"] = "asset_iv_closing_message";
+    expectError(edl, "ASSET_KIND_MISMATCH");
+  });
+
+  it("rejects a prompt recording bound to the wrong question", () => {
+    const edl = clone();
+    prompt(edl, "p02_closing_recorded")["questionId"] = "love_lesson";
     expectError(edl, "ASSET_QUESTION_MISMATCH");
   });
 
@@ -179,6 +203,74 @@ describe("general", () => {
     const edl = clone();
     visual(edl, "v03_main_title")["overlayTextKey"] = "opening";
     expectError(edl, "OVERLAY_TEXT_COLLISION");
+  });
+});
+
+describe("question-prompt timeline", () => {
+  it("rejects overlapping prompts", () => {
+    const edl = clone();
+    prompt(edl, "p02_closing_recorded")["startMs"] = 140_000;
+    expectError(edl, "PROMPT_OVERLAP");
+  });
+
+  it("rejects out-of-order prompts", () => {
+    const edl = clone();
+    const list = prompts(edl);
+    const first = list[0];
+    const second = list[1];
+    if (first === undefined || second === undefined) throw new Error("sample too short");
+    list[0] = second;
+    list[1] = first;
+    expectError(edl, "PROMPT_NOT_SORTED");
+  });
+
+  it("rejects a question that overlaps its answer", () => {
+    const edl = clone();
+    prompt(edl, "p01_love_text")["startMs"] = 140_500;
+    expectError(edl, "PROMPT_SPEECH_OVERLAP");
+  });
+
+  it("enforces the template's minimum pause before an answer", () => {
+    const edl = clone();
+    prompt(edl, "p01_love_text")["durationMs"] = 1_100;
+    const captions = prompt(edl, "p01_love_text")["captions"] as Rec[];
+    const last = captions.at(-1);
+    if (last === undefined) throw new Error("no captions");
+    last["endMs"] = 1_000;
+    expectError(
+      edl,
+      "PROMPT_ANSWER_GAP_TOO_SHORT",
+      baseContext({
+        conformance: { ...baseContext().conformance, minPromptAnswerGapMs: 400 },
+      }),
+    );
+  });
+
+  it("rejects a prompt outside the film", () => {
+    const edl = clone();
+    prompt(edl, "p03_bonus_live")["startMs"] = 213_000;
+    expectError(edl, "PROMPT_OUTSIDE_TIMELINE");
+  });
+
+  it("rejects a prompt with no later answer", () => {
+    const edl = clone();
+    prompt(edl, "p03_bonus_live")["startMs"] = 208_000;
+    expectError(edl, "PROMPT_ANSWER_MISSING");
+  });
+
+  it("rejects a recorded prompt whose source span disagrees with its duration", () => {
+    const edl = clone();
+    prompt(edl, "p02_closing_recorded")["sourceOutMs"] = 2_900;
+    expectError(edl, "SOURCE_SPAN_MISMATCH");
+  });
+
+  it("rejects prompt text timed past the prompt boundary", () => {
+    const edl = clone();
+    const captions = prompt(edl, "p01_love_text")["captions"] as Rec[];
+    const last = captions.at(-1);
+    if (last === undefined) throw new Error("no captions");
+    last["endMs"] = 1_300;
+    expectError(edl, "CAPTION_OUT_OF_BOUNDS");
   });
 });
 

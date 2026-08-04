@@ -21,6 +21,16 @@ export type Theme = {
     bottom: number;
     maxWidth: number;
   };
+  readonly question: {
+    fontSize: number;
+    fontWeight: number;
+    letterSpacing: number;
+    color: string;
+    textShadow: string;
+    lineHeight: number;
+    maxWidth: number;
+    revealFadeMs: number;
+  };
   readonly title: {
     fontSize: number;
     fontWeight: number;
@@ -59,6 +69,7 @@ export const buildTheme = (styling: TemplateStyling, format: Format): Theme => {
   const em = (sizeVh: number): number => Math.round(sizeVh * scale);
 
   const captionSize = em(styling.caption.sizeVh);
+  const questionSize = em(styling.question.sizeVh);
   const titleSize = em(styling.title.sizeVh);
   const overlaySize = em(styling.overlay.sizeVh);
   const emphasisSize = em(styling.emphasis.sizeVh);
@@ -76,6 +87,16 @@ export const buildTheme = (styling: TemplateStyling, format: Format): Theme => {
       maxLines: styling.caption.maxLines,
       bottom: Math.round(styling.caption.bottomInsetVh * format.height),
       maxWidth: safe.width,
+    },
+    question: {
+      fontSize: questionSize,
+      fontWeight: styling.question.weight,
+      letterSpacing: styling.question.tracking * questionSize,
+      color: styling.question.fill,
+      textShadow: styling.question.shadow,
+      lineHeight: 1.2,
+      maxWidth: safe.width,
+      revealFadeMs: styling.question.revealFadeMs,
     },
     title: {
       fontSize: titleSize,

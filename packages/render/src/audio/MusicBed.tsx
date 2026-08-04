@@ -1,6 +1,6 @@
 import { Audio, staticFile } from "remotion";
 import type { FilmProps } from "../props.js";
-import { msToFrame, speechIntervals } from "../timing/windows.js";
+import { msToFrame, spokenIntervals } from "../timing/windows.js";
 import { musicVolumeAt, type EnvelopeConfig } from "./envelope.js";
 
 /**
@@ -15,7 +15,7 @@ import { musicVolumeAt, type EnvelopeConfig } from "./envelope.js";
  */
 export const MusicBed = ({ props }: { readonly props: FilmProps }) => {
   const { edl, format } = props;
-  const intervals = speechIntervals(edl);
+  const intervals = spokenIntervals(edl);
 
   const config: EnvelopeConfig = {
     musicGainDb: edl.audio.musicGainDb,

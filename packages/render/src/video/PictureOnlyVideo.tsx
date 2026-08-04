@@ -13,8 +13,8 @@ import { OffthreadVideo, Video, useVideoConfig } from "remotion";
  * Combined with the schema — InterviewSegment and BrollSegment have no audio
  * field, and both are strict — this is the second of the layers that make
  * audio doubling unrepresentable rather than merely unlikely. A boundary test
- * asserts that <Video>, <OffthreadVideo> and <Audio> appear in exactly three
- * modules, of which this is one.
+ * asserts that video elements appear only here and audio elements appear only
+ * in the three explicit track modules.
  *
  * OffthreadVideo is used for server renders because it extracts frames with
  * FFmpeg rather than seeking a <video> element, which is both faster and

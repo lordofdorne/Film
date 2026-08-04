@@ -69,6 +69,47 @@ export const checkConformance = (
       );
     }
   });
+  edl.promptSegments.forEach((prompt, i) => {
+    if (!known.has(prompt.questionId)) {
+      c.error(
+        "UNKNOWN_QUESTION_ID",
+        `promptSegments[${i}].questionId`,
+        `"${prompt.questionId}" is not a question in ${t.templateId}@${t.templateVersion}`,
+      );
+    }
+
+    const answer = edl.speechSegments.find(
+      (speech) =>
+        speech.questionId === prompt.questionId &&
+        speech.startMs >= prompt.startMs + prompt.durationMs,
+    );
+    if (answer === undefined) {
+      c.error(
+        "PROMPT_ANSWER_MISSING",
+        `promptSegments[${i}].questionId`,
+        `question prompt "${prompt.id}" has no later answer for "${prompt.questionId}"`,
+      );
+      return;
+    }
+
+    const gap = answer.startMs - (prompt.startMs + prompt.durationMs);
+    if (gap < t.minPromptAnswerGapMs) {
+      c.error(
+        "PROMPT_ANSWER_GAP_TOO_SHORT",
+        `promptSegments[${i}].durationMs`,
+        `question ends ${gap}ms before answer "${answer.id}"; ` +
+          `the template requires at least ${t.minPromptAnswerGapMs}ms`,
+      );
+    }
+    if (prompt.mode === "live-interviewer" && prompt.assetId !== answer.assetId) {
+      c.error(
+        "LIVE_PROMPT_ANSWER_ASSET_MISMATCH",
+        `promptSegments[${i}].assetId`,
+        `live prompt reads "${prompt.assetId}" but its answer reads "${answer.assetId}"; ` +
+          "a live question and answer must come from the same take",
+      );
+    }
+  });
 
   // A warning: a film slightly outside the target is a note to the editor,
   // not a reason to refuse to render it.

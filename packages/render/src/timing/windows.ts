@@ -1,4 +1,5 @@
-import type { EDL, SpeechSegment, VisualSegment } from "@film/edl";
+import type { EDL, QuestionPromptSegment, SpeechSegment, VisualSegment } from "@film/edl";
+import { isRecordedPrompt } from "@film/edl";
 
 /**
  * Absolute frame index for a timeline position. Windows are derived by
@@ -69,6 +70,35 @@ export const speechWindows = (edl: EDL): SpeechWindow[] => {
   });
 };
 
+export type PromptWindow = {
+  readonly segment: QuestionPromptSegment;
+  readonly fromFrame: number;
+  readonly durationInFrames: number;
+};
+
+export const promptWindows = (edl: EDL): PromptWindow[] => {
+  const { fps } = edl;
+  return edl.promptSegments.map((segment) => {
+    const fromFrame = msToFrame(segment.startMs, fps);
+    return {
+      segment,
+      fromFrame,
+      durationInFrames: Math.max(
+        1,
+        msToFrame(segment.startMs + segment.durationMs, fps) - fromFrame,
+      ),
+    };
+  });
+};
+
 /** Speech boundaries in ms — the only input to the music envelope. */
 export const speechIntervals = (edl: EDL): ReadonlyArray<readonly [number, number]> =>
   edl.speechSegments.map((s) => [s.startMs, s.startMs + s.durationMs] as const);
+
+/** Every interval containing audible dialogue, used to duck the music bed. */
+export const spokenIntervals = (edl: EDL): ReadonlyArray<readonly [number, number]> => [
+  ...speechIntervals(edl),
+  ...edl.promptSegments
+    .filter(isRecordedPrompt)
+    .map((p) => [p.startMs, p.startMs + p.durationMs] as const),
+].sort((a, b) => a[0] - b[0]);

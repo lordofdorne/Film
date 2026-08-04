@@ -3,7 +3,8 @@ import { assetPath, type FilmProps } from "../props.js";
 import { msToFrame, speechWindows } from "../timing/windows.js";
 
 /**
- * The only source of speech in the film.
+ * The only source of storyteller answers in the film. Off-screen interviewer
+ * questions have their own equally explicit route through PromptTrack.
  *
  * Interview audio never travels through the visual tree — picture segments are
  * silent by construction. That separation is what makes the two guarantees in

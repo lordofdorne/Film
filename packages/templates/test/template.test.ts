@@ -52,6 +52,13 @@ describe("template registry", () => {
     expect(LIFE_ADVICE_V1.questions.filter((q) => q.required)).toHaveLength(9);
   });
 
+  it("supports all three interviewer question treatments", () => {
+    expect(LIFE_ADVICE_V1.questionPrompt.defaultMode).toBe("live-interviewer");
+    expect(new Set(LIFE_ADVICE_V1.questionPrompt.supportedModes)).toEqual(
+      new Set(["live-interviewer", "recorded-interviewer", "text-only"]),
+    );
+  });
+
   it("exposes conformance the EDL validator can consume without importing this package", () => {
     const c = toConformance(LIFE_ADVICE_V1);
     expect(c.templateId).toBe("life-advice");

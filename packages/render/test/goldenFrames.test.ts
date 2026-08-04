@@ -58,11 +58,14 @@ const FRAMES: ReadonlyArray<{ name: string; frame: number; why: string }> = [
   { name: "12-photo-out-motion", frame: 2450, why: "square photo, out motion, insetExpand" },
   { name: "13-crossfade-interview-photo", frame: 3651, why: "600ms dissolve, both layers visible" },
   { name: "14-crossfade-photo-photo", frame: 3777, why: "photo-to-photo dissolve" },
+  { name: "21-question-text-only", frame: 4212, why: "text-only question over interview picture" },
   { name: "15-emphasis-funny", frame: 4470, why: "emphasis caption, funny tone, two lines" },
+  { name: "22-question-recorded", frame: 5025, why: "separately recorded question text" },
   { name: "16-keepsake-still", frame: 5460, why: "keepsake, still motion, insetExpand" },
   { name: "17-black-card", frame: 5700, why: "black beat card" },
-  { name: "18-end-title", frame: 5850, why: "end title callback" },
-  { name: "19-bonus-fade", frame: 5930, why: "title -> interview fade, incoming over black" },
+  { name: "18-end-title", frame: 5790, why: "end title callback" },
+  { name: "23-question-live", frame: 5930, why: "live question over the listening storyteller" },
+  { name: "19-bonus-fade", frame: 5960, why: "question -> lip-synced bonus answer" },
   { name: "20-dedication", frame: 6270, why: "dedication card, fade reveal" },
 ];
 
@@ -75,8 +78,9 @@ describe("golden frames", () => {
   beforeAll(async () => {
     // Fixtures must exist; generating them here would make one test take a
     // minute and hide the dependency.
-    const probe = join(ROOT, "fixtures", "interview", "asset_iv_greatest_lesson.mp4");
-    if (!existsSync(probe)) {
+    const videoProbe = join(ROOT, "fixtures", "interview", "asset_iv_greatest_lesson.mp4");
+    const promptProbe = join(ROOT, "fixtures", "prompt", "asset_prompt_closing.wav");
+    if (!existsSync(videoProbe) || !existsSync(promptProbe)) {
       execFileSync("pnpm", ["fixtures"], { cwd: ROOT, stdio: "inherit" });
     }
     for (const dir of [GOLDEN_DIR, ACTUAL_DIR, DIFF_DIR]) {
@@ -94,7 +98,7 @@ describe("golden frames", () => {
   it("covers every visual kind, transition and text treatment", () => {
     // A guard on the list itself: if a treatment is added and no frame is
     // captured for it, this is where it should be noticed.
-    expect(FRAMES.length).toBeGreaterThanOrEqual(20);
+    expect(FRAMES.length).toBeGreaterThanOrEqual(23);
     expect(new Set(FRAMES.map((f) => f.name)).size).toBe(FRAMES.length);
     expect(new Set(FRAMES.map((f) => f.frame)).size).toBe(FRAMES.length);
   });

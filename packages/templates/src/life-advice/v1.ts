@@ -152,6 +152,12 @@ const config: Template = {
     },
   ],
 
+  questionPrompt: {
+    defaultMode: "live-interviewer",
+    supportedModes: ["live-interviewer", "recorded-interviewer", "text-only"],
+    answerGapMs: 200,
+  },
+
   photoSlots: [
     { id: "photo_early", label: "An earlier photo", required: true },
     { id: "photo_personality", label: "A photo that shows their personality", required: true },
@@ -249,6 +255,14 @@ const config: Template = {
       shadow: "0 2px 18px rgba(0,0,0,0.62)",
       maxLines: 2,
       bottomInsetVh: 0.1,
+    },
+    question: {
+      weight: 420,
+      sizeVh: 0.055,
+      tracking: -0.012,
+      fill: "#F4F1EC",
+      shadow: "0 2px 22px rgba(0,0,0,0.72)",
+      revealFadeMs: 180,
     },
     title: {
       weight: 300,

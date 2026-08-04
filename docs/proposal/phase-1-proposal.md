@@ -473,7 +473,9 @@ export const PLACEHOLDER_TRACK: MusicTrack = {
 
 ## 4. Sample EDL
 
-See [`sample-edl.json`](./sample-edl.json) — 33 visual segments, 11 speech segments, 214 000 ms.
+The implemented sample contains 34 visual segments, 3 question-prompt segments, 11 storyteller
+speech segments, and a 214 000 ms timeline. The prompts exercise live-interviewer,
+recorded-interviewer, and text-only treatments without changing the authored film structure.
 
 **Fixture asset manifest** (what `scripts/generate-fixtures.ts` must produce):
 
@@ -496,6 +498,7 @@ See [`sample-edl.json`](./sample-edl.json) — 33 visual segments, 11 speech seg
 | `asset_broll_environment` | video | `video_environment` | 1920×1080 · 12 s |
 | `asset_broll_group` | video | `video_group` | 1920×1080 · 12 s |
 | `asset_broll_personality` | video | `video_personality` | 1920×1080 · 12 s |
+| `asset_prompt_closing` | audio | `closing_message` | 5 s · stereo 48 kHz synthetic interviewer prompt |
 | — | music | — | 240 s stereo 48 kHz tone bed, 75 bpm |
 
 Every synthetic video burns in **asset label + running source timecode + frame number** via `drawtext`, each on a distinct flat base colour, so a golden frame proves `sourceInMs` was honoured rather than merely that *something* rendered. Interview clips carry a speech-band warble (amplitude-modulated 200–700 Hz) so the ducking envelope is audible in the mezzanine.
@@ -587,7 +590,7 @@ Guards:
 
 ---
 
-## 7. Preventing audio doubling between the two tracks
+## 7. Preventing audio doubling between the tracks
 
 Six independent layers, ordered from "makes it impossible" to "catches it if it somehow happens":
 
@@ -595,9 +598,12 @@ Six independent layers, ordered from "makes it impossible" to "catches it if it 
 
 2. **One video component, no escape hatch.** Every `interview` and `broll` segment renders through `PictureOnlyVideo`, the sole module permitted to import Remotion's `<Video>` / `<OffthreadVideo>`. It hardcodes `muted` and `volume={0}`, and its props type has no volume-shaped member. Segment components receive picture geometry only.
 
-3. **One audio origin.** `<SpeechTrack>` maps `edl.speechSegments` and is the only place `<Audio>` appears outside `<MusicBed>`. Speech never travels through the visual tree, so a visual crossfade cannot ramp it — this is also why cross-dissolves are guaranteed not to dip speech.
+3. **Explicit dialogue origins.** `<SpeechTrack>` maps storyteller answers and `<PromptTrack>` maps
+off-screen interviewer questions. `<MusicBed>` remains the third audio route. Dialogue never
+travels through the visual tree, so a visual crossfade cannot ramp or duplicate it.
 
-4. **A lint/unit boundary test.** A Vitest case greps the built module graph and asserts that `<Video`, `<OffthreadVideo`, and `<Audio` appear in exactly `PictureOnlyVideo.tsx`, `SpeechTrack.tsx`, and `MusicBed.tsx`. Adding a fourth site fails CI. This is the rule that survives future contributors.
+4. **A lint/unit boundary test.** The audio boundary permits `<Audio>` only in `SpeechTrack.tsx`,
+`PromptTrack.tsx`, and `MusicBed.tsx`; video remains isolated in `PictureOnlyVideo.tsx`.
 
 5. **A mutation test.** The offline end-to-end fixture renders twice: once normally, once with `PictureOnlyVideo` forced to `muted={false}`. The test asserts the second render's decoded speech-band energy exceeds the first by ≈ 6 dB and **fails if it does not** — i.e. it proves the detector works, so a green normal run is meaningful rather than vacuous.
 

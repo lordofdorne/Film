@@ -373,24 +373,95 @@
       "reveal": "sequential"
     },
     {
-      "id": "v32_iv_bonus",
+      "id": "v32_iv_bonus_prompt",
       "kind": "interview",
       "startMs": 197200,
-      "durationMs": 10800,
+      "durationMs": 1300,
       "transitionIn": { "type": "fade", "durationMs": 800 },
       "assetId": "asset_iv_bonus",
-      "sourceInMs": 1700,
+      "sourceInMs": 0,
+      "sourceOutMs": 1300,
+      "scale": 1
+    },
+    {
+      "id": "v33_iv_bonus_answer",
+      "kind": "interview",
+      "startMs": 198500,
+      "durationMs": 9500,
+      "transitionIn": { "type": "cut", "durationMs": 0 },
+      "assetId": "asset_iv_bonus",
+      "sourceInMs": 3000,
       "sourceOutMs": 12500,
       "scale": 1
     },
     {
-      "id": "v33_dedication",
+      "id": "v34_dedication",
       "kind": "title",
       "startMs": 207200,
       "durationMs": 6800,
       "transitionIn": { "type": "fade", "durationMs": 800 },
       "textKey": "closing",
       "reveal": "fade"
+    }
+  ],
+
+  "promptSegments": [
+    {
+      "id": "p01_love_text",
+      "questionId": "love_lesson",
+      "mode": "text-only",
+      "startMs": 139800,
+      "durationMs": 1200,
+      "captions": [
+        { "text": "What", "startMs": 0, "endMs": 160 },
+        { "text": "have", "startMs": 170, "endMs": 330 },
+        { "text": "you", "startMs": 340, "endMs": 500 },
+        { "text": "learned", "startMs": 510, "endMs": 690 },
+        { "text": "about", "startMs": 700, "endMs": 860 },
+        { "text": "love?", "startMs": 870, "endMs": 1100 }
+      ]
+    },
+    {
+      "id": "p02_closing_recorded",
+      "questionId": "closing_message",
+      "mode": "recorded-interviewer",
+      "assetId": "asset_prompt_closing",
+      "startMs": 166000,
+      "durationMs": 3000,
+      "sourceInMs": 0,
+      "sourceOutMs": 3000,
+      "captions": [
+        { "text": "What", "startMs": 100, "endMs": 320 },
+        { "text": "would", "startMs": 340, "endMs": 560 },
+        { "text": "you", "startMs": 580, "endMs": 800 },
+        { "text": "like", "startMs": 820, "endMs": 1040 },
+        { "text": "to", "startMs": 1060, "endMs": 1280 },
+        { "text": "say", "startMs": 1300, "endMs": 1520 },
+        { "text": "to", "startMs": 1540, "endMs": 1760 },
+        { "text": "whoever", "startMs": 1780, "endMs": 2070 },
+        { "text": "watches", "startMs": 2090, "endMs": 2380 },
+        { "text": "this?", "startMs": 2400, "endMs": 2700 }
+      ]
+    },
+    {
+      "id": "p03_bonus_live",
+      "questionId": "bonus_interviewer",
+      "mode": "live-interviewer",
+      "assetId": "asset_iv_bonus",
+      "startMs": 197200,
+      "durationMs": 1100,
+      "sourceInMs": 0,
+      "sourceOutMs": 1100,
+      "captions": [
+        { "text": "What", "startMs": 0, "endMs": 120 },
+        { "text": "do", "startMs": 130, "endMs": 250 },
+        { "text": "you", "startMs": 260, "endMs": 380 },
+        { "text": "think", "startMs": 390, "endMs": 510 },
+        { "text": "of", "startMs": 520, "endMs": 640 },
+        { "text": "Margaret,", "startMs": 650, "endMs": 780 },
+        { "text": "your", "startMs": 790, "endMs": 910 },
+        { "text": "granddaughter?", "startMs": 920, "endMs": 1050 }
+      ]
     }
   ],
 

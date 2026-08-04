@@ -18,6 +18,8 @@
 
     { "id": "asset_broll_environment",       "kind": "video", "slotId": "video_environment", "durationMs": 12000, "width": 1920, "height": 1080 },
     { "id": "asset_broll_group",             "kind": "video", "slotId": "video_group",       "durationMs": 12000, "width": 1920, "height": 1080 },
-    { "id": "asset_broll_personality",       "kind": "video", "slotId": "video_personality", "durationMs": 12000, "width": 1920, "height": 1080 }
+    { "id": "asset_broll_personality",       "kind": "video", "slotId": "video_personality", "durationMs": 12000, "width": 1920, "height": 1080 },
+
+    { "id": "asset_prompt_closing",          "kind": "audio", "questionId": "closing_message", "durationMs": 5000 }
   ]
 }

@@ -29,6 +29,8 @@ const fixturePath = (id: string, kind: AssetManifest["assets"][number]["kind"]):
       return `broll/${id}.mp4`;
     case "photo":
       return `photo/${id}.jpg`;
+    case "audio":
+      return `prompt/${id}.wav`;
   }
 };
 
@@ -72,7 +74,9 @@ export const buildFixtureProps = (input: BuildInput): FilmProps => {
   const assetSizes: Record<string, { width: number; height: number }> = {};
   for (const asset of manifest.assets) {
     assetPaths[asset.id] = fixturePath(asset.id, asset.kind);
-    assetSizes[asset.id] = { width: asset.width, height: asset.height };
+    if (asset.kind !== "audio") {
+      assetSizes[asset.id] = { width: asset.width, height: asset.height };
+    }
   }
 
   return {

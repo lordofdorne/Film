@@ -5,6 +5,7 @@ import { checkCrossTrack } from "./crossTrack.js";
 import { checkGeneral } from "./general.js";
 import { IssueCollector, type ValidationResult } from "./issues.js";
 import { checkMusic } from "./music.js";
+import { checkPromptTimeline } from "./promptTimeline.js";
 import { checkSpeechTimeline } from "./speechTimeline.js";
 import { checkVisualTimeline } from "./visualTimeline.js";
 
@@ -38,6 +39,7 @@ export const validateEdl = (
 
   checkGeneral(edl, ctx, c);
   checkVisualTimeline(edl, ctx, c);
+  checkPromptTimeline(edl, ctx, c);
   checkSpeechTimeline(edl, ctx, c);
   checkCrossTrack(edl, c);
   checkMusic(edl, ctx, c);

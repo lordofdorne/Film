@@ -1,12 +1,14 @@
 import { AbsoluteFill, Sequence } from "remotion";
 import { MusicBed } from "./audio/MusicBed.js";
+import { PromptTrack } from "./audio/PromptTrack.js";
 import { SpeechTrack } from "./audio/SpeechTrack.js";
 import { assertFontReady, registerFont } from "./fonts.js";
 import type { FilmProps } from "./props.js";
 import { VisualSegmentView } from "./segments/VisualSegmentView.js";
 import { Captions } from "./text/Captions.js";
+import { QuestionPrompt } from "./text/QuestionPrompt.js";
 import { buildTheme } from "./theme.js";
-import { speechWindows, visualWindows } from "./timing/windows.js";
+import { promptWindows, speechWindows, visualWindows } from "./timing/windows.js";
 
 // Register the face during module evaluation, before React mounts.
 registerFont();
@@ -23,8 +25,9 @@ registerFont();
  *   black backdrop   — what a `fade` transition reveals
  *   visual segments  — in array order, so an incoming segment paints over its
  *                      predecessor and its opacity ramp IS the crossfade
- *   captions         — above all picture, driven only by the speech track
- *   audio            — speech, then music with its envelope
+ *   answer captions  — above all picture, driven only by the speech track
+ *   question prompts — timed question text, optionally paired with audio
+ *   audio            — answers, interviewer prompts, then ducked music
  */
 export const FilmComposition = (props: FilmProps) => {
   const { edl, format, styling } = props;
@@ -59,7 +62,20 @@ export const FilmComposition = (props: FilmProps) => {
           </Sequence>
         ))}
 
+      {promptWindows(edl).map(({ segment, fromFrame, durationInFrames }) => (
+        <Sequence
+          key={`question-${segment.id}`}
+          from={fromFrame}
+          durationInFrames={durationInFrames}
+          layout="none"
+          name={`question:${segment.id}`}
+        >
+          <QuestionPrompt segment={segment} theme={theme} />
+        </Sequence>
+      ))}
+
       <SpeechTrack props={props} />
+      <PromptTrack props={props} />
       <MusicBed props={props} />
     </AbsoluteFill>
   );
