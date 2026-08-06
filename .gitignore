@@ -13,6 +13,10 @@ build/
 # Never commit binary media to this repository.
 fixtures/
 
+# Real media dropped in for end-to-end tests. Personal, and binary — this stays
+# on your machine and never reaches the remote.
+incoming/
+
 # Render output
 out/
 *.mp4
@@ -41,3 +45,6 @@ playwright-report/
 .DS_Store
 .idea/
 *.swp
+
+# Derived project directories built from incoming/ media.
+project/

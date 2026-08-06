@@ -43,14 +43,17 @@ export type BuildInput = {
 };
 
 /**
- * Turn the handwritten sample into composition props.
+ * Turn a project's EDL, manifest and subject into composition props.
+ *
+ * Used for both the synthetic fixture and real recordings: the media differs,
+ * the layout on disk does not.
  *
  * Validation happens HERE, before anything is rendered — the renderer is
  * allowed to assume a valid EDL, and text interpolation is required to succeed
  * up front so that a missing token or an over-long title is a build failure
  * rather than the word "undefined" in a delivered film.
  */
-export const buildFixtureProps = (input: BuildInput): FilmProps => {
+export const buildFilmProps = (input: BuildInput): FilmProps => {
   const manifest: AssetManifest = AssetManifestSchema.parse(input.manifest);
   const template: Template = getTemplate("life-advice", 1);
   const format = getFormat(template.defaultFormatId);
