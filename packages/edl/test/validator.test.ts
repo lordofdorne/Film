@@ -489,7 +489,7 @@ describe("music", () => {
     }));
   });
 
-  it("rejects a creative-reference-only track outright", () => {
+  it("rejects an unlicensed track even where placeholders are allowed", () => {
     expectError(VALID_EDL, "MUSIC_TRACK_UNLICENSED", baseContext({
       allowPlaceholderMusic: true,
       resolveMusicTrack: () => ({
@@ -504,7 +504,7 @@ describe("music", () => {
           endingMs: 192_000,
         },
         licenseRef: null,
-        usage: "creative-reference-only",
+        usage: "licensed",
         available: false,
       }),
     }));

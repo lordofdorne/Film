@@ -1,6 +1,7 @@
 import {
   AssetManifestSchema,
   assertValidEdl,
+  type MusicTrackInfo,
   type AssetManifest,
   type EDL,
 } from "@film/edl";
@@ -34,12 +35,19 @@ const fixturePath = (id: string, kind: AssetManifest["assets"][number]["kind"]):
   }
 };
 
-export const FIXTURE_MUSIC_PATH = "music/placeholder-tone-bed.wav";
+/** Music lives under music/<trackId>.wav, whichever track the EDL names. */
+export const musicPathFor = (trackId: string): string => `music/${trackId}.wav`;
 
 export type BuildInput = {
   readonly edl: unknown;
   readonly manifest: unknown;
   readonly subject: SubjectData;
+  /**
+   * A track belonging to this project rather than the shared registry — a
+   * temp bed, say. Consulted before the registry so a scratch track never has
+   * to be written into shipped configuration to be renderable.
+   */
+  readonly musicTrack?: MusicTrackInfo | undefined;
 };
 
 /**
@@ -62,7 +70,8 @@ export const buildFilmProps = (input: BuildInput): FilmProps => {
     manifest,
     format,
     conformance: toConformance(template),
-    resolveMusicTrack: (id) => resolveTrack(id),
+    resolveMusicTrack: (id) =>
+      input.musicTrack?.id === id ? input.musicTrack : resolveTrack(id),
     // The synthetic tone bed is permitted only because this is the fixture
     // path. Production leaves this false and the same EDL would be rejected.
     allowPlaceholderMusic: true,
@@ -89,7 +98,7 @@ export const buildFilmProps = (input: BuildInput): FilmProps => {
     text: text.text,
     assetPaths,
     assetSizes,
-    musicPath: FIXTURE_MUSIC_PATH,
+    musicPath: musicPathFor(edl.audio.musicTrackId),
     audio: {
       duckAttackMs: template.audioDefaults.duckAttackMs,
       duckReleaseMs: template.audioDefaults.duckReleaseMs,

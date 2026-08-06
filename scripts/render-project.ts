@@ -47,9 +47,12 @@ const main = async (): Promise<void> => {
       JSON.parse(await readFile(join(projectDir, f), "utf8")),
     ),
   );
+  const musicTrack = await readFile(join(projectDir, "music-track.json"), "utf8")
+    .then((raw) => JSON.parse(raw) as Parameters<typeof buildFilmProps>[0]["musicTrack"])
+    .catch(() => undefined);
 
   // Validates the EDL and resolves all template text before anything renders.
-  const props = buildFilmProps({ edl, manifest, subject });
+  const props = buildFilmProps({ edl, manifest, subject, musicTrack });
   note(
     `${String(props.edl.visualSegments.length)} visual, ` +
       `${String(props.edl.speechSegments.length)} speech, ` +

@@ -20,6 +20,7 @@ import {
   AssetManifestSchema,
   validateEdl,
   type AssetEntry,
+  type MusicTrackInfo,
 } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { PLACEHOLDER_TRACK, resolveTrack } from "@film/music";
@@ -27,6 +28,7 @@ import { getTemplate, toConformance, type SubjectData } from "@film/templates";
 
 import { composeFilm, type IngestedAnswer, type StillAsset } from "./lib/compose.js";
 import { detectSpeechRuns, ffmpeg, probe } from "./lib/media.js";
+import { buildLoopedBed, describeTempTrack, type TempBedConfig } from "./lib/musicBed.js";
 import { generateFixtures, FIXTURES_DIR } from "./generate-fixtures.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -51,6 +53,7 @@ type ProjectConfig = {
     }
   >;
   questionPrompts?: string[];
+  music?: TempBedConfig;
 };
 
 /** incoming filename -> question id. */
@@ -217,11 +220,37 @@ const main = async (): Promise<void> => {
     });
     brollAssetIds[slotId] = assetId;
   }
-  await cp(
-    join(FIXTURES_DIR, "music", "placeholder-tone-bed.wav"),
-    join(MEDIA, "music", "placeholder-tone-bed.wav"),
-  );
-  log(`  3 placeholder b-roll clips, 1 placeholder tone bed`);
+  let track: MusicTrackInfo = {
+    id: PLACEHOLDER_TRACK.id,
+    durationMs: PLACEHOLDER_TRACK.durationMs,
+    beatGridMs: PLACEHOLDER_TRACK.beatGridMs,
+    cues: PLACEHOLDER_TRACK.cues,
+    licenseRef: PLACEHOLDER_TRACK.licenseRef,
+    usage: PLACEHOLDER_TRACK.usage,
+    available: PLACEHOLDER_TRACK.available,
+  };
+
+  if (config.music === undefined) {
+    await cp(
+      join(FIXTURES_DIR, "music", `${PLACEHOLDER_TRACK.id}.wav`),
+      join(MEDIA, "music", `${PLACEHOLDER_TRACK.id}.wav`),
+    );
+    log("  3 placeholder b-roll clips, placeholder tone bed");
+  } else {
+    const bed = config.music;
+    const built = await buildLoopedBed(
+      bed,
+      join(INCOMING, bed.sourceFile),
+      join(MEDIA, "music", `${bed.trackId}.wav`),
+      join(MEDIA, "music", `.${bed.trackId}-segment.wav`),
+    );
+    track = describeTempTrack(bed, built.durationMs);
+    log(
+      `  3 placeholder b-roll clips, temp bed "${bed.title}": ` +
+        `${(built.segmentMs / 1000).toFixed(1)}s crop x${String(built.repeats)} ` +
+        `crossfaded to ${(built.durationMs / 1000).toFixed(1)}s`,
+    );
+  }
 
   /* ── 4. compose and validate ─────────────────────────────────────── */
   log("\n[1m4/4  Composing[0m");
@@ -236,9 +265,7 @@ const main = async (): Promise<void> => {
     assetDurationMs: Object.fromEntries(
       assets.flatMap((a) => (a.durationMs === undefined ? [] : [[a.id, a.durationMs] as const])),
     ),
-    musicTrackId: PLACEHOLDER_TRACK.id,
-    musicBeatGridMs: PLACEHOLDER_TRACK.beatGridMs,
-    musicTitleCueMs: PLACEHOLDER_TRACK.cues.titleMs,
+    track,
     promptQuestionIds: config.questionPrompts ?? [],
   });
 
@@ -248,7 +275,7 @@ const main = async (): Promise<void> => {
     manifest,
     format,
     conformance: toConformance(template),
-    resolveMusicTrack: (id: string) => resolveTrack(id),
+    resolveMusicTrack: (id: string) => (id === track.id ? track : resolveTrack(id)),
     allowPlaceholderMusic: true,
   });
 
@@ -267,6 +294,9 @@ const main = async (): Promise<void> => {
     join(PROJECT, "subject.json"),
     `${JSON.stringify(config.subject, null, 2)}\n`,
   );
+  // The renderer needs to resolve this track too, and it does not belong in
+  // the shipped registry.
+  await writeFile(join(PROJECT, "music-track.json"), `${JSON.stringify(track, null, 2)}\n`);
 
   const mins = Math.floor(validated.totalDurationMs / 60000);
   const secs = Math.round((validated.totalDurationMs % 60000) / 1000);

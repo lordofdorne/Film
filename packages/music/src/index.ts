@@ -28,11 +28,14 @@ export const MusicTrackSchema = z
     /** License id or contract reference. Null means not cleared for output. */
     licenseRef: z.string().min(1).nullable(),
     /**
-     * "licensed"                for production tracks
-     * "fixture-only"            for generated placeholders
-     * "creative-reference-only" for a mood reference — must never be an asset
+     * "licensed"     cleared for delivery to a customer
+     * "fixture-only" generated placeholder, test contexts only
+     * "temp-track"   a real recording used as a scratch/temp bed while the
+     *                edit is being judged. Standard editing practice, and
+     *                never deliverable — the validator refuses it anywhere
+     *                allowUnlicensedMusic is not explicitly set.
      */
-    usage: z.enum(["licensed", "fixture-only", "creative-reference-only"]),
+    usage: z.enum(["licensed", "fixture-only", "temp-track"]),
     /** Path or R2 key for the mastered instrumental. Null when unlicensed. */
     assetKey: z.string().min(1).nullable(),
     durationMs: z.number().int().positive(),
@@ -92,23 +95,6 @@ export const PLACEHOLDER_TRACK: MusicTrack = MusicTrackSchema.parse({
   mood: ["placeholder"],
   available: false,
 });
-
-/**
- * The reference track is not production music. It is recorded as metadata so
- * the creative intent is not lost, and nothing more.
- *
- * Nothing with usage "creative-reference-only" may be checked into this
- * repository, uploaded to storage, referenced by a MusicTrack's assetKey, or
- * rendered into output. It has no assetKey and no licenseRef, so the validator
- * rejects any EDL that names it.
- */
-export const LIFE_ADVICE_MUSIC_REFERENCE = {
-  title: "End of August",
-  artist: "Noah Kahan",
-  album: "The Great Divide",
-  usage: "creative-reference-only",
-  licensedAssetId: null,
-} as const;
 
 /**
  * Versioned data. A track id referenced by an existing project is never
