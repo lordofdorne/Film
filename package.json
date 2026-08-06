@@ -15,9 +15,16 @@
     "studio": "remotion studio packages/render/src/entry.ts",
     "film": "pnpm build && tsx scripts/render-fixture-film.ts",
     "fixtures": "tsx scripts/generate-fixtures.ts",
-    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo out"
+    "clean": "rm -rf packages/*/dist packages/*/*.tsbuildinfo out",
+    "project:build": "pnpm build && tsx scripts/build-real-project.ts",
+    "film:real": "pnpm project:build && tsx scripts/render-project.ts project/real"
   },
   "devDependencies": {
+    "@film/edl": "workspace:*",
+    "@film/formats": "workspace:*",
+    "@film/music": "workspace:*",
+    "@film/render": "workspace:*",
+    "@film/templates": "workspace:*",
     "@remotion/bundler": "^4.0.505",
     "@remotion/cli": "4.0.505",
     "@remotion/renderer": "^4.0.505",

@@ -39,6 +39,22 @@ pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 UPDATE_GOLDENS=1 pnpm vitest run goldenFrames   # after an intended visual change
 ```
 
+## Rendering from real recordings
+
+Drop takes into `incoming/` (gitignored) named after the question they answer,
+describe the project in `incoming/project.json`, then:
+
+```bash
+pnpm project:build   # ingest + compose -> project/real/{edl,manifest,subject}.json
+pnpm film:real       # render project/real -> out/life-advice-real.mp4
+```
+
+Ingest measures where speech actually starts and stops, loudness-normalises each
+answer, and bakes in rotation. Compose lays the template's beats out from those
+measurements. Neither step transcribes — caption text comes from
+`incoming/project.json` and word timings are estimated across the measured
+speech runs until Phase 4 lands real forced alignment.
+
 ## Layout
 
 ```
