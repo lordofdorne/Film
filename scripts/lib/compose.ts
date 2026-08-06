@@ -31,9 +31,11 @@ export type ComposeInput = {
   readonly brollAssetIds: Readonly<Record<string, string>>;
   /** assetId -> full duration, so a hold knows how much source is left. */
   readonly assetDurationMs: Readonly<Record<string, number>>;
-  readonly musicTrackId: string;
-  readonly musicBeatGridMs: readonly number[];
-  readonly musicTitleCueMs: number;
+  readonly track: {
+    readonly id: string;
+    readonly beatGridMs: readonly number[];
+    readonly cues: { readonly titleMs: number };
+  };
   readonly promptQuestionIds: readonly string[];
 };
 
@@ -249,7 +251,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   // PICTURE is stretched to fill the gap using the pause the speaker left.
   // Speech is not moved to satisfy music; only the hold after it is.
   const coldVisualDur = grid(
-    clamp(input.musicTitleCueMs - OPENING_MS, 2000, lesson.durationMs - coldRun.startMs + PRE),
+    clamp(input.track.cues.titleMs - OPENING_MS, 2000, lesson.durationMs - coldRun.startMs + PRE),
   );
   const coldSourceIn = grid(Math.max(0, coldRun.startMs - PRE));
   const coldStart = visual.endMs - XFADE.durationMs;
@@ -581,11 +583,11 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     fps: 30,
     totalDurationMs,
     audio: {
-      musicTrackId: input.musicTrackId,
+      musicTrackId: input.track.id,
       musicStartMs: 0,
       musicGainDb: template.audioDefaults.musicGainDb,
       duckDb: template.audioDefaults.duckDb,
-      beatGridMs: [...input.musicBeatGridMs],
+      beatGridMs: [...input.track.beatGridMs],
     },
     visualSegments: visual.segments,
     promptSegments: prompts,

@@ -2,9 +2,12 @@ import type { EDL } from "../schema/edl.js";
 import type { MusicTrackInfo, ValidationContext } from "./context.js";
 import type { IssueCollector } from "./issues.js";
 
-/** Nothing marked creative-reference-only may ever reach a render. */
-const REFERENCE_ONLY = "creative-reference-only";
-const PLACEHOLDER = "fixture-only";
+/**
+ * Usages that may never reach a customer. Both are legitimate while an edit is
+ * being judged and neither is deliverable, so both are allowed only where the
+ * caller has explicitly opted in.
+ */
+const TEST_ONLY_USAGES = new Set(["fixture-only", "temp-track"]);
 
 export const checkMusic = (
   edl: EDL,
@@ -23,18 +26,20 @@ export const checkMusic = (
     return;
   }
 
-  if (track.usage === REFERENCE_ONLY || track.licenseRef === null) {
+  if (TEST_ONLY_USAGES.has(track.usage)) {
+    if (ctx.allowPlaceholderMusic !== true) {
+      c.error(
+        "MUSIC_TRACK_UNLICENSED",
+        "audio.musicTrackId",
+        `"${musicTrackId}" has usage "${track.usage}" and may only be used in ` +
+          "fixture and test renders, never in anything delivered to a customer",
+      );
+    }
+  } else if (track.licenseRef === null) {
     c.error(
       "MUSIC_TRACK_UNLICENSED",
       "audio.musicTrackId",
-      `"${musicTrackId}" is not licensed for output (usage "${track.usage}")`,
-    );
-  } else if (track.usage === PLACEHOLDER && ctx.allowPlaceholderMusic !== true) {
-    c.error(
-      "MUSIC_TRACK_UNLICENSED",
-      "audio.musicTrackId",
-      `"${musicTrackId}" is placeholder music and may only be used in fixture ` +
-        "and test contexts",
+      `"${musicTrackId}" has no licence reference and is not cleared for output`,
     );
   }
 

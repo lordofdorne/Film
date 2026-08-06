@@ -228,10 +228,16 @@ const config: Template = {
   },
 
   audioDefaults: {
-    // Loud enough to be present in the gaps between answers, and ducked far
-    // enough that it never competes with a voice. The earlier -18/-9 pair was
-    // inaudible in gaps on laptop speakers.
-    musicGainDb: -15,
+    /**
+     * An offset from the bed's normalised -20 LUFS, not an absolute level.
+     * Puts music roughly 6 LU under dialogue in the gaps — present without
+     * competing — and roughly 18 LU under while anyone is speaking.
+     *
+     * Two earlier pairs (-18/-9, then -15/-12) were reported inaudible. Both
+     * were tuned against a constant-amplitude tone; real music is dynamic and
+     * needs the normalised baseline above to be levelled predictably.
+     */
+    musicGainDb: -6,
     duckDb: -12,
     duckAttackMs: 200,
     duckReleaseMs: 600,
