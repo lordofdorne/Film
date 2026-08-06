@@ -228,8 +228,11 @@ const config: Template = {
   },
 
   audioDefaults: {
-    musicGainDb: -18,
-    duckDb: -9,
+    // Loud enough to be present in the gaps between answers, and ducked far
+    // enough that it never competes with a voice. The earlier -18/-9 pair was
+    // inaudible in gaps on laptop speakers.
+    musicGainDb: -15,
+    duckDb: -12,
     duckAttackMs: 200,
     duckReleaseMs: 600,
   },

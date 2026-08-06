@@ -310,8 +310,26 @@ const musicJob = (): Job => {
         [
           "-f", "lavfi",
           "-i",
-          `aevalsrc='0.22*sin(2*PI*t*110)*(0.6+0.4*sin(2*PI*t*0.3125))` +
-            `|0.22*sin(2*PI*t*164.81)*(0.6+0.4*sin(2*PI*t*0.3125))'` +
+          /**
+           * An A-minor drone in an audible register.
+           *
+           * The first version of this was two sine tones at 110Hz and
+           * 164.81Hz. It measured correctly and was inaudible: laptop and
+           * phone speakers barely reproduce 110Hz, and a bare sine has almost
+           * no perceptual presence even when its RMS says otherwise. A
+           * placeholder you cannot hear cannot tell you whether the ducking
+           * envelope feels right, which is the only reason it exists.
+           *
+           * Root, fifth, octave and tenth, weighted so the fundamental
+           * dominates, with a 16s swell so the bed moves under the edit.
+           */
+          `aevalsrc='` +
+            `(0.10*sin(2*PI*t*220)+0.07*sin(2*PI*t*329.63)` +
+            `+0.045*sin(2*PI*t*440)+0.025*sin(2*PI*t*659.25))` +
+            `*(0.62+0.38*sin(2*PI*t*0.0625))` +
+            `|(0.10*sin(2*PI*t*220.4)+0.07*sin(2*PI*t*329.2)` +
+            `+0.045*sin(2*PI*t*440.6)+0.025*sin(2*PI*t*658.7))` +
+            `*(0.62+0.38*sin(2*PI*t*0.0625+0.6))'` +
             `:s=48000:d=${MUSIC_SECONDS}`,
           "-c:a", "pcm_s16le", "-ac", "2", "-ar", "48000",
           "-t", String(MUSIC_SECONDS),
