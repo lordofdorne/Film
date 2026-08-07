@@ -112,3 +112,17 @@ export const buildFilmProps = (input: BuildInput): FilmProps => {
     },
   };
 };
+
+/**
+ * When interview fixtures are silent (reference-music mode), leave the bed
+ * unducked and a little hotter so loudnorm can still hit −14 LUFS. Applied via
+ * render inputProps — the Remotion bundle cannot read the fixtures/ marker.
+ */
+export const withoutMusicDuck = (props: FilmProps): FilmProps => ({
+  ...props,
+  audio: {
+    ...props.audio,
+    duckDb: 0,
+    musicGainDb: -8,
+  },
+});
