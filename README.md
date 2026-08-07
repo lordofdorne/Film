@@ -55,9 +55,25 @@ measurements. Neither step transcribes — caption text comes from
 `incoming/project.json` and word timings are estimated across the measured
 speech runs until Phase 4 lands real forced alignment.
 
+## Pipeline substrate
+
+```bash
+pnpm db:up        # local Postgres 16 on :55432
+pnpm db:migrate   # apply the schema
+pnpm db:down      # tear down, including volumes
+```
+
+`@film/db`, `@film/queue` and `@film/storage` are the production pipeline's
+foundation. Tests for them run against a **real** Postgres via Docker, because
+the guarantee they rest on — `UNIQUE NULLS NOT DISTINCT` — is a property of
+Postgres, not of our code, and no mock can verify it.
+
 ## Layout
 
 ```
+packages/db          Drizzle schema, three-role connections, stage execution.
+packages/queue       pg-boss topology, job payloads, per-stage policy.
+packages/storage     Project-scoped object store: local disk and R2.
 packages/edl         Zod schemas + the validator, including visual, prompt and answer timelines.
 packages/formats     Format registry (landscape-classic only).
 packages/music       MusicTrack schema, track registry, cue sheets.

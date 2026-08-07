@@ -48,3 +48,7 @@ playwright-report/
 
 # Derived project directories built from incoming/ media.
 project/
+
+# Local env
+.env
+.env.local
