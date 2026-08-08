@@ -30,6 +30,14 @@ export const JobPayloadSchema = z
     stage: z.enum(QUEUES),
     /** Content hash of the stage's inputs — the exactly-once key. */
     inputHash: z.string().min(8).max(64),
+    /**
+     * Which render row this job is for. Present on render and deliver only.
+     *
+     * Carried rather than looked up: a project can have two delivery renders
+     * outstanding — one per approved cut — and "find the queued one" is
+     * ambiguous exactly when it matters.
+     */
+    renderId: z.string().uuid().optional(),
     attempt: z.number().int().positive().default(1),
   })
   .strict();
