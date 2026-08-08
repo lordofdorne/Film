@@ -3,18 +3,35 @@ import { promisify } from "node:util";
 
 const run = promisify(execFile);
 
-export const ffprobeJson = async (path: string): Promise<unknown> => {
+/**
+ * An FFmpeg run can be abandoned.
+ *
+ * A stage that times out or is draining has to reclaim its worker, and a
+ * rejected promise does not do that — the child keeps transcoding, holding
+ * CPU and disk long after nobody wants the result. Handing the signal to
+ * execFile is what actually kills it.
+ */
+export type RunOptions = { readonly signal?: AbortSignal | undefined };
+
+const signalOf = (options: RunOptions | undefined): { signal?: AbortSignal } =>
+  options?.signal === undefined ? {} : { signal: options.signal };
+
+export const ffprobeJson = async (path: string, options?: RunOptions): Promise<unknown> => {
   const { stdout } = await run(
     "ffprobe",
     ["-v", "error", "-print_format", "json", "-show_streams", "-show_format", path],
-    { maxBuffer: 32 * 1024 * 1024 },
+    { maxBuffer: 32 * 1024 * 1024, ...signalOf(options) },
   );
   return JSON.parse(stdout);
 };
 
-export const ffmpeg = async (args: readonly string[]): Promise<string> => {
+export const ffmpeg = async (
+  args: readonly string[],
+  options?: RunOptions,
+): Promise<string> => {
   const { stderr } = await run("ffmpeg", ["-hide_banner", "-nostdin", "-y", ...args], {
     maxBuffer: 64 * 1024 * 1024,
+    ...signalOf(options),
   });
   return stderr;
 };
@@ -40,8 +57,8 @@ type ProbeStream = {
   side_data_list?: { rotation?: number }[];
 };
 
-export const probe = async (path: string): Promise<MediaInfo> => {
-  const raw = (await ffprobeJson(path)) as {
+export const probe = async (path: string, options?: RunOptions): Promise<MediaInfo> => {
+  const raw = (await ffprobeJson(path, options)) as {
     streams?: ProbeStream[];
     format?: { duration?: string };
   };
@@ -91,14 +108,21 @@ export type SpeechRun = { readonly startMs: number; readonly endMs: number };
 
 export const detectSpeechRuns = async (
   path: string,
-  { noiseDb = -34, minSilenceSec = 0.35 }: { noiseDb?: number; minSilenceSec?: number } = {},
+  {
+    noiseDb = -34,
+    minSilenceSec = 0.35,
+    signal,
+  }: { noiseDb?: number; minSilenceSec?: number; signal?: AbortSignal | undefined } = {},
 ): Promise<SpeechRun[]> => {
-  const info = await probe(path);
-  const stderr = await ffmpeg([
-    "-i", path,
-    "-af", `silencedetect=noise=${String(noiseDb)}dB:d=${String(minSilenceSec)}`,
-    "-f", "null", "-",
-  ]);
+  const info = await probe(path, { signal });
+  const stderr = await ffmpeg(
+    [
+      "-i", path,
+      "-af", `silencedetect=noise=${String(noiseDb)}dB:d=${String(minSilenceSec)}`,
+      "-f", "null", "-",
+    ],
+    { signal },
+  );
 
   const silenceStarts = [...stderr.matchAll(/silence_start:\s*(-?[\d.]+)/g)].map((m) =>
     Math.max(0, Math.round(Number(m[1]) * 1000)),

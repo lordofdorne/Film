@@ -1,4 +1,4 @@
-import { ffmpeg } from "./ffmpeg.js";
+import { ffmpeg, type RunOptions } from "./ffmpeg.js";
 
 /** Delivery targets. A render outside tolerance fails rather than ships. */
 export const TARGET_LUFS = -14;
@@ -42,14 +42,20 @@ const parseLoudnorm = (stderr: string): LoudnessReport => {
   };
 };
 
-export const measureLoudness = async (path: string): Promise<LoudnessReport> =>
+export const measureLoudness = async (
+  path: string,
+  options?: RunOptions,
+): Promise<LoudnessReport> =>
   parseLoudnorm(
-    await ffmpeg([
-      "-i", path,
-      "-af",
-      `loudnorm=I=${String(TARGET_LUFS)}:TP=${String(TARGET_TRUE_PEAK_DB)}:LRA=11:print_format=json`,
-      "-f", "null", "-",
-    ]),
+    await ffmpeg(
+      [
+        "-i", path,
+        "-af",
+        `loudnorm=I=${String(TARGET_LUFS)}:TP=${String(TARGET_TRUE_PEAK_DB)}:LRA=11:print_format=json`,
+        "-f", "null", "-",
+      ],
+      options,
+    ),
   );
 
 /** Two-pass normalisation: the measurement is fed back in, so the correction
@@ -58,6 +64,7 @@ export const normaliseLoudness = async (
   input: string,
   output: string,
   measured: LoudnessReport,
+  options?: RunOptions,
 ): Promise<void> => {
   await ffmpeg([
     "-i", input,
@@ -73,5 +80,5 @@ export const normaliseLoudness = async (
     "-c:a", "aac", "-b:a", "192k", "-ar", "48000",
     "-movflags", "+faststart",
     output,
-  ]);
+  ], options);
 };
