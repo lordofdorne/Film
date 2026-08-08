@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { eq } from "drizzle-orm";
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import {
@@ -68,10 +69,18 @@ beforeAll(async () => {
   await pool.query("select 1");
   available = true;
 
-  await db.delete(stageExecutions);
-  await db.delete(assets);
-  await db.delete(projects);
-  await db.delete(users);
+  /**
+   * Scoped deletes only.
+   *
+   * These ran unscoped and wiped every projects/assets/users row in the
+   * database — so running the test suite destroyed seeded development data,
+   * and would destroy a shared database outright. Tests clean up after
+   * themselves, never after everyone.
+   */
+  await db.delete(stageExecutions).where(eq(stageExecutions.projectId, projectId));
+  await db.delete(assets).where(eq(assets.projectId, projectId));
+  await db.delete(projects).where(eq(projects.id, projectId));
+  await db.delete(users).where(eq(users.id, userId));
   await db.insert(users).values({ id: userId, email: "test@example.com" });
   await db.insert(projects).values({
     id: projectId,

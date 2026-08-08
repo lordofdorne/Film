@@ -1,4 +1,5 @@
-import { Audio, staticFile } from "remotion";
+import { Audio } from "remotion";
+import { resolveSrc } from "../assets/resolveSrc.js";
 import type { FilmProps } from "../props.js";
 import { msToFrame, spokenIntervals } from "../timing/windows.js";
 import { musicVolumeAt, type EnvelopeConfig } from "./envelope.js";
@@ -29,7 +30,7 @@ export const MusicBed = ({ props }: { readonly props: FilmProps }) => {
 
   return (
     <Audio
-      src={staticFile(props.musicPath)}
+      src={resolveSrc(props.musicPath)}
       trimBefore={msToFrame(edl.audio.musicStartMs, format.fps)}
       volume={(frame) => musicVolumeAt((frame / format.fps) * 1000, intervals, config)}
     />

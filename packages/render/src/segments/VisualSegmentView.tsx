@@ -1,5 +1,6 @@
 import type { VisualSegment } from "@film/edl";
-import { AbsoluteFill, Img, interpolate, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, interpolate, useCurrentFrame } from "remotion";
+import { resolveSrc } from "../assets/resolveSrc.js";
 import { framePhoto, frameStyle, frameVideo } from "../framing/photoFraming.js";
 import { assetPath, assetSize, resolvedText, type FilmProps } from "../props.js";
 import { OverlayText } from "../text/OverlayText.js";
@@ -123,7 +124,7 @@ const SegmentBody = ({
       return (
         <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden" }}>
           <PictureOnlyVideo
-            src={staticFile(assetPath(props, segment.assetId))}
+            src={resolveSrc(assetPath(props, segment.assetId))}
             trimBefore={msToFrame(segment.sourceInMs, format.fps)}
             trimAfter={msToFrame(segment.sourceOutMs, format.fps)}
             style={frameStyle(box)}
@@ -144,7 +145,7 @@ const SegmentBody = ({
       return (
         <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden" }}>
           <PictureOnlyVideo
-            src={staticFile(assetPath(props, segment.assetId))}
+            src={resolveSrc(assetPath(props, segment.assetId))}
             trimBefore={msToFrame(segment.sourceInMs, format.fps)}
             trimAfter={msToFrame(segment.sourceOutMs, format.fps)}
             style={frameStyle(box)}
@@ -195,7 +196,7 @@ const SegmentBody = ({
               overflow: "hidden",
             }}
           >
-            <Img src={staticFile(assetPath(props, segment.assetId))} style={frameStyle(box)} />
+            <Img src={resolveSrc(assetPath(props, segment.assetId))} style={frameStyle(box)} />
           </AbsoluteFill>
         </AbsoluteFill>
       );

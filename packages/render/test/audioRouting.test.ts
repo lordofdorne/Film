@@ -12,9 +12,21 @@ const sourceFiles = (dir: string): string[] =>
     return /\.tsx?$/.test(entry.name) ? [path] : [];
   });
 
+/**
+ * Comments are stripped before searching.
+ *
+ * This guard is about which modules *render* video and audio, not about which
+ * ones mention them in prose. Grepping raw source made any doc comment
+ * containing "<Video>" fail the build, which teaches people to reword comments
+ * rather than to think about the boundary — and a guard everyone routes around
+ * stops guarding anything.
+ */
+const stripComments = (source: string): string =>
+  source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+
 const filesContaining = (needle: string): string[] =>
   sourceFiles(SRC)
-    .filter((path) => readFileSync(path, "utf8").includes(needle))
+    .filter((path) => stripComments(readFileSync(path, "utf8")).includes(needle))
     .map((path) => basename(path))
     .sort();
 

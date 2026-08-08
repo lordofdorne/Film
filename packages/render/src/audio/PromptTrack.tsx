@@ -1,5 +1,6 @@
 import { isRecordedPrompt } from "@film/edl";
-import { Audio, Sequence, staticFile } from "remotion";
+import { Audio, Sequence } from "remotion";
+import { resolveSrc } from "../assets/resolveSrc.js";
 import { assetPath, type FilmProps } from "../props.js";
 import { msToFrame, promptWindows } from "../timing/windows.js";
 
@@ -20,7 +21,7 @@ export const PromptTrack = ({ props }: { readonly props: FilmProps }) => {
             name={`question-audio:${segment.id}`}
           >
             <Audio
-              src={staticFile(assetPath(props, segment.assetId))}
+              src={resolveSrc(assetPath(props, segment.assetId))}
               trimBefore={msToFrame(segment.sourceInMs, fps)}
               trimAfter={msToFrame(segment.sourceOutMs, fps)}
             />

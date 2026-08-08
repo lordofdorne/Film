@@ -1,4 +1,5 @@
 export * from "./props.js";
+export * from "./assets/resolveSrc.js";
 export * from "./theme.js";
 export * from "./fixture.js";
 export * from "./timing/windows.js";

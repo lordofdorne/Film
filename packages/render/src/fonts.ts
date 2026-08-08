@@ -1,4 +1,5 @@
 import interWoff2 from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2";
+import { isPlayer } from "./assets/resolveSrc.js";
 
 /**
  * A pinned font, registered from a data URI.
@@ -62,16 +63,27 @@ export const registerFont = (): void => {
 };
 
 /**
- * Throws if the family did not register. Called from the composition so a
- * missing font fails the render loudly, instead of shipping a film whose
- * letterforms silently differ from every golden frame.
+ * Fails a RENDER loudly if the family did not register, so a film is never
+ * shipped with letterforms that silently differ from every golden frame.
+ *
+ * Deliberately not fatal in the Player. There, the font arrives over the
+ * network like any other asset and the first paint legitimately happens before
+ * it lands — throwing would turn a normal 100ms of loading into a crashed
+ * preview. The stakes differ too: a preview frame in a fallback face is
+ * momentary and self-correcting, while a delivered file is permanent.
  */
 export const assertFontReady = (): void => {
   if (typeof document === "undefined") return;
-  if (!document.fonts.check(`1em "${FONT_FAMILY}"`)) {
-    throw new Error(
-      `${FONT_FAMILY} is not available; text would render in a fallback face. ` +
-        "Check that the .woff2 import resolved to a data URI.",
-    );
+  if (document.fonts.check(`1em "${FONT_FAMILY}"`)) return;
+
+  if (isPlayer()) {
+    // Nudge the load along and let this frame paint in whatever is available.
+    void document.fonts.load(`1em "${FONT_FAMILY}"`);
+    return;
   }
+
+  throw new Error(
+    `${FONT_FAMILY} is not available; text would render in a fallback face. ` +
+      "Check that the .woff2 import resolved to a data URI.",
+  );
 };
