@@ -56,3 +56,6 @@ project/
 # Next.js
 .next/
 next-env.d.ts
+
+# Local object store — customer media, never committed.
+.storage/

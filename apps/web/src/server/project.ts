@@ -11,7 +11,7 @@ import {
 } from "@film/db";
 import { EdlSchema, type EDL } from "@film/edl";
 import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
-import { LocalObjectStore, R2ObjectStore, type ObjectStore } from "@film/storage";
+import { storeFromEnv, usingLocalStore, type ObjectStore } from "@film/storage";
 import type { SubjectData } from "@film/templates";
 // From "./props", not "./composition".
 //
@@ -38,29 +38,13 @@ const db = (): Db => {
 };
 
 /**
- * Local disk in development, R2 in production, behind one interface.
+ * The same store the worker writes to.
  *
- * Keeping the local implementation real rather than a mock is what lets the
- * whole preview run with no cloud account attached.
+ * Shared factory rather than one construction per caller: if the app and the
+ * worker disagree about the root, the symptom is a blank preview with no error
+ * anywhere, which is a genuinely hard afternoon.
  */
-export const store = (): ObjectStore => {
-  const accountId = process.env["R2_ACCOUNT_ID"];
-  if (accountId === undefined || accountId === "") {
-    const root = process.env["LOCAL_MEDIA_ROOT"] ?? "project/real/media";
-    return new LocalObjectStore(root);
-  }
-  return new R2ObjectStore({
-    accountId,
-    bucket: process.env["R2_BUCKET"] ?? "",
-    accessKeyId: process.env["R2_ACCESS_KEY_ID"] ?? "",
-    secretAccessKey: process.env["R2_SECRET_ACCESS_KEY"] ?? "",
-  });
-};
-
-const usingLocalStore = (): boolean => {
-  const id = process.env["R2_ACCOUNT_ID"];
-  return id === undefined || id === "";
-};
+export const store = (): ObjectStore => storeFromEnv();
 
 export type AssetWarning = {
   readonly assetId: string;

@@ -104,5 +104,39 @@ export interface ObjectStore {
 export const clampTtl = (requested: number | undefined): number =>
   Math.min(requested ?? 300, MAX_SIGNED_URL_TTL_SECONDS);
 
+
+import { LocalObjectStore } from "./local.js";
+import { R2ObjectStore } from "./r2.js";
+
 export * from "./local.js";
 export * from "./r2.js";
+
+/**
+ * The store this process should use, from the environment.
+ *
+ * One function rather than one per caller. The worker writes objects and the
+ * web app reads them, and if they disagree about the root the failure is a
+ * blank preview with no error anywhere — which is a genuinely hard afternoon.
+ *
+ * R2 when it is configured, local disk otherwise. The local implementation is
+ * real rather than a mock, which is what keeps the whole pipeline runnable
+ * with no cloud account attached.
+ */
+export const storeFromEnv = (): ObjectStore => {
+  const accountId = process.env["R2_ACCOUNT_ID"];
+  if (accountId === undefined || accountId === "") {
+    return new LocalObjectStore(process.env["STORAGE_ROOT"] ?? ".storage");
+  }
+  return new R2ObjectStore({
+    accountId,
+    bucket: process.env["R2_BUCKET"] ?? "",
+    accessKeyId: process.env["R2_ACCESS_KEY_ID"] ?? "",
+    secretAccessKey: process.env["R2_SECRET_ACCESS_KEY"] ?? "",
+  });
+};
+
+/** True when objects live on local disk, so they must be streamed, not signed. */
+export const usingLocalStore = (): boolean => {
+  const id = process.env["R2_ACCOUNT_ID"];
+  return id === undefined || id === "";
+};
