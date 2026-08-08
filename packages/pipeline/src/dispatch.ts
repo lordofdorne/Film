@@ -58,11 +58,18 @@ export const planProject = async (
   db: Db,
   projectId: string,
 ): Promise<{ jobs: JobPayload[]; blocked: string[] }> => {
-  const project = await loadProject(db, projectId);
-  const rows = await loadAssets(db, projectId);
   const jobs: JobPayload[] = [];
   const blocked: string[] = [];
 
+  /**
+   * A project that vanished between being listed and being planned is not an
+   * error. A deletion request landing mid-sweep is a normal thing to happen,
+   * and there is nothing left to plan for it.
+   */
+  const project = await loadProject(db, projectId).catch(() => null);
+  if (project === null) return { jobs, blocked };
+
+  const rows = await loadAssets(db, projectId);
   if (rows.length === 0) return { jobs, blocked };
 
   const template = getTemplate(project.templateId, project.templateVersion);

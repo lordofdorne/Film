@@ -18,10 +18,19 @@ export default async function ProjectPreviewPage({
   const loaded = await loadProjectForPreview(id);
   if (loaded === null) notFound();
 
-  // Auth arrives in phase 8. Until then the approver is the project owner and
-  // there is no session to read — deliberately explicit rather than a silent
-  // placeholder that could survive into production.
-  const approverId = loaded.summary.subject.subjectName;
+  /**
+   * Auth arrives in phase 8. Until then the approver IS the project owner.
+   *
+   * This used to pass the subject's name, which is not a user id and made
+   * every approval fail on the foreign key the moment anyone pressed the
+   * button — invisible until then, because approval was only ever exercised
+   * through @film/db's tests and never through this page.
+   *
+   * Note what this does not do: check that the person looking at the page is
+   * the owner. There is no session to check against. Anyone who can reach this
+   * URL can approve the film, which is why the app is not deployable yet.
+   */
+  const approverId = loaded.summary.ownerId;
 
   return (
     <PreviewClient

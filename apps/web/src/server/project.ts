@@ -55,6 +55,8 @@ export type AssetWarning = {
 
 export type ProjectSummary = {
   readonly id: string;
+  /** Who owns this project. With no auth, this is also who approves it. */
+  readonly ownerId: string;
   readonly status: string;
   readonly templateId: string;
   readonly templateVersion: number;
@@ -173,6 +175,7 @@ export const loadProjectForPreview = async (
   return {
     summary: {
       id: project.id,
+      ownerId: project.ownerId,
       status: project.status,
       templateId: project.templateId,
       templateVersion: project.templateVersion,

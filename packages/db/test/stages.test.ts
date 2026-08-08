@@ -98,7 +98,18 @@ beforeAll(async () => {
   });
 }, 120_000);
 
+/**
+ * Tests clean up after themselves.
+ *
+ * The development database is shared with a running worker. A fixture project
+ * left behind is one the dispatcher plans work for and the reconciler sweeps,
+ * for ever, against storage keys that were never real.
+ */
 afterAll(async () => {
+  if (available) {
+    await db.delete(projects).where(eq(projects.id, projectId));
+    await db.delete(users).where(eq(users.id, userId));
+  }
   await pool?.end();
 });
 

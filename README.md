@@ -18,55 +18,68 @@ styling, or redesign the film. **The template owns the edit.**
 
 ---
 
-## Status: Phase 1 complete
+## Status
 
-Phase 1 is a handwritten EDL rendered offline end to end. No accounts, uploads, transcription,
-queues, storage or payments — those are Phases 2–8.
+The pipeline runs end to end, unattended. Drop recordings in, get a film out.
 
 ```bash
 pnpm install
-pnpm film        # generate fixtures → validate → render → normalise → verify
+pnpm db:up && pnpm db:migrate    # local Postgres 16 on :55432
+cp .env.example .env             # then: set -a; . ./.env; set +a
+
+pnpm intake                      # incoming/ -> object store + Postgres
+pnpm worker                      # ingest -> compose; then again after approval
+pnpm web                         # watch and approve at localhost:3200
 ```
 
-Produces `out/life-advice-fixture.mp4`: 3:34, 1440×1080, delivered at −14 LUFS / −1 dBTP.
-Roughly 9 minutes at concurrency 1 under software GL. Zero network calls.
+Intake uploads the originals and writes the rows. The worker's dispatcher reads
+the database, works out what each project needs next, and queues it. Compose
+leaves the project in `awaiting_approval`; approving in the browser requests a
+delivery render, which the worker picks up on its next tick and delivers.
+
+Nothing chains stage to stage. Every step is derived from rows, which is what
+makes a drained or rebuilt queue cost one tick of latency and nothing else.
+
+### The offline path
+
+Still works, still has no dependencies at all — no Postgres, no queue, no
+network. It is the fastest feedback loop in the project and the harness that
+keeps the render path testable.
 
 ```bash
-pnpm test        # 135 tests, including 23 golden frames
+pnpm film            # synthetic fixtures -> out/life-advice-fixture.mp4
+pnpm project:build   # incoming/ -> project/real/{edl,manifest,subject}.json
+pnpm film:real       # render project/real -> out/life-advice-real.mp4
+```
+
+```bash
+pnpm test        # 216 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
 UPDATE_GOLDENS=1 pnpm vitest run goldenFrames   # after an intended visual change
 ```
 
-## Rendering from real recordings
+Tests for `@film/db`, `@film/queue` and `@film/pipeline` run against a **real**
+Postgres via Docker. The guarantee they rest on — `UNIQUE NULLS NOT DISTINCT` —
+is a property of Postgres, not of our code, and no mock can verify it.
 
-Drop takes into `incoming/` (gitignored) named after the question they answer,
-describe the project in `incoming/project.json`, then:
+## Where things run
 
-```bash
-pnpm project:build   # ingest + compose -> project/real/{edl,manifest,subject}.json
-pnpm film:real       # render project/real -> out/life-advice-real.mp4
-```
+| Process | What it does |
+|---|---|
+| `pnpm intake` | Uploads originals, writes project and asset rows, exits. |
+| `pnpm worker` | Claims stages, runs them, dispatches and reconciles. Run as many as you like. |
+| `pnpm web` | Preview and approval at `localhost:3200`. **No authentication yet.** |
 
-Ingest measures where speech actually starts and stops, loudness-normalises each
-answer, and bakes in rotation. Compose lays the template's beats out from those
-measurements. Neither step transcribes — caption text comes from
-`incoming/project.json` and word timings are estimated across the measured
-speech runs until Phase 4 lands real forced alignment.
+Exactly-once comes from a unique constraint in Postgres, not from there being
+one worker. Scaling out is starting more of them.
 
-## Pipeline substrate
-
-```bash
-pnpm db:up        # local Postgres 16 on :55432
-pnpm db:migrate   # apply the schema
-pnpm db:down      # tear down, including volumes
-```
-
-`@film/db`, `@film/queue` and `@film/storage` are the production pipeline's
-foundation. Tests for them run against a **real** Postgres via Docker, because
-the guarantee they rest on — `UNIQUE NULLS NOT DISTINCT` — is a property of
-Postgres, not of our code, and no mock can verify it.
+**When you containerise the worker, node must be PID 1.** `pnpm worker` runs it
+under two wrappers, and SIGTERM stops at the outermost one — the drain handler
+never fires and every deploy becomes a hard kill after the grace period, with
+in-flight renders recorded as failures rather than as cancellations. Use
+`node dist/main.js` as the entrypoint, or `exec` into it.
 
 ## Layout
 
@@ -74,12 +87,15 @@ Postgres, not of our code, and no mock can verify it.
 packages/db          Drizzle schema, three-role connections, stage execution.
 packages/queue       pg-boss topology, job payloads, per-stage policy.
 packages/storage     Project-scoped object store: local disk and R2.
+packages/pipeline    What each stage does, plus the dispatcher and reconciler.
 packages/edl         Zod schemas + the validator, including visual, prompt and answer timelines.
 packages/formats     Format registry (landscape-classic only).
 packages/music       MusicTrack schema, track registry, cue sheets.
 packages/templates   LIFE_ADVICE_V1 and text interpolation.
 packages/render      Remotion composition, framing, captions, audio envelope.
-scripts/             Fixture generator and the render pipeline.
+apps/worker          The process that runs stages. Thin on purpose.
+apps/web             Next.js preview and approval.
+scripts/             Intake, migrations, fixture generator, offline render.
 sample/              The handwritten EDL, its asset manifest, and subject data.
 docs/proposal/       Phase design record, including the open questions.
 docs/adr/            Accepted cross-phase product and architecture decisions.

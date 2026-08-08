@@ -21,6 +21,8 @@ import { MUSIC_BED_SLOT, type ProjectConfig } from "@film/pipeline/model";
 import { storeFromEnv } from "@film/storage";
 import type { SubjectData } from "@film/templates";
 
+import { FIXTURES_DIR, generateFixtures } from "./generate-fixtures.js";
+
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const INCOMING = join(ROOT, "incoming");
 
@@ -59,6 +61,13 @@ type ProjectFile = {
  */
 const questionIdOf = (file: string): string =>
   basename(file, extname(file)).replace(/^q\d+_/, "");
+
+/** Slots the template reserves for b-roll, and the fixture that stands in. */
+const PLACEHOLDER_BROLL: ReadonlyArray<readonly [string, string]> = [
+  ["video_environment", "asset_broll_environment"],
+  ["video_group", "asset_broll_group"],
+  ["video_personality", "asset_broll_personality"],
+];
 
 const main = async (): Promise<void> => {
   const { db, pool } = createDb("web");
@@ -108,13 +117,36 @@ const main = async (): Promise<void> => {
       });
     }
 
-    for (const path of await list("broll", /\.(mov|mp4|m4v)$/i)) {
-      intake.push({
-        kind: "video",
-        slotId: basename(path, extname(path)),
-        path,
-        contentType: "video/mp4",
-      });
+    const broll = await list("broll", /\.(mov|mp4|m4v)$/i);
+    if (broll.length > 0) {
+      for (const path of broll) {
+        intake.push({
+          kind: "video",
+          slotId: basename(path, extname(path)),
+          path,
+          contentType: "video/mp4",
+        });
+      }
+    } else {
+      /**
+       * No b-roll supplied, so the synthetic clips stand in.
+       *
+       * The template's beats reserve slots for it and compose refuses to
+       * invent a shot it was not given — correctly, since guessing what
+       * belongs on screen is exactly what a template engine must not do. This
+       * is a decision by the development intake script, not by the pipeline:
+       * real intake will ask the customer for these or drop the beats.
+       */
+      await generateFixtures({ quiet: true });
+      for (const [slotId, fixture] of PLACEHOLDER_BROLL) {
+        intake.push({
+          kind: "video",
+          slotId,
+          path: join(FIXTURES_DIR, "broll", `${fixture}.mp4`),
+          contentType: "video/mp4",
+        });
+      }
+      log(`  no b-roll in incoming/broll — using ${String(PLACEHOLDER_BROLL.length)} placeholders`);
     }
 
     if (config.music === undefined) {

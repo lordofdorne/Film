@@ -43,9 +43,18 @@ export const composeIdentity = (
   assetId: null,
   stage: "compose",
   inputHash: hashInputs({
-    // The ingest output of every asset, so re-ingesting one take re-composes
-    // the film rather than leaving it cut against media that no longer exists.
-    assets: rows.map((r) => [r.id, ingestHashes.get(r.id) ?? "", r.selection] as const),
+    /**
+     * The ingest output of every asset, so re-ingesting one take re-composes
+     * the film rather than leaving it cut against media that no longer exists.
+     *
+     * Sorted by id HERE rather than trusting the caller's order. Two assets
+     * inserted in the same statement share a created_at, and Postgres is then
+     * free to return them either way round — which would change the hash, and
+     * so re-run compose, for no reason at all.
+     */
+    assets: [...rows]
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map((r) => [r.id, ingestHashes.get(r.id) ?? "", r.selection] as const),
     templateId: project.templateId,
     templateVersion: project.templateVersion,
     subject: project.subjectData,

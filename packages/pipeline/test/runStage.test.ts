@@ -48,7 +48,18 @@ beforeAll(async () => {
   store = new LocalObjectStore(await mkdtemp(join(tmpdir(), "film-runstage-store-")));
 }, 60_000);
 
+/**
+ * Tests clean up after themselves.
+ *
+ * The development database is shared with a running worker, and a fixture
+ * project left in `processing` is one the dispatcher will pick up and grind on
+ * for ever against storage keys that were never real.
+ */
 afterAll(async () => {
+  if (available) {
+    await db.delete(projects).where(eq(projects.id, projectId));
+    await db.delete(users).where(eq(users.id, userId));
+  }
   await pool?.end();
 });
 

@@ -18,6 +18,7 @@ import { deliverIdentity } from "../src/stages/deliver.js";
 import { ingestIdentity as ingest } from "../src/stages/ingest.js";
 import { renderIdentity } from "../src/stages/render.js";
 import { MUSIC_BED_SLOT, type AssetRow } from "../src/model.js";
+import { loadAssets } from "../src/stages/context.js";
 
 const { approvals, assets, edlVersions, projects, renders, stageExecutions, users } = schema;
 
@@ -46,7 +47,18 @@ beforeAll(async () => {
   }
 }, 60_000);
 
+/**
+ * Tests clean up after themselves.
+ *
+ * The development database is shared with a running worker, and a fixture
+ * project left in `processing` is one the dispatcher will pick up and grind on
+ * for ever against storage keys that were never real.
+ */
 afterAll(async () => {
+  if (available) {
+    await db.delete(projects).where(eq(projects.id, projectId));
+    await db.delete(users).where(eq(users.id, userId));
+  }
   await pool?.end();
 });
 
@@ -94,8 +106,8 @@ const needsDb = (): void => {
   if (!available) throw new Error("Postgres unavailable — `pnpm db:up`");
 };
 
-const rows = async (): Promise<AssetRow[]> =>
-  db.select().from(assets).where(eq(assets.projectId, projectId)).orderBy(assets.createdAt);
+/** The same read the dispatcher does, so the test cannot disagree about order. */
+const rows = async (): Promise<AssetRow[]> => loadAssets(db, projectId);
 
 /** Record a stage as already having reached some state. */
 const record = async (
