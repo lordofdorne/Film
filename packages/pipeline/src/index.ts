@@ -22,3 +22,5 @@ export * from "./model.js";
 export * from "./stages/context.js";
 export * from "./stages/ingest.js";
 export * from "./stages/compose.js";
+export * from "./stages/render.js";
+export * from "./stages/deliver.js";

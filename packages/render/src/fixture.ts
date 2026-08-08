@@ -16,6 +16,8 @@ import {
 } from "@film/templates";
 import type { FilmProps } from "./props.js";
 
+export { buildProjectProps, type ProjectPropsInput } from "./projectProps.js";
+
 /**
  * Where the fixture generator writes each kind of asset, relative to the
  * Remotion public directory (which the render script points at fixtures/).

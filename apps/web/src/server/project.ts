@@ -10,9 +10,16 @@ import {
   type Db,
 } from "@film/db";
 import { EdlSchema, type EDL } from "@film/edl";
-import { getFormat } from "@film/formats";
+import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
 import { LocalObjectStore, R2ObjectStore, type ObjectStore } from "@film/storage";
-import { getTemplate, resolveAllText, type SubjectData } from "@film/templates";
+import type { SubjectData } from "@film/templates";
+// From "./props", not "./composition".
+//
+// The composition entry pulls in React and Remotion, and importing it for a
+// value here drags the whole renderer into the server module graph — where
+// Next's page-data collection runs it outside a React tree and Remotion fails
+// on a missing createContext. The props builder needs none of that.
+import { buildProjectProps } from "@film/render/props";
 import type { FilmProps } from "@film/render/composition";
 
 /**
@@ -125,37 +132,31 @@ export const loadProjectForPreview = async (
   // Parsed, not trusted. The document was validated when it was written, but a
   // stored jsonb column is still an untyped boundary on the way back in.
   const edl: EDL = EdlSchema.parse(latest.doc);
-
-  const template = getTemplate(project.templateId, project.templateVersion);
-  const format = getFormat(template.defaultFormatId);
   const subject = project.subjectData as SubjectData;
 
-  const text = resolveAllText(template, subject, format);
-  if (!text.ok) {
-    throw new Error(`template text did not resolve:\n  ${text.failures.join("\n  ")}`);
-  }
-
+  /**
+   * Assets are served from what INGEST produced, not from the original.
+   *
+   * The original is whatever the customer's phone recorded — variable frame
+   * rate, rotation in a container tag, wildly uneven levels. The film is cut
+   * against the normalised file, so previewing the original would show a
+   * different edit from the one being approved.
+   */
   const objects = store();
-  const assetPaths: Record<string, string> = {};
-  const assetSizes: Record<string, { width: number; height: number }> = {};
+  const resolve = async (key: string): Promise<string> =>
+    usingLocalStore()
+      ? `/api/media/${key}`
+      : objects.signedGetUrl(key, { expiresInSeconds: 900 });
 
+  const assetPaths: Record<string, string> = {};
+  let musicPath = "";
   for (const asset of assetRows) {
-    assetPaths[asset.id] = usingLocalStore()
-      ? `/api/media/${asset.storageKey}`
-      : await objects.signedGetUrl(asset.storageKey, { expiresInSeconds: 900 });
-    if (asset.kind !== "audio") {
-      assetSizes[asset.id] = {
-        width: (asset.qcMetrics as { width?: number } | null)?.width ?? 1920,
-        height: (asset.qcMetrics as { height?: number } | null)?.height ?? 1080,
-      };
-    }
+    const key = asset.normalisedKey ?? asset.storageKey;
+    if (isMusicBed(asset)) musicPath = await resolve(key);
+    else assetPaths[asset.id] = await resolve(key);
   }
 
-  const musicKey = `music/${edl.audio.musicTrackId}.wav`;
-  const musicPath = usingLocalStore()
-    ? `/api/media/${musicKey}`
-    : await objects.signedGetUrl(musicKey, { expiresInSeconds: 900 });
-
+  const bed = assetRows.find(isMusicBed);
   const warnings: AssetWarning[] = assetRows.flatMap((asset) => {
     const list = (asset.warnings ?? []) as { code?: string; message?: string }[];
     return list.map((w) => ({
@@ -164,6 +165,25 @@ export const loadProjectForPreview = async (
       code: w.code ?? "WARNING",
       message: w.message ?? "",
     }));
+  });
+
+  /**
+   * The same props builder the worker uses.
+   *
+   * "Preview is the same composition as delivery" is what makes approving in a
+   * browser mean anything, and it does not survive two places assembling the
+   * props. Only the paths differ: signed URLs here, local files there.
+   */
+  const props = buildProjectProps({
+    edl,
+    manifest: buildManifest(assetRows),
+    subject,
+    templateId: project.templateId,
+    templateVersion: project.templateVersion,
+    assetPaths,
+    musicPath,
+    ...(bed === undefined ? {} : { musicTrack: qcOf(bed).musicTrack }),
+    allowPlaceholderMusic: process.env["ALLOW_UNLICENSED_MUSIC"] === "1",
   });
 
   return {
@@ -178,20 +198,6 @@ export const loadProjectForPreview = async (
       approved: approvalRows.length > 0,
       warnings,
     },
-    props: {
-      edl,
-      format,
-      styling: template.styling,
-      text: text.text,
-      assetPaths,
-      assetSizes,
-      musicPath,
-      audio: {
-        duckAttackMs: template.audioDefaults.duckAttackMs,
-        duckReleaseMs: template.audioDefaults.duckReleaseMs,
-        fadeInMs: 1_500,
-        fadeOutMs: 2_500,
-      },
-    },
+    props,
   };
 };

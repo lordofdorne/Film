@@ -15,6 +15,10 @@
     "./composition": {
       "types": "./dist/composition.d.ts",
       "default": "./dist/composition.js"
+    },
+    "./props": {
+      "types": "./dist/projectProps.d.ts",
+      "default": "./dist/projectProps.js"
     }
   },
   "scripts": {

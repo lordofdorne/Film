@@ -113,6 +113,9 @@ importers:
       '@film/formats':
         specifier: workspace:*
         version: link:../../packages/formats
+      '@film/pipeline':
+        specifier: workspace:*
+        version: link:../../packages/pipeline
       '@film/render':
         specifier: workspace:*
         version: link:../../packages/render

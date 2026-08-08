@@ -4,11 +4,20 @@ import { defineConfig } from "vitest/config";
 const pkg = (name: string) =>
   fileURLToPath(new URL(`./packages/${name}/src/index.ts`, import.meta.url));
 
+const mod = (name: string, file: string) =>
+  fileURLToPath(new URL(`./packages/${name}/src/${file}.ts`, import.meta.url));
+
 export default defineConfig({
   resolve: {
     /* Tests run against source, not dist, so `pnpm test` needs no build step.
        Vite resolves the "./foo.js" specifiers back to "./foo.ts" itself. */
+    /* Subpath entries come first: Vite matches string aliases by prefix, so a
+       bare "@film/render" would swallow "@film/render/props". */
     alias: {
+      "@film/render/props": mod("render", "projectProps"),
+      "@film/render/composition": mod("render", "composition"),
+      "@film/render/project": mod("render", "fixture"),
+      "@film/pipeline/model": mod("pipeline", "model"),
       "@film/edl": pkg("edl"),
       "@film/formats": pkg("formats"),
       "@film/music": pkg("music"),
