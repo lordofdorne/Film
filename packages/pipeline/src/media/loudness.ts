@@ -1,4 +1,4 @@
-import { ffmpeg } from "./media.js";
+import { ffmpeg } from "./ffmpeg.js";
 
 /** Delivery targets. A render outside tolerance fails rather than ships. */
 export const TARGET_LUFS = -14;

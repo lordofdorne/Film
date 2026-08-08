@@ -17,6 +17,7 @@ export default defineConfig({
       "@film/queue": pkg("queue"),
       "@film/storage": pkg("storage"),
       "@film/render": pkg("render"),
+      "@film/pipeline": pkg("pipeline"),
     },
   },
   test: {

@@ -9,7 +9,7 @@ import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { webpackOverride } from "../../../scripts/webpack-override.js";
+import { webpackOverride } from "@film/pipeline";
 
 /**
  * GOLDEN FRAMES ARE PROVISIONAL.

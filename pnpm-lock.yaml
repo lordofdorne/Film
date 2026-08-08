@@ -29,6 +29,9 @@ importers:
       '@film/music':
         specifier: workspace:*
         version: link:packages/music
+      '@film/pipeline':
+        specifier: workspace:*
+        version: link:packages/pipeline
       '@film/queue':
         specifier: workspace:*
         version: link:packages/queue
@@ -165,6 +168,45 @@ importers:
     dependencies:
       zod:
         specifier: ^3.24.1
+        version: 3.25.76
+
+  packages/pipeline:
+    dependencies:
+      '@film/db':
+        specifier: workspace:*
+        version: link:../db
+      '@film/edl':
+        specifier: workspace:*
+        version: link:../edl
+      '@film/formats':
+        specifier: workspace:*
+        version: link:../formats
+      '@film/music':
+        specifier: workspace:*
+        version: link:../music
+      '@film/queue':
+        specifier: workspace:*
+        version: link:../queue
+      '@film/render':
+        specifier: workspace:*
+        version: link:../render
+      '@film/storage':
+        specifier: workspace:*
+        version: link:../storage
+      '@film/templates':
+        specifier: workspace:*
+        version: link:../templates
+      '@remotion/bundler':
+        specifier: ^4.0.505
+        version: 4.0.505(@swc/helpers@0.5.15)(postcss@8.5.25)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@remotion/renderer':
+        specifier: ^4.0.505
+        version: 4.0.505(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      drizzle-orm:
+        specifier: 0.45.2
+        version: 0.45.2(@types/pg@8.21.0)(pg@8.22.0)
+      zod:
+        specifier: ^3.25.76
         version: 3.25.76
 
   packages/queue:

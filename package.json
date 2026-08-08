@@ -32,6 +32,7 @@
     "@film/edl": "workspace:*",
     "@film/formats": "workspace:*",
     "@film/music": "workspace:*",
+    "@film/pipeline": "workspace:*",
     "@film/queue": "workspace:*",
     "@film/render": "workspace:*",
     "@film/storage": "workspace:*",

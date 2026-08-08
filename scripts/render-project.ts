@@ -17,8 +17,14 @@ import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
 import { buildFilmProps } from "@film/render/project";
 
-import { measureLoudness, normaliseLoudness, TARGET_LUFS, TRUE_PEAK_CEILING, LUFS_TOLERANCE } from "./lib/loudness.js";
-import { webpackOverride } from "./webpack-override.js";
+import {
+  LUFS_TOLERANCE,
+  TARGET_LUFS,
+  TRUE_PEAK_CEILING,
+  measureLoudness,
+  normaliseLoudness,
+  webpackOverride,
+} from "@film/pipeline";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const ENTRY = join(ROOT, "packages/render/src/entry.ts");
