@@ -1,9 +1,14 @@
 import { and, desc, eq } from "drizzle-orm";
 import type { Db } from "./connection.js";
-import { approvals, edlVersions, projects } from "./schema/tables.js";
+import { approvals, edlVersions, projects, renders } from "./schema/tables.js";
 
 export type ApprovalOutcome =
-  | { readonly ok: true; readonly approvalId: string }
+  | {
+      readonly ok: true;
+      readonly approvalId: string;
+      /** The delivery render this approval asked for. */
+      readonly renderId: string;
+    }
   | {
       readonly ok: false;
       readonly reason: "unknown_version" | "superseded" | "already_approved";
@@ -25,6 +30,12 @@ export const approveVersion = async (
     readonly projectId: string;
     readonly edlVersionId: string;
     readonly approvedBy: string;
+    /**
+     * Which format to deliver. Passed in rather than looked up, because the
+     * template registry lives above this package and reaching up for it would
+     * invert the dependency the whole layering rests on.
+     */
+    readonly formatId: string;
   },
 ): Promise<ApprovalOutcome> => {
   const versions = await db
@@ -78,24 +89,74 @@ export const approveVersion = async (
     return { ok: false, reason: "already_approved", message: "this cut is already approved" };
   }
 
-  const inserted = await db
-    .insert(approvals)
-    .values({
-      projectId: input.projectId,
-      edlVersionId: input.edlVersionId,
-      approvedBy: input.approvedBy,
-    })
-    .returning({ id: approvals.id });
+  /**
+   * The approval, the status and the request to render, in one transaction.
+   *
+   * These three must not be able to diverge. An approval with no render is a
+   * customer who pressed the button and never got a film, and nothing in the
+   * system would notice; a render with no approval is a film delivered against
+   * a cut nobody authorised. Committing them together makes both impossible
+   * rather than merely unlikely.
+   *
+   * Note what is NOT here: enqueuing. The database is the source of truth and
+   * the queue is an accelerator, so approval writes a row and the worker's
+   * dispatcher turns it into a job. A queue insert in this transaction would
+   * either be outside it — and so lose-able — or inside it, and pg-boss is not
+   * ours to hold a transaction open across.
+   */
+  return db.transaction(async (tx): Promise<ApprovalOutcome> => {
+    const inserted = await tx
+      .insert(approvals)
+      .values({
+        projectId: input.projectId,
+        edlVersionId: input.edlVersionId,
+        approvedBy: input.approvedBy,
+      })
+      .returning({ id: approvals.id });
 
-  await db
-    .update(projects)
-    .set({ status: "approved", updatedAt: new Date() })
-    .where(eq(projects.id, input.projectId));
+    await tx
+      .update(projects)
+      .set({ status: "approved", updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId));
 
-  const row = inserted[0];
-  if (row === undefined) throw new Error("approval insert returned no row");
-  return { ok: true, approvalId: row.id };
+    const renderRow = await tx
+      .insert(renders)
+      .values({
+        edlVersionId: input.edlVersionId,
+        formatId: input.formatId,
+        quality: "delivery",
+        status: "queued",
+      })
+      .returning({ id: renders.id });
+
+    const row = inserted[0];
+    const render = renderRow[0];
+    if (row === undefined || render === undefined) {
+      throw new Error("approval insert returned no row");
+    }
+    return { ok: true, approvalId: row.id, renderId: render.id };
+  });
 };
+
+/** Delivery renders requested for a project, newest first. */
+export const deliveryRenders = async (
+  db: Db,
+  projectId: string,
+): Promise<
+  { id: string; edlVersionId: string; formatId: string; status: string; outputKey: string | null }[]
+> =>
+  db
+    .select({
+      id: renders.id,
+      edlVersionId: renders.edlVersionId,
+      formatId: renders.formatId,
+      status: renders.status,
+      outputKey: renders.outputKey,
+    })
+    .from(renders)
+    .innerJoin(edlVersions, eq(renders.edlVersionId, edlVersions.id))
+    .where(and(eq(edlVersions.projectId, projectId), eq(renders.quality, "delivery")))
+    .orderBy(desc(renders.createdAt));
 
 /** The cut a customer is currently being shown, if any. */
 export const latestEdlVersion = async (

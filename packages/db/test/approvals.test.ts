@@ -3,7 +3,7 @@ import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { approveVersion, latestEdlVersion, type Db } from "../src/index.js";
-import { approvals, edlVersions, projects, users } from "../src/schema/tables.js";
+import { approvals, edlVersions, projects, renders, users } from "../src/schema/tables.js";
 import * as schema from "../src/schema/tables.js";
 
 const DB_URL = process.env["TEST_DATABASE_URL"] ?? "postgres://postgres:film@localhost:55432/film";
@@ -14,6 +14,7 @@ let available = false;
 
 const projectId = "55555555-5555-4555-8555-555555555555";
 const userId = "66666666-6666-4666-8666-666666666666";
+const FORMAT = "landscape-classic";
 
 /** Minimal but schema-valid: the approval logic never reads inside the doc. */
 const doc = (n: number): unknown => ({
@@ -72,6 +73,7 @@ afterAll(async () => {
 beforeEach(async () => {
   if (!available) return;
   await db.delete(approvals).where(eq(approvals.projectId, projectId));
+  // renders cascade from edl_versions; deleting versions takes them with it.
   await db.delete(edlVersions).where(eq(edlVersions.projectId, projectId));
   await db.delete(projects).where(eq(projects.id, projectId));
   await db.delete(users).where(eq(users.id, userId));
@@ -109,6 +111,7 @@ describe("approval", () => {
       projectId,
       edlVersionId: v1,
       approvedBy: userId,
+      formatId: FORMAT,
     });
     expect(result.ok).toBe(true);
 
@@ -134,6 +137,7 @@ describe("approval", () => {
       projectId,
       edlVersionId: v1,
       approvedBy: userId,
+      formatId: FORMAT,
     });
 
     expect(result.ok).toBe(false);
@@ -155,6 +159,7 @@ describe("approval", () => {
       projectId,
       edlVersionId: v2,
       approvedBy: userId,
+      formatId: FORMAT,
     });
     expect(result.ok).toBe(true);
   });
@@ -162,9 +167,9 @@ describe("approval", () => {
   it("treats a second approval of the same cut as a double-click, not an error", async () => {
     needsDb();
     const v1 = await addVersion(1);
-    expect((await approveVersion(db, { projectId, edlVersionId: v1, approvedBy: userId })).ok).toBe(true);
+    expect((await approveVersion(db, { projectId, edlVersionId: v1, approvedBy: userId, formatId: FORMAT })).ok).toBe(true);
 
-    const again = await approveVersion(db, { projectId, edlVersionId: v1, approvedBy: userId });
+    const again = await approveVersion(db, { projectId, edlVersionId: v1, approvedBy: userId, formatId: FORMAT });
     expect(again.ok).toBe(false);
     if (!again.ok) expect(again.reason).toBe("already_approved");
 
@@ -180,9 +185,68 @@ describe("approval", () => {
       projectId,
       edlVersionId: "77777777-7777-4777-8777-777777777777",
       approvedBy: userId,
+      formatId: FORMAT,
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason).toBe("unknown_version");
+  });
+
+  /**
+   * Approval and the request to deliver commit together.
+   *
+   * An approval with no render is a customer who pressed the button and never
+   * got a film, with nothing in the system noticing. The reverse — a render
+   * with no approval — is a film delivered against a cut nobody authorised.
+   * One transaction makes both impossible rather than merely unlikely.
+   */
+  it("requests exactly one delivery render, against the cut that was approved", async () => {
+    needsDb();
+    const v1 = await addVersion(1);
+    const result = await approveVersion(db, {
+      projectId,
+      edlVersionId: v1,
+      approvedBy: userId,
+      formatId: FORMAT,
+    });
+
+    expect(result.ok).toBe(true);
+    const rows = await db.select().from(renders).where(eq(renders.edlVersionId, v1));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      formatId: FORMAT,
+      quality: "delivery",
+      status: "queued",
+      outputKey: null,
+    });
+    if (result.ok) expect(result.renderId).toBe(rows[0]?.id);
+  });
+
+  it("requests no render when the approval is refused", async () => {
+    needsDb();
+    const v1 = await addVersion(1);
+    await addVersion(2);
+
+    const refused = await approveVersion(db, {
+      projectId,
+      edlVersionId: v1,
+      approvedBy: userId,
+      formatId: FORMAT,
+    });
+
+    expect(refused.ok).toBe(false);
+    const rows = await db.select().from(renders).where(eq(renders.edlVersionId, v1));
+    expect(rows).toHaveLength(0);
+  });
+
+  it("does not request a second render when the button is double-clicked", async () => {
+    needsDb();
+    const v1 = await addVersion(1);
+    const args = { projectId, edlVersionId: v1, approvedBy: userId, formatId: FORMAT };
+    await approveVersion(db, args);
+    await approveVersion(db, args);
+
+    const rows = await db.select().from(renders).where(eq(renders.edlVersionId, v1));
+    expect(rows).toHaveLength(1);
   });
 
   it("reports the newest cut, which is what the preview shows", async () => {
