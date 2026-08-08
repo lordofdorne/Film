@@ -20,7 +20,7 @@
     "film:real": "pnpm project:build && tsx scripts/render-project.ts project/real",
     "db:up": "docker compose -f docker-compose.dev.yml up -d --wait",
     "db:down": "docker compose -f docker-compose.dev.yml down -v",
-    "db:migrate": "psql \"$DATABASE_URL_MIGRATIONS\" -v ON_ERROR_STOP=1 -f packages/db/migrations/0000_initial_pipeline_schema.sql",
+    "db:migrate": "tsx scripts/migrate.ts",
     "db:generate": "pnpm --filter @film/db exec drizzle-kit generate",
     "seed:real": "pnpm build && tsx scripts/seed-real-project.ts",
     "web": "pnpm --filter @film/web dev"
