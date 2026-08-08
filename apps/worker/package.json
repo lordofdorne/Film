@@ -1,0 +1,18 @@
+{
+  "name": "@film/worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@film/db": "workspace:*",
+    "@film/pipeline": "workspace:*",
+    "@film/queue": "workspace:*",
+    "@film/storage": "workspace:*",
+    "tsx": "^4.19.2"
+  }
+}

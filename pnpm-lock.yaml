@@ -144,6 +144,24 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
 
+  apps/worker:
+    dependencies:
+      '@film/db':
+        specifier: workspace:*
+        version: link:../../packages/db
+      '@film/pipeline':
+        specifier: workspace:*
+        version: link:../../packages/pipeline
+      '@film/queue':
+        specifier: workspace:*
+        version: link:../../packages/queue
+      '@film/storage':
+        specifier: workspace:*
+        version: link:../../packages/storage
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.5
+
   packages/db:
     dependencies:
       '@film/storage':

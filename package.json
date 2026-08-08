@@ -23,7 +23,8 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:generate": "pnpm --filter @film/db exec drizzle-kit generate",
     "web": "pnpm --filter @film/web dev",
-    "intake": "pnpm build && tsx scripts/intake.ts"
+    "intake": "pnpm build && tsx scripts/intake.ts",
+    "worker": "pnpm build && tsx apps/worker/src/main.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
