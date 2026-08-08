@@ -1,5 +1,6 @@
 packages:
   - packages/*
+  - apps/*
 
 # esbuild ships a platform binary via postinstall; tsx cannot run without it.
 onlyBuiltDependencies:
@@ -10,3 +11,8 @@ onlyBuiltDependencies:
 # is the only fix available on this side.
 publicHoistPattern:
   - tslib
+
+# One drizzle-orm across the workspace. Two copies give type errors that
+# read like code bugs but are package identity mismatches.
+overrides:
+  drizzle-orm: 0.45.2

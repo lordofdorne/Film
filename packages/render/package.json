@@ -11,6 +11,10 @@
     "./project": {
       "types": "./dist/fixture.d.ts",
       "default": "./dist/fixture.js"
+    },
+    "./composition": {
+      "types": "./dist/composition.d.ts",
+      "default": "./dist/composition.js"
     }
   },
   "scripts": {

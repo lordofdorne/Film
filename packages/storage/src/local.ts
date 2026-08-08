@@ -34,6 +34,18 @@ export class LocalObjectStore implements ObjectStore {
     return full;
   }
 
+  /**
+   * The on-disk path for a key, for callers that must stream bytes themselves.
+   *
+   * Exposed only on the local implementation: R2 has no filesystem path, and
+   * anything depending on this would not survive the switch to production
+   * storage. Used by the development media route, which exists so the preview
+   * works with no cloud account attached.
+   */
+  resolveForRead(key: string): string {
+    return this.#resolve(key);
+  }
+
   async put(
     key: string,
     body: Uint8Array | NodeJS.ReadableStream,
