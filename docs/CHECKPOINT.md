@@ -1,10 +1,10 @@
 # Checkpoint — 2026-08-08
 
-State after Phase 1, the real-media proof, and Blocks 1 and 2 of the production
-substrate. Written so a session with no conversational context can pick this up
+State after Phase 1, the real-media proof, and Blocks 1–3 of the production
+pipeline. Written so a session with no conversational context can pick this up
 from the repository alone.
 
-`main` is at `f2c9365`. Nine packages, one app, 176 tests.
+Ten packages, two apps, 219 tests.
 
 ---
 
@@ -13,84 +13,69 @@ from the repository alone.
 > Focus on making sure the product **works and can be used by many people**.
 > Auth, saved user videos and a polished UI come later.
 
-Read that as: connect the pipeline end to end and make it run unattended for
-concurrent projects. Do not spend effort on login, account management or visual
-design until a film can go from media to delivery without anyone running a
-script by hand.
-
 ---
 
 ## What works today
 
+**A film goes from recordings to a delivered file with nobody running a
+script.** This is new in Block 3 and is the thing the previous checkpoint said
+was missing.
+
 ```bash
-pnpm film                              # synthetic fixture film  -> out/life-advice-fixture.mp4
-pnpm project:build && pnpm film:real   # real recordings         -> out/life-advice-real.mp4
-pnpm test                              # 176 tests
-pnpm db:up && pnpm db:migrate          # local Postgres 16 on :55432
-pnpm seed:real && pnpm web             # preview at localhost:3200
+pnpm db:up && pnpm db:migrate
+set -a; . ./.env; set +a
+
+pnpm intake     # incoming/ -> object store + Postgres, then stops
+pnpm worker     # takes it from there
+pnpm web        # watch and approve at localhost:3200
 ```
 
-Two films have been rendered and verified: a 3:34 synthetic fixture and a 3:03
-film cut from ten real recorded answers and four real photographs. Both deliver
-at −14 LUFS / −1 dBTP, with verification that fails the render rather than
-shipping out of tolerance.
+Measured on the real recordings, 2026-08-08:
 
-The browser preview plays the real film and the approval flow works end to end
-against Postgres.
+| Step | Result |
+|---|---|
+| intake | 18 assets (10 takes, 4 photos, 3 placeholder b-roll, 1 music source) uploaded |
+| ingest | 18 stages, ~35s total, 14 QC warnings derived |
+| compose | EDL v1 — 28 visual, 11 speech, 2 prompt segments, 3:03 |
+| approve | in the browser, which requested the delivery render |
+| render | 5481 frames in 379s |
+| deliver | 115.8 MB at −14.80 LUFS / −0.75 dBTP |
+
+The offline path still works and still needs nothing: `pnpm film`,
+`pnpm project:build`, `pnpm film:real`.
 
 | Phase | State |
 |---|---|
 | 1 — Handwritten EDL, validator, renderer | Complete |
-| 2 — Ingest and QC | Partial. Normalisation, speech measurement, rotation. No HDR tonemapping, no QC metric collection in the pipeline, warnings only seeded. |
-| 3 — Browser capture | Not started. Largest product risk. |
-| 4 — Transcription | Not started. Caption text is hand-edited JSON; word timings estimated. |
-| 5 — Compose | First slice. Deterministic and working. No cue/downbeat alignment, no LLM selection. |
-| 6 — Preview and approval | **Done** (Block 2). Player preview, warnings, approval. No auth. |
-| 7 — Production render | Substrate only (Block 1). No workers, nothing queued. |
-| 8 — Accounts and payment | Not started. |
+| 2 — Ingest and QC | Ingest is a real stage. Normalisation, speech measurement, rotation, QC warnings. No HDR tonemapping. |
+| 3 — Browser capture | Not started. **Largest product risk.** |
+| 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
+| 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
+| 6 — Preview and approval | Done. Player preview, warning gate, approval. **No auth.** |
+| 7 — Production render | Done. Worker, dispatcher, reconciler, render, deliver. |
+| 8 — Accounts and payment | Not started. Deliver sends no mail. |
 
 ---
 
-## The gap that matters
-
-**Nothing connects.** Ingest, compose and render exist as hand-run scripts
-against one hardcoded `project/real` directory. The database, queue and storage
-exist but no code path uses them to move a project forward. Approval records a
-decision and triggers nothing.
-
-That is Block 3, and it is the whole of "works for many people":
-
-1. A worker process that starts pg-boss, claims stages, records results, drains
-   on SIGTERM, cleans temp in `finally`, and checks free disk before claiming
-   media work.
-2. Ingest, compose, render and deliver ported to stages that read and write
-   through `@film/db` and `@film/storage` instead of the local filesystem.
-3. The reconciler — a periodic sweep of `stage_executions` stuck in `running`
-   past a threshold. This is what covers the case the queue cannot: the
-   transaction committed but the queue insert never landed.
-4. Approval enqueues the delivery-quality render.
-5. An intake path so a project can be created without editing JSON by hand.
-
-Everything needed for this already exists: `claimStage` / `completeStage` /
-`failStage`, `hashInputs`, `findStalledStages`, `shouldRetry`, `enqueueStage`,
-`STAGE_POLICY`, and the storage interface.
-
----
-
-## Architecture
+## The shape of it
 
 ```
-assets + validated EDL + template version + format  →  rendered film
+intake  ──>  Postgres rows + objects in storage
+                      │
+                      ▼
+        ┌──── worker tick, every 5s ────┐
+        │  reconcile stalled stages      │
+        │  plan from rows -> enqueue     │
+        └───────────────┬────────────────┘
+                        ▼
+     ingest ─> compose ─> [customer approves] ─> render ─> deliver
 ```
 
-The EDL is a versioned JSON document describing the whole film. Code renders
-it; code does not decide it. Three independent timelines:
-
-- `visualSegments` — picture. Overlaps only as a declared transition.
-- `speechSegments` — the storyteller's voice plus word-level captions. Never
-  overlaps itself.
-- `promptSegments` — the interviewer's question, text with optional audio.
-  Never overlaps an answer.
+**Nothing chains stage to stage.** Every step is derived from rows by
+`planProject`. A queue that is drained, corrupted or rebuilt from scratch costs
+one tick of latency and nothing else, because nothing is only recorded in a
+job. It is also the same code path in the normal case and the recovery case, so
+recovery is exercised constantly instead of being the branch nobody has run.
 
 ### Packages
 
@@ -98,20 +83,21 @@ it; code does not decide it. Three independent timelines:
 |---|---|---|
 | `@film/edl` | **zod only** | Schemas and the validator. 44 rules. |
 | `@film/formats` | — | Format registry (`landscape-classic`). |
-| `@film/music` | zod | Track schema, registry, cue sheets, licensing model. |
+| `@film/music` | zod | Track schema, registry, cue sheets, licensing. |
 | `@film/templates` | edl, formats, music | `LIFE_ADVICE_V1`, text interpolation. |
-| `@film/render` | all above | Remotion composition, framing, captions, audio. |
+| `@film/render` | edl, formats, music, templates | Remotion composition, framing, captions, audio, props builder. |
 | `@film/db` | zod, drizzle, pg | Data model, connections, stage execution, approvals. |
 | `@film/queue` | db, pg-boss | Queue topology, payloads, per-stage policy. |
 | `@film/storage` | zod, aws-sdk | Project-scoped object store: local disk and R2. |
-| `apps/web` | most | Next.js preview and approval. |
+| `@film/pipeline` | all above | What each stage does, the runner, dispatcher, reconciler, intake. |
+| `apps/worker` | db, queue, storage, pipeline | The process. ~170 lines. |
+| `apps/web` | db, storage, pipeline/model, render/props | Preview and approval. |
 
 Dependencies flow one way. `@film/edl` has **no package dependencies** — this
 is load-bearing, not incidental.
 
-`@film/render` has three entry points: `.` (everything, includes Root and its
-JSON import attributes), `./project` (props builder, safe for Node scripts),
-`./composition` (composition only, safe for Next).
+Subpath entries that matter: `@film/render/props` (React-free, so Next can
+import it), `@film/pipeline/model` (no Remotion, same reason).
 
 ---
 
@@ -122,101 +108,108 @@ Every invariant lives in `packages/edl/src/validate/`. Nothing downstream
 re-checks. A new rule goes there with a deliberately malformed fixture.
 
 **Template rules are data, not code.** The validator never imports
-`@film/templates`; conformance arrives in a `ValidationContext`. Its tests
-prove it by inlining `life-advice@1` conformance rather than importing it.
+`@film/templates`; conformance arrives in a `ValidationContext`.
 
 **Audio doubling is unrepresentable.** `InterviewSegment` and `BrollSegment`
-have no audio field and every object is `.strict()`, so unmuting picture is a
-*parse error*. `PictureOnlyVideo` is the only module rendering a video element.
-Three audio routes: `SpeechTrack`, `PromptTrack`, `MusicBed`. Do not add a
-fourth — a boundary test enforces this.
+have no audio field and every object is `.strict()`. Three audio routes:
+`SpeechTrack`, `PromptTrack`, `MusicBed`. A boundary test enforces this.
 
 **Determinism.** Every composition is a pure function of `(EDL, format, frame)`.
-No `Math.random`, no `Date.now`, no external reads.
 
-**Exactly-once is enforced by Postgres.** Claim the row, then work.
-`UNIQUE NULLS NOT DISTINCT` — the nulls clause is required because
-project-wide stages have a null `asset_id`.
+**Claim the row, then work.** `UNIQUE NULLS NOT DISTINCT` on
+`(project_id, asset_id, stage, input_hash)` is what makes exactly-once true.
+The nulls clause is required because project-wide stages have a null asset_id.
 
-**Preview is the same composition as delivery.** Not a second implementation.
-`resolveSrc` passes absolute URLs through so the browser uses signed URLs and
-the worker uses a public dir, from one codebase.
+**Postgres is the source of truth; pg-boss is an accelerator.** Nothing may be
+recorded only in a job.
+
+**Preview is the same composition AND the same props builder as delivery.**
+`buildProjectProps` is used by both. Only the paths differ — signed URLs in the
+browser, local files in the worker.
+
+**The customer's original is never overwritten.** `storage_key` is the upload,
+`normalised_key` is what ingest made. A bad recipe must be re-runnable.
+
+**Deliver requires an approval for that exact cut.** A render row can exist
+without one; delivering against it would send someone a film they never
+watched.
+
+**The dispatcher and the runner share `MAX_ATTEMPTS`.** A runner that has given
+up while the dispatcher keeps handing work out is a loop that looks like
+progress.
 
 ---
 
 ## Hard-won details
 
 - **`delayRender` at module scope leaks.** A handle created outside a React
-  render pass is never reconciled, and the watchdog kills the render at the
-  timeout boundary after a thousand good frames.
+  render pass is never reconciled; the watchdog kills the render at the timeout
+  boundary after a thousand good frames.
 - **Offthread video cache must be capped**, or ten 1080p sources push Chrome
   into swap and it stops executing JavaScript.
 - **Silence detection must run on the original take, not the normalised one.**
   Normalisation lifts room tone above the gate.
 - **Loudnorm's JSON is the *last* object in ffmpeg's stderr.**
-- **Webpack needs `extensionAlias`** to map `./Foo.js` to `Foo.tsx` — required
-  separately for Remotion (`scripts/webpack-override.ts`) and Next
-  (`apps/web/next.config.ts`).
-- **Fonts inline as data URIs** for the render; the font gate must be
-  non-fatal in the Player, where fonts legitimately arrive late.
+- **Webpack needs `extensionAlias`** to map `./Foo.js` to `Foo.tsx` — needed
+  separately for Remotion, Next, and Vitest (which also needs explicit subpath
+  aliases, since a string alias matches by prefix).
+- **Fonts inline as data URIs**; the font gate must be non-fatal in the Player.
 - **Music must be levelled off a normalised baseline** (`BED_TARGET_LUFS`).
-  Gains tuned against a constant tone land 12–15 LU too quiet under real music.
 - **pg-boss queues default to `policy: "standard"`**, which deduplicates
   nothing. `"short"` is required for singleton-key collapse.
-- **One drizzle-orm across the workspace**, pinned by override. Two copies give
-  type errors that read like code bugs but are package identity mismatches.
-- **Tests must scope their deletes.** `stages.test.ts` once deleted from
-  `projects`/`assets`/`users` unscoped and wiped the database.
-- **Boundary tests should strip comments** before grepping, or prose mentioning
-  `<Video>` fails the build and people learn to reword rather than think.
+- **pg-boss `stop()` returns before its workers finish.** Wait for the
+  `stopped` event or the process exits mid-job.
+- **Importing a value from `@film/render/composition` in Next** drags React and
+  Remotion into the server module graph, where page-data collection runs it
+  outside a React tree and it fails on a missing `createContext`.
+- **When the worker is containerised, node must be PID 1.** `pnpm worker` runs
+  it under two wrappers and SIGTERM stops at the outermost, so the drain
+  handler never fires and every deploy is a hard kill.
+- **A hash over an array of rows must sort them itself.** Rows inserted in one
+  statement share a `created_at` and Postgres may return them in either order.
+- **Tests must clean up, not just scope their deletes.** A fixture project left
+  in a database a worker is watching gets planned and swept for ever.
+- **Boundary tests should strip comments** before grepping.
 
 ---
 
 ## Open decisions
 
 **Owed by the owner:** production music (three licensed instrumentals with
-marked cue sheets), brand identity, real fixture media, approved caption and
-emphasis styling. Mechanisms exist; values are placeholders.
+marked cue sheets), brand identity, real b-roll, approved caption and emphasis
+styling. Mechanisms exist; values are placeholders.
 
-**Open in `docs/proposal/phase-1-proposal.md` §8:** eight questions. Three were
-resolved and are in code — beat/question mapping, `overlayTextKey`, always-on
-captions.
+**Known and deliberate gaps:**
 
-**Proceeded on my own proposal, reversible:** placeholder track at 75 bpm;
-vendored OFL font; `fade` draws only the incoming segment.
-
-**Known and deliberate:** `apps/web` has **no authentication**. The approver is
-the project owner with no session. Anyone who can reach the app can approve any
-project by URL. Acceptable locally, not deployable.
-
-**Temp music:** `incoming/songs` holds a commercial recording used as a scratch
-bed, registered `usage: "temp-track"`. The validator refuses it unless the
-caller opts into unlicensed music, so it cannot reach a customer. Replace
-before launch.
-
----
-
-## Scaling analysis
-
-Per-film marginal cost is estimated well under $1 — render CPU is not the
-constraint. Reliability and burst behaviour are.
-
-1. **Preview is the `<Player>`** — done in Block 2. Decouples latency from
-   render cost.
-2. **Re-render only what changed** — segment caching keyed on content hash.
-   Not built.
-3. **Chunk renders across workers** — turns film length into a scaling
-   parameter and fixes the Chrome memory ceiling. Not built.
-
-A different language would not help: >99% of wall time is already inside FFmpeg
-and Chromium. The only credible candidate is a Rust rasterizer compiled to
-native and WASM to keep preview parity — months of work, not warranted.
+- **No authentication.** The approver is the project owner and there is no
+  session to check against, so anyone who can reach a project URL can approve
+  its film. Not deployable as-is.
+- **Deliver sends no mail.** No provider is configured. It marks the project
+  delivered against a specific render and says so.
+- **`qc`, `transcribe` and `select` have queues and enum values but no
+  implementation**, and the worker deliberately does not register them. A stage
+  that succeeds without doing anything is indistinguishable from one that works.
+- **Temp music.** `incoming/songs` holds a commercial recording used as a
+  scratch bed, registered `usage: "temp-track"`. The validator refuses it unless
+  `ALLOW_UNLICENSED_MUSIC=1`. Replace before launch.
+- **No download surface.** The film is in storage and the project says
+  `delivered`, but nothing offers it to the customer yet.
 
 ---
 
 ## Next
 
-**Block 3 — pipeline workers.** Scope in "The gap that matters" above. This is
-the block that makes the product usable by many people.
+Roughly in order of how much they matter to "works for many people":
 
-Deliberately not next: renderer optimisation, auth, UI design.
+1. **A download surface.** The pipeline delivers to storage and stops. A
+   customer cannot yet get their film.
+2. **Browser capture (Phase 3).** Still the largest product risk, and intake
+   currently assumes files already on disk.
+3. **Transcription (Phase 4).** Caption text is typed in at intake and word
+   timings are estimated. This is the biggest quality gap in the output.
+4. **Auth (Phase 8).** Needed before anything is exposed publicly.
+5. **Re-render only what changed.** Segment caching keyed on content hash.
+   379s per film is fine now and will not be at volume.
+
+A different language would still not help: >99% of wall time is inside FFmpeg
+and Chromium.
