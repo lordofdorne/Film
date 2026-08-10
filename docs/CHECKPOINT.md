@@ -4,12 +4,13 @@ State after Phase 1, the real-media proof, Blocks 1–3 of the production
 pipeline, and the download surface. Written so a session with no conversational
 context can pick this up from the repository alone.
 
-`main` is at `475ad7f`. Blocks 1, 2, 3 and the download surface are all
+`main` is at `f251a88`. Blocks 1, 2, 3 and the download surface are all
 merged. Ten packages, two apps, 239 tests.
 
 **The next block is browser capture.** Its requirements are at the bottom, in
 "The capture flow", and they come from the owner rather than from the code —
-read that section before designing anything.
+read that section first, then `docs/proposal/phase-3-capture.md`, which is the
+design proposed against them.
 
 ---
 
@@ -288,15 +289,27 @@ web app must not contain a single string that only makes sense for life-advice.
   can be aborted rather than billed for. Never used by anything.
 - `ObjectStore.signedPutUrl` — so media never proxies through the app server.
 
-### Open questions worth settling before building
+### The design
 
-- Does a project exist before capture starts, or does the walk-through create
-  it? Assets have a non-null `project_id`, so something must exist first.
-- Where does subject data (name, age, dedication) get collected — a step in the
-  walk-through, or a separate form before it? It is required for text
-  interpolation and is currently typed in at intake.
-- Can someone leave and come back? Almost certainly yes, which makes it a
-  resumable session and not a wizard held in React state.
-- MediaRecorder support is the unknown: iOS Safari is the constraint, and the
-  fallback when it cannot record is the native file picker, which is also the
-  upload path. Worth proving on a real iPhone before designing around it.
+`docs/proposal/phase-3-capture.md`, proposed 2026-08-10 and awaiting approval.
+
+It answers the questions this section used to leave open — the project is
+created before capture and sits in `capturing`; subject data is step zero;
+resume works because state lives in rows and not in React — and it found four
+things standing between "the walk-through works" and "the walk-through produces
+a film", none of which are visible from the capture screens:
+
+- **Every take needs its words.** `compose` permanently rejects an interview
+  asset with no `selection.spoken`, and that text is typed by hand into
+  `incoming/project.json` today. Capture without the `transcribe` stage produces
+  projects that ingest cleanly and then die.
+- **Every project needs a music bed**, and it currently arrives as an uploaded
+  file from `incoming/songs`. `MusicTrack.assetKey` is the intended home.
+- **The dispatcher would fail a project mid-capture.** One permanently bad
+  photograph, at a moment when it is the only asset, is enough — while the
+  customer is standing right there and could pick another.
+- **There is no page between capture and preview.** `/projects/[id]` 404s until
+  compose has written an EDL version.
+
+MediaRecorder on iOS remains the one genuine unknown, and the design opens with
+a half-day spike on a real iPhone rather than a guess.
