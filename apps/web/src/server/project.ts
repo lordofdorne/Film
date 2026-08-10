@@ -5,8 +5,12 @@ import {
   approvals,
   assets,
   createDb,
+  deliverableFilm,
+  deliveryRenders,
   edlVersions,
+  filmFilename,
   projects,
+  subjectNameOf,
   type Db,
 } from "@film/db";
 import { EdlSchema, type EDL } from "@film/edl";
@@ -187,4 +191,54 @@ export const loadProjectForPreview = async (
     },
     props,
   };
+};
+
+/**
+ * What the customer should be told about their film, in the four states a
+ * project can actually be in.
+ *
+ * Derived from rows rather than from `projects.status`, because the status
+ * column moves for reasons that are not about delivery. The states are the
+ * ones the schema can really produce: a render row is only ever written as
+ * "queued" or "succeeded", and a run that gives up marks the PROJECT failed —
+ * so there is no "the render failed" state to show, and inventing one would
+ * mean writing a branch that never runs.
+ */
+export type DeliveryState =
+  | { readonly kind: "unapproved" }
+  | { readonly kind: "rendering" }
+  | { readonly kind: "failed" }
+  | {
+      readonly kind: "ready";
+      readonly filename: string;
+      /** Null when the object has gone missing under a row that claims it. */
+      readonly byteSize: number | null;
+    };
+
+export const loadDelivery = async (projectId: string): Promise<DeliveryState> => {
+  const film = await deliverableFilm(db(), projectId);
+
+  if (film !== null) {
+    const filename = filmFilename({
+      subjectName: await subjectNameOf(db(), projectId),
+      edlVersion: film.edlVersion,
+    });
+    // Heading the object rather than trusting the row. A half-failed upload
+    // leaves a row pointing at nothing, and the download button should not be
+    // the thing that discovers it.
+    const head = await store().head(film.outputKey);
+    return { kind: "ready", filename, byteSize: head?.byteSize ?? null };
+  }
+
+  const statusRows = await db()
+    .select({ status: projects.status })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  if (statusRows[0]?.status === "failed") return { kind: "failed" };
+
+  // A requested delivery render that has not landed yet. Approval and the
+  // render row are written in one transaction, so one implies the other.
+  const requested = await deliveryRenders(db(), projectId);
+  return requested.length > 0 ? { kind: "rendering" } : { kind: "unapproved" };
 };
