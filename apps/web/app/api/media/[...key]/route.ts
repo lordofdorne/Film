@@ -63,8 +63,14 @@ export async function GET(
 const guessType = (key: string): string => {
   if (key.endsWith(".mp4")) return "video/mp4";
   if (key.endsWith(".mov")) return "video/quicktime";
+  // What MediaRecorder produces in Chrome and Firefox. Capture plays the
+  // original back so someone can check the take they just recorded, and a
+  // browser will not play what it is told is an octet-stream.
+  if (key.endsWith(".webm")) return "video/webm";
   if (key.endsWith(".wav")) return "audio/wav";
   if (key.endsWith(".jpg") || key.endsWith(".jpeg")) return "image/jpeg";
   if (key.endsWith(".png")) return "image/png";
+  if (key.endsWith(".webp")) return "image/webp";
+  if (key.endsWith(".heic")) return "image/heic";
   return "application/octet-stream";
 };
