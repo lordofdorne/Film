@@ -1,11 +1,15 @@
-# Checkpoint — 2026-08-08
+# Checkpoint — 2026-08-10
 
-State after Phase 1, the real-media proof, and Blocks 1–3 of the production
-pipeline. Written so a session with no conversational context can pick this up
-from the repository alone.
+State after Phase 1, the real-media proof, Blocks 1–3 of the production
+pipeline, and the download surface. Written so a session with no conversational
+context can pick this up from the repository alone.
 
-`main` is at `2bb6db5`, with the download surface open as a branch on top of
-it. Blocks 1, 2 and 3 are merged. Ten packages, two apps, 239 tests.
+`main` is at `475ad7f`. Blocks 1, 2, 3 and the download surface are all
+merged. Ten packages, two apps, 239 tests.
+
+**The next block is browser capture.** Its requirements are at the bottom, in
+"The capture flow", and they come from the owner rather than from the code —
+read that section before designing anything.
 
 ---
 
@@ -19,8 +23,8 @@ it. Blocks 1, 2 and 3 are merged. Ten packages, two apps, 239 tests.
 ## What works today
 
 **A film goes from recordings to a delivered file with nobody running a
-script.** This is new in Block 3 and is the thing the previous checkpoint said
-was missing.
+script, and the customer can download it.** The one thing it cannot do is let
+anyone start a film without a terminal — which is the next block.
 
 ```bash
 pnpm install
@@ -65,7 +69,7 @@ The offline path still works and still needs nothing: `pnpm film`,
 |---|---|
 | 1 — Handwritten EDL, validator, renderer | Complete |
 | 2 — Ingest and QC | Ingest is a real stage. Normalisation, speech measurement, rotation, QC warnings. No HDR tonemapping. |
-| 3 — Browser capture | Not started. **Largest product risk.** |
+| 3 — Browser capture | Not started. **Next block, and the largest product risk.** A guided walkthrough — see below. |
 | 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
 | 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
 | 6 — Preview and approval | Done. Player preview, warning gate, approval, download. **No auth.** |
@@ -219,14 +223,12 @@ styling. Mechanisms exist; values are placeholders.
 
 ## Next
 
-Roughly in order of how much they matter to "works for many people":
-
-1. **Browser capture (Phase 3).** The largest product risk, and intake still
-   assumes files already on disk. Nobody can start a film without a shell.
-2. **Transcription (Phase 4).** Caption text is typed in at intake and word
-   timings are estimated. This is the biggest quality gap in the output.
-3. **Auth (Phase 8).** Needed before anything is exposed publicly — the
-   download route is one more thing a project URL now grants.
+1. **Browser capture (Phase 3).** The next block. See below.
+2. **Auth (Phase 8).** Needed before anything is exposed publicly, and capture
+   makes it urgent: a stranger who can reach a project URL can currently add
+   media to it. The two may want designing together.
+3. **Transcription (Phase 4).** Caption text is typed in at intake and word
+   timings are estimated. The biggest quality gap in the output.
 4. **Delivery by email.** Deliver marks the project and says plainly that no
    mail provider is configured. A customer who closes the tab is not told.
 5. **Re-render only what changed.** Segment caching keyed on content hash.
@@ -234,3 +236,67 @@ Roughly in order of how much they matter to "works for many people":
 
 A different language would still not help: >99% of wall time is inside FFmpeg
 and Chromium.
+
+---
+
+## The capture flow
+
+**Requirements from the owner, 2026-08-10.** These are product intent and are
+not derivable from the code. They govern the design of Phase 3.
+
+> The flow is supposed to feel like a walk-through. Users will capture their
+> videos/photos, or choose to upload. We need to have space for text to give
+> them inspiration so that we create the best film possible. For instance for
+> the life advice the first photo upload should have a suggestion like "Add a
+> photo of the person from another time".
+
+What follows from that:
+
+**A walk-through, not an upload form.** One thing at a time, in an order the
+template decides, with a sense of progress through it. The person on the other
+end is often doing this once, for someone they love, possibly with an elderly
+relative sitting in front of them. The interface is the interviewer.
+
+**Record or upload, per step, always both.** Some moments have to be captured
+now — the interview answers. Others already exist and only need finding — the
+photographs. The same step must accept either without feeling like two
+different products.
+
+**Every step carries coaching copy, and that copy is the product.** The film is
+only as good as what people give us, and what they give us depends almost
+entirely on what we asked for. "Add a photo" gets a blurry screenshot. "Add a
+photo of the person from another time" gets the one from 1974. This is the
+cheapest available lever on output quality — cheaper than transcription,
+cheaper than better selection — and it is worth treating as seriously as the
+renderer.
+
+**The copy belongs in the template, not in the app.** This follows from an
+invariant that already holds: *template rules are data, not code*. `LIFE_ADVICE_V1`
+already carries `questions[].prompt` and `slots[].label` ("An earlier photo");
+the guidance text is the same kind of thing, one field richer. A second film
+type must ship its own walk-through without a line of React changing, and the
+web app must not contain a single string that only makes sense for life-advice.
+
+### What already exists for this, unused
+
+- `assets.capture_method` — `"browser" | "native_upload"`. Written by intake,
+  never yet distinguishing anything. It is there to measure which path people
+  actually finish.
+- `upload_sessions` — multipart upload id plus a `parts` jsonb, persisted as
+  each part lands, with a `(status, created_at)` sweep index. Built so a phone
+  that drops out mid-answer does not lose the take, and so abandoned uploads
+  can be aborted rather than billed for. Never used by anything.
+- `ObjectStore.signedPutUrl` — so media never proxies through the app server.
+
+### Open questions worth settling before building
+
+- Does a project exist before capture starts, or does the walk-through create
+  it? Assets have a non-null `project_id`, so something must exist first.
+- Where does subject data (name, age, dedication) get collected — a step in the
+  walk-through, or a separate form before it? It is required for text
+  interpolation and is currently typed in at intake.
+- Can someone leave and come back? Almost certainly yes, which makes it a
+  resumable session and not a wizard held in React state.
+- MediaRecorder support is the unknown: iOS Safari is the constraint, and the
+  fallback when it cannot record is the native file picker, which is also the
+  upload path. Worth proving on a real iPhone before designing around it.
