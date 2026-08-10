@@ -13,7 +13,7 @@ import type {
   SignedUrlOptions,
   StoredObject,
 } from "./index.js";
-import { clampTtl } from "./index.js";
+import { clampTtl, contentDisposition } from "./index.js";
 
 export type R2Config = {
   readonly accountId: string;
@@ -139,10 +139,29 @@ export class R2ObjectStore implements ObjectStore {
     return keys;
   }
 
+  /**
+   * A short-lived read URL, optionally one that downloads under a real name.
+   *
+   * `downloadAs` is signed into the request as ResponseContentDisposition, so
+   * R2 returns the header and the browser saves the file as the customer's
+   * film rather than as a storage key. Signing it in matters: the parameter is
+   * covered by the signature, so nobody can rewrite the URL to make the object
+   * come back as something else.
+   *
+   * The fifteen-minute cap looks wrong for a hundred-megabyte download and is
+   * not: S3-style expiry is checked when the request is made, not while the
+   * bytes are moving. A download that starts inside the window finishes.
+   */
   async signedGetUrl(key: string, options: SignedUrlOptions = {}): Promise<string> {
     return getSignedUrl(
       this.#client,
-      new GetObjectCommand({ Bucket: this.#bucket, Key: key }),
+      new GetObjectCommand({
+        Bucket: this.#bucket,
+        Key: key,
+        ...(options.downloadAs === undefined
+          ? {}
+          : { ResponseContentDisposition: contentDisposition(options.downloadAs) }),
+      }),
       { expiresIn: clampTtl(options.expiresInSeconds) },
     );
   }

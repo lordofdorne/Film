@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { loadProjectForPreview } from "../../../src/server/project.js";
+import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
+import { DeliveryPanel } from "./DeliveryPanel.js";
 import { PreviewClient } from "./PreviewClient.js";
 
 /**
@@ -32,11 +33,23 @@ export default async function ProjectPreviewPage({
    */
   const approverId = loaded.summary.ownerId;
 
+  /**
+   * Loaded here, on the server, so the page arrives already knowing whether a
+   * film exists. The panel polls from that starting point rather than opening
+   * on "rendering" and correcting itself a few seconds later — a customer
+   * returning to a finished film should not watch it pretend to still be
+   * working.
+   */
+  // Non-null: loadProjectForPreview already established the id is well-formed
+  // and the project exists.
+  const delivery = (await loadDelivery(id)) ?? { kind: "unapproved" as const };
+
   return (
     <PreviewClient
       summary={loaded.summary}
       props={loaded.props}
       approverId={approverId}
+      delivery={<DeliveryPanel projectId={id} initial={delivery} />}
     />
   );
 }

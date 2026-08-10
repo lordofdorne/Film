@@ -64,9 +64,43 @@ export type SignedUrlOptions = {
    * key and method, never logged and never embedded in an email.
    */
   readonly expiresInSeconds?: number;
+  /**
+   * Save the object under this name instead of its key.
+   *
+   * A storage key is addressed for the system's convenience. Handing one
+   * straight to a browser puts `delivery-landscape-classic-v1.mp4` in
+   * someone's Downloads folder, which is a bad name for a film they intend to
+   * keep. Only meaningful on a store that can serve the object directly.
+   */
+  readonly downloadAs?: string;
 };
 
 export const MAX_SIGNED_URL_TTL_SECONDS = 900;
+
+/**
+ * A Content-Disposition header that survives a real name.
+ *
+ * Two forms, per RFC 6266: a quoted ASCII fallback for anything old, and
+ * `filename*` in RFC 5987 percent-encoded UTF-8 for everything current. A
+ * browser that understands the second ignores the first, which is how "José"
+ * arrives intact rather than as "Jos".
+ *
+ * The ASCII fallback is built by dropping bytes rather than transliterating.
+ * A name that reduces to nothing still has `filename*` carrying the truth, and
+ * a wrong guess at someone's name is worse than a plain one.
+ */
+export const contentDisposition = (filename: string): string => {
+  const stripped = filename.replace(/[\u0000-\u001f\u007f"\\]/g, "");
+  const ascii = stripped.replace(/[^\u0020-\u007e]/g, "").trim();
+  // The stem, not the whole string: a name written entirely in a non-Latin
+  // script reduces to ".mp4", which is not empty but is a hidden file with no
+  // name. If nothing is left before the extension, use the fallback.
+  const dot = ascii.lastIndexOf(".");
+  const stem = dot === -1 ? ascii : ascii.slice(0, dot);
+  const fallback = stem.trim() === "" ? "film.mp4" : ascii;
+  const encoded = encodeURIComponent(stripped);
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+};
 
 export type PutOptions = {
   readonly contentType?: string;

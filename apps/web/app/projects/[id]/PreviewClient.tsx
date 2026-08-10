@@ -2,7 +2,7 @@
 
 import { Player } from "@remotion/player";
 import { FilmComposition, msToFrame, type FilmProps } from "@film/render/composition";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
 
@@ -18,10 +18,20 @@ export const PreviewClient = ({
   summary,
   props,
   approverId,
+  delivery,
 }: {
   readonly summary: ProjectSummary;
   readonly props: FilmProps;
   readonly approverId: string;
+  /**
+   * The delivery panel, rendered by the server page and passed through.
+   *
+   * A node rather than a prop object: this component is the preview, and
+   * giving it the delivery state to interpret would make it two things. It
+   * only decides where the panel sits, which is above the player — once the
+   * film is finished, downloading it is what the page is for.
+   */
+  readonly delivery: ReactNode;
 }) => {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -62,7 +72,9 @@ export const PreviewClient = ({
         </p>
       </header>
 
-      <div style={styles.playerFrame}>
+      {delivery}
+
+      <div style={{ ...styles.playerFrame, marginTop: 24 }}>
         <Player
           component={FilmComposition}
           inputProps={props}
