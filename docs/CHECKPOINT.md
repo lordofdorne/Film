@@ -4,7 +4,8 @@ State after Phase 1, the real-media proof, and Blocks 1–3 of the production
 pipeline. Written so a session with no conversational context can pick this up
 from the repository alone.
 
-Ten packages, two apps, 219 tests.
+`main` is at `e5c619a`. Blocks 1, 2 and 3 are all merged. Ten packages, two
+apps, 219 tests.
 
 ---
 
@@ -22,13 +23,28 @@ script.** This is new in Block 3 and is the thing the previous checkpoint said
 was missing.
 
 ```bash
+pnpm install
 pnpm db:up && pnpm db:migrate
-set -a; . ./.env; set +a
+cp .env.example .env && set -a && . ./.env && set +a
 
 pnpm intake     # incoming/ -> object store + Postgres, then stops
 pnpm worker     # takes it from there
 pnpm web        # watch and approve at localhost:3200
 ```
+
+Three environment variables are easy to get wrong and fail quietly:
+
+- `STORAGE_ROOT` — the worker writes objects here and the web app reads them.
+  If they disagree, the symptom is a blank preview with no error anywhere.
+  `apps/web/.env.local` has its own copy and must match; use absolute paths.
+- `ALLOW_UNLICENSED_MUSIC=1` — without it compose refuses the temp bed, which
+  is correct and is also the only bed that exists right now.
+- `DATABASE_URL_WORKER` must be direct or session mode, never a transaction
+  pooler. `@film/db` refuses at startup rather than letting pg-boss silently
+  never deliver a job.
+
+A worker left running against the development database will pick up any
+project a test leaves behind, so the test suites clean up after themselves.
 
 Measured on the real recordings, 2026-08-08:
 
