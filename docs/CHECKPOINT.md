@@ -4,8 +4,8 @@ State after Phase 1, the real-media proof, and Blocks 1–3 of the production
 pipeline. Written so a session with no conversational context can pick this up
 from the repository alone.
 
-`main` is at `e5c619a`. Blocks 1, 2 and 3 are all merged. Ten packages, two
-apps, 219 tests.
+`main` is at `2bb6db5`, with the download surface open as a branch on top of
+it. Blocks 1, 2 and 3 are merged. Ten packages, two apps, 239 tests.
 
 ---
 
@@ -56,6 +56,7 @@ Measured on the real recordings, 2026-08-08:
 | approve | in the browser, which requested the delivery render |
 | render | 5481 frames in 379s |
 | deliver | 115.8 MB at −14.80 LUFS / −0.75 dBTP |
+| download | 115,831,887 bytes, sha256 identical to the stored object |
 
 The offline path still works and still needs nothing: `pnpm film`,
 `pnpm project:build`, `pnpm film:real`.
@@ -67,7 +68,7 @@ The offline path still works and still needs nothing: `pnpm film`,
 | 3 — Browser capture | Not started. **Largest product risk.** |
 | 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
 | 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
-| 6 — Preview and approval | Done. Player preview, warning gate, approval. **No auth.** |
+| 6 — Preview and approval | Done. Player preview, warning gate, approval, download. **No auth.** |
 | 7 — Production render | Done. Worker, dispatcher, reconciler, render, deliver. |
 | 8 — Accounts and payment | Not started. Deliver sends no mail. |
 
@@ -148,7 +149,8 @@ browser, local files in the worker.
 
 **Deliver requires an approval for that exact cut.** A render row can exist
 without one; delivering against it would send someone a film they never
-watched.
+watched. `deliverableFilm` re-establishes this with a join rather than trusting
+a status column, because the download route is where the film reaches a person.
 
 **The dispatcher and the runner share `MAX_ATTEMPTS`.** A runner that has given
 up while the dispatcher keeps handing work out is a loop that looks like
@@ -186,6 +188,11 @@ progress.
 - **Tests must clean up, not just scope their deletes.** A fixture project left
   in a database a worker is watching gets planned and swept for ever.
 - **Boundary tests should strip comments** before grepping.
+- **A malformed id in a URL reached Postgres**, which raises on the uuid cast,
+  so every route that passed one through answered 500. `isProjectId` guards the
+  boundaries that take an id from a URL.
+- **A signed URL's TTL is checked when the request is made**, not while bytes
+  move, so a 15-minute cap is fine for a 116 MB download.
 
 ---
 
@@ -208,22 +215,20 @@ styling. Mechanisms exist; values are placeholders.
 - **Temp music.** `incoming/songs` holds a commercial recording used as a
   scratch bed, registered `usage: "temp-track"`. The validator refuses it unless
   `ALLOW_UNLICENSED_MUSIC=1`. Replace before launch.
-- **No download surface.** The film is in storage and the project says
-  `delivered`, but nothing offers it to the customer yet.
-
 ---
 
 ## Next
 
 Roughly in order of how much they matter to "works for many people":
 
-1. **A download surface.** The pipeline delivers to storage and stops. A
-   customer cannot yet get their film.
-2. **Browser capture (Phase 3).** Still the largest product risk, and intake
-   currently assumes files already on disk.
-3. **Transcription (Phase 4).** Caption text is typed in at intake and word
+1. **Browser capture (Phase 3).** The largest product risk, and intake still
+   assumes files already on disk. Nobody can start a film without a shell.
+2. **Transcription (Phase 4).** Caption text is typed in at intake and word
    timings are estimated. This is the biggest quality gap in the output.
-4. **Auth (Phase 8).** Needed before anything is exposed publicly.
+3. **Auth (Phase 8).** Needed before anything is exposed publicly — the
+   download route is one more thing a project URL now grants.
+4. **Delivery by email.** Deliver marks the project and says plainly that no
+   mail provider is configured. A customer who closes the tab is not told.
 5. **Re-render only what changed.** Segment caching keyed on content hash.
    379s per film is fine now and will not be at volume.
 

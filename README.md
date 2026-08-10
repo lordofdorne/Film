@@ -35,7 +35,9 @@ pnpm web                         # watch and approve at localhost:3200
 Intake uploads the originals and writes the rows. The worker's dispatcher reads
 the database, works out what each project needs next, and queues it. Compose
 leaves the project in `awaiting_approval`; approving in the browser requests a
-delivery render, which the worker picks up on its next tick and delivers.
+delivery render, which the worker picks up on its next tick and delivers. The
+project page then offers the finished film for download — it polls while the
+render runs, so the page changes on its own rather than waiting for a reload.
 
 Nothing chains stage to stage. Every step is derived from rows, which is what
 makes a drained or rebuilt queue cost one tick of latency and nothing else.
@@ -53,7 +55,7 @@ pnpm film:real       # render project/real -> out/life-advice-real.mp4
 ```
 
 ```bash
-pnpm test        # 216 tests, including 23 golden frames
+pnpm test        # 239 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
