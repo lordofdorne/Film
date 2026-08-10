@@ -24,6 +24,12 @@
     },
     {
       "path": "packages/queue"
+    },
+    {
+      "path": "packages/pipeline"
+    },
+    {
+      "path": "apps/worker"
     }
   ]
 }

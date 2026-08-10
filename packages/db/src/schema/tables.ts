@@ -91,6 +91,10 @@ export const projects = pgTable(
     templateId: text("template_id").notNull(),
     templateVersion: integer("template_version").notNull(),
     subjectData: jsonb("subject_data").notNull(),
+    /** Edit decisions that are not subject data: which questions get a prompt
+     *  card, which music bed to build. Keeping them out of subject_data is
+     *  what stops the template's schema having to know about the pipeline. */
+    config: jsonb("config").notNull().default({}),
     status: projectStatus("status").notNull().default("draft"),
     stripePaymentId: text("stripe_payment_id"),
     /** Raw recordings may be irreplaceable. Never delete while active; warn
@@ -120,7 +124,11 @@ export const assets = pgTable(
     kind: assetKind("kind").notNull(),
     /** Computed server-side after upload. The browser never asserts this. */
     sha256: text("sha256"),
+    /** The customer's original. Never overwritten — raw takes may be
+     *  irreplaceable, and a bad normalisation recipe must be re-runnable. */
     storageKey: text("storage_key").notNull(),
+    /** What ingest produced from it. Null until ingest has run. */
+    normalisedKey: text("normalised_key"),
     contentType: text("content_type"),
     byteSize: bigint("byte_size", { mode: "number" }),
     etag: text("etag"),

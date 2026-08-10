@@ -10,6 +10,7 @@ const config: NextConfig = {
     "@film/music",
     "@film/db",
     "@film/storage",
+    "@film/pipeline",
   ],
   // pg and drizzle must stay on the Node side, never bundled for the browser.
   serverExternalPackages: ["pg", "drizzle-orm"],

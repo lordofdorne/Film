@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { approveVersion, createDb, type Db } from "@film/db";
+import { getFormat } from "@film/formats";
+import { getTemplate } from "@film/templates";
 
 let cached: Db | undefined;
 const db = (): Db => {
@@ -25,8 +27,16 @@ export const approveEdlVersion = async (
   projectId: string,
   edlVersionId: string,
   approvedBy: string,
+  templateId: string,
+  templateVersion: number,
 ): Promise<ApprovalResult> => {
-  const outcome = await approveVersion(db(), { projectId, edlVersionId, approvedBy });
+  const format = getFormat(getTemplate(templateId, templateVersion).defaultFormatId);
+  const outcome = await approveVersion(db(), {
+    projectId,
+    edlVersionId,
+    approvedBy,
+    formatId: format.id,
+  });
   if (outcome.ok) {
     revalidatePath(`/projects/${projectId}`);
     return { ok: true };

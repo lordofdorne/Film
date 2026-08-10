@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "outDir": "dist", "rootDir": "src" },
+  "include": ["src/**/*"],
+  "references": [
+    { "path": "../edl" },
+    { "path": "../formats" },
+    { "path": "../music" },
+    { "path": "../templates" },
+    { "path": "../render" },
+    { "path": "../db" },
+    { "path": "../storage" },
+    { "path": "../queue" }
+  ]
+}

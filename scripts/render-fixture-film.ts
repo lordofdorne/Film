@@ -26,7 +26,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { withoutMusicDuck } from "../packages/render/src/fixture.js";
 import type { FilmProps } from "../packages/render/src/props.js";
 import { generateFixtures } from "./generate-fixtures.js";
-import { webpackOverride } from "./webpack-override.js";
+import { webpackOverride } from "@film/pipeline";
 
 const run = promisify(execFile);
 

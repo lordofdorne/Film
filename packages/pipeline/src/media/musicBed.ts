@@ -1,5 +1,5 @@
 import type { MusicTrackInfo } from "@film/edl";
-import { ffmpeg, probe } from "./media.js";
+import { ffmpeg, probe } from "./ffmpeg.js";
 
 /**
  * The bed is normalised to this at build time. musicGainDb in the template is

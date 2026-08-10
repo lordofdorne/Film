@@ -26,9 +26,17 @@ import { getFormat } from "@film/formats";
 import { PLACEHOLDER_TRACK, resolveTrack } from "@film/music";
 import { getTemplate, toConformance, type SubjectData } from "@film/templates";
 
-import { composeFilm, type IngestedAnswer, type StillAsset } from "./lib/compose.js";
-import { detectSpeechRuns, ffmpeg, probe } from "./lib/media.js";
-import { buildLoopedBed, describeTempTrack, type TempBedConfig } from "./lib/musicBed.js";
+import {
+  buildLoopedBed,
+  composeFilm,
+  describeTempTrack,
+  detectSpeechRuns,
+  ffmpeg,
+  probe,
+  type IngestedAnswer,
+  type StillAsset,
+  type TempBedConfig,
+} from "@film/pipeline";
 import { generateFixtures, FIXTURES_DIR } from "./generate-fixtures.js";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));

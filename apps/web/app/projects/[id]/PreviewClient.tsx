@@ -38,11 +38,17 @@ export const PreviewClient = ({
   const approve = useCallback(() => {
     setError(null);
     startTransition(async () => {
-      const result = await approveEdlVersion(summary.id, summary.edlVersionId, approverId);
+      const result = await approveEdlVersion(
+        summary.id,
+        summary.edlVersionId,
+        approverId,
+        summary.templateId,
+        summary.templateVersion,
+      );
       if (result.ok) setApproved(true);
       else setError(result.error);
     });
-  }, [approverId, summary.edlVersionId, summary.id]);
+  }, [approverId, summary.edlVersionId, summary.id, summary.templateId, summary.templateVersion]);
 
   return (
     <main style={styles.page}>

@@ -6,7 +6,7 @@ import type {
   WordCaption,
 } from "@film/edl";
 import type { Template } from "@film/templates";
-import type { SpeechRun } from "./media.js";
+import type { SpeechRun } from "../media/ffmpeg.js";
 
 /** Everything ingest learned about one recorded answer. */
 export type IngestedAnswer = {

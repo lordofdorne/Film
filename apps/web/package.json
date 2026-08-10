@@ -12,6 +12,7 @@
     "@film/db": "workspace:*",
     "@film/edl": "workspace:*",
     "@film/formats": "workspace:*",
+    "@film/pipeline": "workspace:*",
     "@film/render": "workspace:*",
     "@film/storage": "workspace:*",
     "@film/templates": "workspace:*",
