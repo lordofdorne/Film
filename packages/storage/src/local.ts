@@ -115,7 +115,14 @@ export class LocalObjectStore implements ObjectStore {
     return out.sort();
   }
 
-  /** file:// URLs; the TTL is meaningless locally but the signature matches. */
+  /**
+   * file:// URLs; the TTL is meaningless locally but the signature matches.
+   *
+   * `downloadAs` is ignored rather than faked: nothing serves a file:// URL,
+   * so there is no response to attach a header to. Callers that need a named
+   * download from local disk stream the bytes themselves and set the header on
+   * their own response — which is what the web app's download route does.
+   */
   async signedGetUrl(key: string, options: SignedUrlOptions = {}): Promise<string> {
     void clampTtl(options.expiresInSeconds);
     return `file://${this.#resolve(key)}`;

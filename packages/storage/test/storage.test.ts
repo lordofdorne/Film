@@ -6,6 +6,7 @@ import {
   LocalObjectStore,
   MAX_SIGNED_URL_TTL_SECONDS,
   clampTtl,
+  contentDisposition,
   objectKey,
   projectPrefix,
 } from "../src/index.js";
@@ -102,5 +103,46 @@ describe("LocalObjectStore", () => {
 
   it("refuses a key that escapes the store root", async () => {
     await expect(store.put("../../escape.txt", new Uint8Array([1]))).rejects.toThrow(/escapes/);
+  });
+});
+
+describe("content disposition", () => {
+  it("asks the browser to save rather than play the file", () => {
+    expect(contentDisposition("Life Advice (v1).mp4")).toMatch(/^attachment; /);
+  });
+
+  /**
+   * The name reaches the header from a jsonb column that a customer typed
+   * into. A quote would close the quoted string early and everything after it
+   * would be read as further header directives.
+   */
+  it("cannot be escaped out of by a crafted name", () => {
+    const header = contentDisposition('a"; filename="evil.exe');
+    expect(header).toBe(
+      'attachment; filename="a; filename=evil.exe"; ' +
+        "filename*=UTF-8''a%3B%20filename%3Devil.exe",
+    );
+    // One quoted region, so nothing after the name is a directive.
+    expect(header.match(/"/g)).toHaveLength(2);
+  });
+
+  it("strips a newline rather than letting it split the response", () => {
+    const header = contentDisposition("film\r\nX-Injected: yes.mp4");
+    expect(header).not.toMatch(/[\r\n]/);
+  });
+
+  /**
+   * Two forms on purpose: the ASCII fallback keeps old clients working, and
+   * filename* is what carries a name as it is actually spelled.
+   */
+  it("carries an accented name intact in the encoded form", () => {
+    const header = contentDisposition("José Ramírez — Life Advice.mp4");
+    expect(header).toContain("filename*=UTF-8''Jos%C3%A9%20Ram%C3%ADrez");
+    // And degrades to something a browser without RFC 5987 can still save.
+    expect(header).toContain('filename="Jos Ramrez  Life Advice.mp4"');
+  });
+
+  it("falls back to a usable name when nothing ASCII survives", () => {
+    expect(contentDisposition("日本語.mp4")).toContain('filename="film.mp4"');
   });
 });
