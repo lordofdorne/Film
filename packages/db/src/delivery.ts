@@ -1,5 +1,6 @@
 import { and, desc, eq, isNotNull } from "drizzle-orm";
 import type { Db } from "./connection.js";
+import { isProjectId } from "./ids.js";
 import { approvals, edlVersions, projects, renders } from "./schema/tables.js";
 
 export type DeliverableFilm = {
@@ -37,6 +38,10 @@ export const deliverableFilm = async (
   db: Db,
   projectId: string,
 ): Promise<DeliverableFilm | null> => {
+  // A string that cannot be a project id has no film. Postgres would raise on
+  // the uuid cast instead, which a route turns into a 500.
+  if (!isProjectId(projectId)) return null;
+
   const rows = await db
     .select({
       renderId: renders.id,
@@ -94,7 +99,6 @@ export const filmFilename = (input: {
   const cleaned = input.subjectName
     // Replaced with a space, not deleted: a newline separates two words, and
     // removing it outright would weld them together.
-    // eslint-disable-next-line no-control-regex -- removing them is the point
     .replace(/[\u0000-\u001f\u007f]/g, " ")
     .replace(/["'\\/:*?<>|]/g, "")
     .replace(/\s+/g, " ")

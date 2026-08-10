@@ -222,6 +222,18 @@ describe("deliverableFilm", () => {
     expect(await deliverableFilm(db, projectId)).toBeNull();
   });
 
+  /**
+   * A malformed id used to reach Postgres, which raises on the uuid cast, and
+   * every route that passed one through answered 500. A URL somebody typed
+   * wrong is not a server fault.
+   */
+  it("answers null for a string that cannot be a project id", async () => {
+    needsDb();
+    await expect(deliverableFilm(db, "not-a-uuid")).resolves.toBeNull();
+    await expect(deliverableFilm(db, "")).resolves.toBeNull();
+    await expect(deliverableFilm(db, "'; drop table renders; --")).resolves.toBeNull();
+  });
+
   it("does not offer another project's film", async () => {
     needsDb();
     const v1 = await addVersion(1);

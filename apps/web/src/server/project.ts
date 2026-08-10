@@ -9,6 +9,7 @@ import {
   deliveryRenders,
   edlVersions,
   filmFilename,
+  isProjectId,
   projects,
   subjectNameOf,
   type Db,
@@ -98,6 +99,9 @@ export const listProjects = async (): Promise<
 export const loadProjectForPreview = async (
   projectId: string,
 ): Promise<{ summary: ProjectSummary; props: FilmProps } | null> => {
+  // Not found, not a server error: the id came from the URL bar.
+  if (!isProjectId(projectId)) return null;
+
   const projectRows = await db().select().from(projects).where(eq(projects.id, projectId)).limit(1);
   const project = projectRows[0];
   if (project === undefined) return null;
@@ -215,7 +219,20 @@ export type DeliveryState =
       readonly byteSize: number | null;
     };
 
-export const loadDelivery = async (projectId: string): Promise<DeliveryState> => {
+export const loadDelivery = async (projectId: string): Promise<DeliveryState | null> => {
+  if (!isProjectId(projectId)) return null;
+
+  // Null means "no such project", which is not the same as "no film yet" —
+  // otherwise the polling route answers happily about projects that do not
+  // exist, and a real state becomes indistinguishable from a typo.
+  const statusRows = await db()
+    .select({ status: projects.status })
+    .from(projects)
+    .where(eq(projects.id, projectId))
+    .limit(1);
+  const status = statusRows[0]?.status;
+  if (status === undefined) return null;
+
   const film = await deliverableFilm(db(), projectId);
 
   if (film !== null) {
@@ -230,12 +247,7 @@ export const loadDelivery = async (projectId: string): Promise<DeliveryState> =>
     return { kind: "ready", filename, byteSize: head?.byteSize ?? null };
   }
 
-  const statusRows = await db()
-    .select({ status: projects.status })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-  if (statusRows[0]?.status === "failed") return { kind: "failed" };
+  if (status === "failed") return { kind: "failed" };
 
   // A requested delivery render that has not landed yet. Approval and the
   // render row are written in one transaction, so one implies the other.
