@@ -14,12 +14,45 @@ export type QuestionText =
   | string
   | { readonly default: string; readonly variants: readonly QuestionTextVariant[] };
 
+/**
+ * What to ask someone for, and how to get a good one.
+ *
+ * The film is only as good as what people give us, and what they give us
+ * depends almost entirely on what we asked for. "Add a photo" gets a
+ * screenshot; "Add a photo of the person from another time" gets the one from
+ * 1974. This is the cheapest lever on output quality in the whole system, and
+ * it costs a string.
+ *
+ * It lives here rather than in the web app for the same reason every other
+ * template rule does: a second film type must ship its own walk-through
+ * without a line of React changing.
+ */
+export type Guidance = {
+  /**
+   * Imperative, one line: the thing we want.
+   *
+   * Optional on a question, where the question's own wording is already the
+   * ask and repeating it here would be two copies that can drift apart. Supply
+   * it only when the on-screen ask must differ — or as the fallback when the
+   * question's wording depends on a token the project may not have.
+   */
+  readonly ask?: string;
+  /** How to get a good one. Shown under the ask, quieter. */
+  readonly coaching?: string;
+  /** Two or three. A short list is a suggestion; six is a form. */
+  readonly examples?: readonly string[];
+};
+
 export type Question = {
   readonly id: string;
   readonly order: number;
   readonly text: QuestionText;
   readonly narrativeRole: string;
   readonly required: boolean;
+  /** The question itself is the ask, so this is coaching for the person
+   *  holding the camera. `guidance.ask` overrides the question wording only
+   *  when the two must differ. */
+  readonly guidance?: Guidance;
 };
 
 export type MediaSlot = {
@@ -27,6 +60,26 @@ export type MediaSlot = {
   readonly label: string;
   readonly required: boolean;
   readonly accepts?: readonly ("photo" | "video")[];
+  readonly guidance?: Guidance;
+};
+
+/** One thing the walk-through asks for, in the order it asks. */
+export type CaptureStepRef =
+  | { readonly kind: "question"; readonly questionId: string }
+  | { readonly kind: "slot"; readonly slotId: string };
+
+/**
+ * A run of steps that belong together, with a break between chapters.
+ *
+ * The break carries weight: the interview needs two people and one sitting,
+ * while the photographs can be gathered on a sofa a week later. Nobody should
+ * have to hold an elderly relative in a chair while someone hunts for a print.
+ */
+export type CaptureChapter = {
+  readonly id: string;
+  readonly title: string;
+  readonly blurb: string;
+  readonly steps: readonly CaptureStepRef[];
 };
 
 /** Where a structural beat gets its content. */
@@ -71,6 +124,16 @@ export type Template = {
   readonly photoSlots: readonly MediaSlot[];
   readonly videoSlots: readonly MediaSlot[];
   readonly optionalSlots: readonly MediaSlot[];
+  /**
+   * The walk-through, as an explicit ordered list rather than one derived from
+   * `questions[].order` plus the slot arrays.
+   *
+   * The order someone records in is a different concern from the order the
+   * film cuts in, and it must be changeable without touching the film's
+   * structure. The cost is that it can fall out of sync, which is what
+   * `validateTemplate` checks.
+   */
+  readonly capture: { readonly chapters: readonly CaptureChapter[] };
   readonly text: TextConfig;
   readonly editing: Readonly<Record<string, unknown>>;
   readonly conformance: {
