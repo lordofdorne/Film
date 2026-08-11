@@ -24,6 +24,7 @@
     "db:generate": "pnpm --filter @film/db exec drizzle-kit generate",
     "web": "pnpm --filter @film/web dev",
     "intake": "pnpm build && tsx scripts/intake.ts",
+    "bed:upload": "pnpm build && tsx scripts/upload-bed.ts",
     "worker": "pnpm build && tsx apps/worker/src/main.ts"
   },
   "devDependencies": {

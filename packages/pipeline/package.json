@@ -11,6 +11,10 @@
     "./model": {
       "types": "./dist/model.d.ts",
       "default": "./dist/model.js"
+    },
+    "./capture": {
+      "types": "./dist/capture.d.ts",
+      "default": "./dist/capture.js"
     }
   },
   "scripts": {

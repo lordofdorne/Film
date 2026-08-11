@@ -161,5 +161,53 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
     issues.push({ severity: "error", message: "question orders are not unique" });
   }
 
+  /**
+   * The walk-through must ask for everything the film needs, exactly once.
+   *
+   * The capture order is authored separately from the film's structure so the
+   * two can be changed independently — which means they can also fall out of
+   * step. A question nobody is asked produces a project that ingests happily
+   * and then cannot be composed, and the customer is long gone by then.
+   */
+  const asked = new Map<string, number>();
+  for (const chapter of t.capture.chapters) {
+    for (const step of chapter.steps) {
+      const id = step.kind === "question" ? step.questionId : step.slotId;
+      const known = step.kind === "question" ? questionIds.has(id) : slotIds.has(id);
+      if (!known) {
+        issues.push({
+          severity: "error",
+          message: `capture chapter "${chapter.id}" asks for ${step.kind} "${id}", which is not defined`,
+        });
+        continue;
+      }
+      asked.set(id, (asked.get(id) ?? 0) + 1);
+    }
+  }
+  for (const [id, count] of asked) {
+    if (count > 1) {
+      issues.push({
+        severity: "error",
+        message: `capture asks for "${id}" ${String(count)} times`,
+      });
+    }
+  }
+  for (const question of t.questions) {
+    if (question.required && !asked.has(question.id)) {
+      issues.push({
+        severity: "error",
+        message: `question "${question.id}" is required but capture never asks it`,
+      });
+    }
+  }
+  for (const slot of [...t.photoSlots, ...t.videoSlots, ...t.optionalSlots]) {
+    if (slot.required && !asked.has(slot.id)) {
+      issues.push({
+        severity: "error",
+        message: `slot "${slot.id}" is required but capture never asks for it`,
+      });
+    }
+  }
+
   return issues;
 };

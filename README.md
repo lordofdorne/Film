@@ -27,10 +27,16 @@ pnpm install
 pnpm db:up && pnpm db:migrate    # local Postgres 16 on :55432
 cp .env.example .env             # then: set -a; . ./.env; set +a
 
+pnpm bed:upload                  # once: the music bed, where capture finds it
 pnpm intake                      # incoming/ -> object store + Postgres
 pnpm worker                      # ingest -> compose; then again after approval
-pnpm web                         # watch and approve at localhost:3200
+pnpm web                         # localhost:3200
 ```
+
+Media can also be captured in a browser: `/start` walks someone through the
+questions, photographs and short videos the template asks for, one step at a
+time, recording or uploading each. It cannot yet produce a film on its own —
+`compose` needs the words of every answer, and nothing transcribes them yet.
 
 Intake uploads the originals and writes the rows. The worker's dispatcher reads
 the database, works out what each project needs next, and queues it. Compose
@@ -55,7 +61,7 @@ pnpm film:real       # render project/real -> out/life-advice-real.mp4
 ```
 
 ```bash
-pnpm test        # 239 tests, including 23 golden frames
+pnpm test        # 271 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
@@ -72,7 +78,7 @@ is a property of Postgres, not of our code, and no mock can verify it.
 |---|---|
 | `pnpm intake` | Uploads originals, writes project and asset rows, exits. |
 | `pnpm worker` | Claims stages, runs them, dispatches and reconciles. Run as many as you like. |
-| `pnpm web` | Preview and approval at `localhost:3200`. **No authentication yet.** |
+| `pnpm web` | Capture, preview and approval at `localhost:3200`. **No authentication yet.** |
 
 Exactly-once comes from a unique constraint in Postgres, not from there being
 one worker. Scaling out is starting more of them.

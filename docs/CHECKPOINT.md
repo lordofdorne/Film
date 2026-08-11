@@ -1,16 +1,17 @@
-# Checkpoint — 2026-08-10
+# Checkpoint — 2026-08-11
 
 State after Phase 1, the real-media proof, Blocks 1–3 of the production
-pipeline, and the download surface. Written so a session with no conversational
-context can pick this up from the repository alone.
+pipeline, the download surface and the capture walk-through. Written so a
+session with no conversational context can pick this up from the repository
+alone.
 
-`main` is at `f251a88`. Blocks 1, 2, 3 and the download surface are all
-merged. Ten packages, two apps, 239 tests.
+`main` is at `aed25b9`, and this branch adds the capture walk-through on top of
+it. Ten packages, two apps, 271 tests.
 
-**The next block is browser capture.** Its requirements are at the bottom, in
-"The capture flow", and they come from the owner rather than from the code —
-read that section first, then `docs/proposal/phase-3-capture.md`, which is the
-design proposed against them.
+**Capture requirements are at the bottom, in "The capture flow"** — they come
+from the owner rather than from the code. `docs/proposal/phase-3-capture.md` is
+the design written against them, and the walk-through is the first part of it
+built.
 
 ---
 
@@ -24,17 +25,19 @@ design proposed against them.
 ## What works today
 
 **A film goes from recordings to a delivered file with nobody running a
-script, and the customer can download it.** The one thing it cannot do is let
-anyone start a film without a terminal — which is the next block.
+script, and the customer can download it.** Media can now be captured in a
+browser too, though a film cannot yet be made end to end from one — see
+"The capture flow".
 
 ```bash
 pnpm install
 pnpm db:up && pnpm db:migrate
 cp .env.example .env && set -a && . ./.env && set +a
 
+pnpm bed:upload # once: puts the music bed where capture can find it
 pnpm intake     # incoming/ -> object store + Postgres, then stops
 pnpm worker     # takes it from there
-pnpm web        # watch and approve at localhost:3200
+pnpm web        # localhost:3200 — /start to capture, /projects/<id> to approve
 ```
 
 Three environment variables are easy to get wrong and fail quietly:
@@ -70,7 +73,7 @@ The offline path still works and still needs nothing: `pnpm film`,
 |---|---|
 | 1 — Handwritten EDL, validator, renderer | Complete |
 | 2 — Ingest and QC | Ingest is a real stage. Normalisation, speech measurement, rotation, QC warnings. No HDR tonemapping. |
-| 3 — Browser capture | Not started. **Next block, and the largest product risk.** A guided walkthrough — see below. |
+| 3 — Browser capture | Walk-through built: record or upload per step, retake, resume, finish. **Cannot yet produce a film** — see below. |
 | 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
 | 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
 | 6 — Preview and approval | Done. Player preview, warning gate, approval, download. **No auth.** |
@@ -152,6 +155,18 @@ browser, local files in the worker.
 **The customer's original is never overwritten.** `storage_key` is the upload,
 `normalised_key` is what ingest made. A bad recipe must be re-runnable.
 
+**A capture row is written only after its bytes are in storage.** The two
+failure orders are not equally survivable: an orphaned object is invisible and
+sweepable, a row pointing at nothing is a project that fails at ingest for a
+reason nobody can see from the database. It is also why capture needs no
+"pending" column — the absence of a row IS the pending state.
+
+**Guidance copy lives in the template, never in `apps/web`.** The test is that a
+second film type ships its own walk-through with no React changing, and that the
+web app contains no string that only makes sense for life-advice.
+`validateTemplate` refuses a template whose walk-through does not ask for
+everything the film requires, exactly once.
+
 **Deliver requires an approval for that exact cut.** A render row can exist
 without one; delivering against it would send someone a film they never
 watched. `deliverableFilm` re-establishes this with a join rather than trusting
@@ -198,6 +213,14 @@ progress.
   boundaries that take an id from a URL.
 - **A signed URL's TTL is checked when the request is made**, not while bytes
   move, so a 15-minute cap is fine for a 116 MB download.
+- **A server action and a route handler are separate module graphs.** Next
+  compiles and instantiates them independently, so a module-level random shared
+  between them is two different values — the capture upload URL was minted with
+  one secret and verified against another, and every upload answered 403.
+  `globalThis` is the fix. Found by uploading a photograph.
+- **A dev server does not notice a package.json `exports` change.** Adding
+  `@film/pipeline/capture` typechecks and builds while the running dev server
+  still cannot resolve it. Restart it.
 
 ---
 
@@ -291,25 +314,56 @@ web app must not contain a single string that only makes sense for life-advice.
 
 ### The design
 
-`docs/proposal/phase-3-capture.md`, proposed 2026-08-10 and awaiting approval.
-
-It answers the questions this section used to leave open — the project is
-created before capture and sits in `capturing`; subject data is step zero;
-resume works because state lives in rows and not in React — and it found four
-things standing between "the walk-through works" and "the walk-through produces
-a film", none of which are visible from the capture screens:
+`docs/proposal/phase-3-capture.md`, 2026-08-10. It answers the questions this
+section used to leave open — the project is created before capture and sits in
+`capturing`, subject data is step zero, and resume works because state lives in
+rows rather than in React — and it found four things standing between "the
+walk-through works" and "the walk-through produces a film", none of them visible
+from the capture screens. One is now solved:
 
 - **Every take needs its words.** `compose` permanently rejects an interview
   asset with no `selection.spoken`, and that text is typed by hand into
-  `incoming/project.json` today. Capture without the `transcribe` stage produces
-  projects that ingest cleanly and then die.
-- **Every project needs a music bed**, and it currently arrives as an uploaded
-  file from `incoming/songs`. `MusicTrack.assetKey` is the intended home.
+  `incoming/project.json` today. **Still open, and it is the next block.**
+- **Every project needs a music bed**, which used to arrive as a file somebody
+  dropped in `incoming/songs`. **Solved:** an operator loads a track once with
+  `pnpm bed:upload` and every project takes its own copy when it is started.
 - **The dispatcher would fail a project mid-capture.** One permanently bad
-  photograph, at a moment when it is the only asset, is enough — while the
-  customer is standing right there and could pick another.
+  photograph, when it is the only asset, is enough — while the customer is
+  standing right there and could pick another. **Still open**, and it is why
+  ingest does not run during capture yet.
 - **There is no page between capture and preview.** `/projects/[id]` 404s until
-  compose has written an EDL version.
+  compose has written an EDL version. **Still open.**
 
-MediaRecorder on iOS remains the one genuine unknown, and the design opens with
-a half-day spike on a real iPhone rather than a guess.
+### What is built, and what it cannot do yet
+
+The walk-through works: `/start` collects the subject, the project is created in
+`capturing`, and each step records or accepts an upload, plays it back, retakes
+in one press, and resumes from rows rather than remembered state. Uploads go
+straight to storage and the row lands only once the bytes are confirmed.
+`assets.capture_method` is finally written for real.
+
+**It cannot yet produce a film.** A project finished in the browser ingests
+cleanly, reaches compose and dies for want of the words of every answer. The
+`transcribe` stage is the missing piece; its queue, enum value and
+`assets.transcript_key` column already exist, and the worker deliberately does
+not register it.
+
+Also still true of a browser-made project:
+
+- **Ingest does not run during capture.** The dispatcher's ACTIVE list excludes
+  `capturing`, so QC warnings — too dark, almost no speech — still surface at
+  approval rather than while the camera is up. Turning it on is two conditions
+  plus the rule above about never failing a capturing project.
+- **No multipart upload.** `upload_sessions` remains unused. One PUT per take,
+  and a failure costs one step rather than the project.
+- **MediaRecorder is proven on Chrome only.** It reports `video/mp4` support and
+  produced h264/opus. iOS Safari is still unproven on a real device, and the
+  fallback — the native camera through a file input — is already wired.
+- **The link is the credential.** No auth, exactly as for approve and download.
+
+### Open questions for the owner
+
+- Which speech-to-text provider, and on what terms — it is customer voice, so
+  the licence must forbid training on it.
+- Whether the walk-through's sixteen pieces of coaching copy read the way the
+  owner would say them. They are the highest-leverage strings in the product.
