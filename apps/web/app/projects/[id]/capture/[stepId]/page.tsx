@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
+import { guardProject } from "../../../../../src/server/auth.js";
 import { loadWalkthroughView } from "../../../../../src/server/capture.js";
 import { StepClient } from "./StepClient.js";
 
@@ -17,6 +18,8 @@ export default async function CaptureStepPage({
   params: Promise<{ id: string; stepId: string }>;
 }) {
   const { id, stepId } = await params;
+  await guardProject(id, `/projects/${id}/capture/${stepId}`);
+
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
   if (walkthrough.status !== "capturing") redirect(`/projects/${id}`);

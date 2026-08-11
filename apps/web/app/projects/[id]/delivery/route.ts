@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { accessToProject } from "../../../../src/server/auth.js";
 import { loadDelivery } from "../../../../src/server/project.js";
 
 /**
@@ -19,6 +20,14 @@ export async function GET(
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await context.params;
+
+  // Polled a few hundred times per film, so it is also the cheapest way to
+  // enumerate other people's projects if it does not check.
+  const access = await accessToProject(id);
+  if (!access.allowed) {
+    return NextResponse.json({ error: "no such project" }, { status: 404 });
+  }
+
   const state = await loadDelivery(id);
   if (state === null) {
     return NextResponse.json({ error: "no such project" }, { status: 404 });

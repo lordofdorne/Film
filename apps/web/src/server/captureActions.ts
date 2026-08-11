@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
+import { accessToProject, currentUser } from "./auth.js";
+import { sendMagicLink } from "./authActions.js";
 import {
   beginProject,
   completeUpload,
@@ -19,6 +21,19 @@ import {
  * to be callable from a client component and to invalidate the page after a
  * write, and for nothing else.
  */
+
+/**
+ * The same refusal for a film that is not yours and one that does not exist.
+ *
+ * Server actions are callable directly, so a guard on the page that renders
+ * them is not a guard at all: without this, knowing a project id would still be
+ * enough to add media to somebody else's film. Every action that names a
+ * project checks it here.
+ */
+const mine = async (projectId: string): Promise<{ ok: false; error: string } | null> => {
+  const access = await accessToProject(projectId);
+  return access.allowed ? null : { ok: false, error: "no such project" };
+};
 
 export type StartResult =
   | { readonly ok: true; readonly projectId: string }
@@ -42,8 +57,20 @@ export const startProject = async (input: {
     return { ok: false, error: "That age does not look right" };
   }
 
+  /**
+   * The address that owns the film is the signed-in one when there is a
+   * session, and the typed one otherwise.
+   *
+   * Not a formality: taking the typed address from somebody who is already
+   * signed in as somebody else would hand them a film they cannot see
+   * afterwards, and would let anyone put a project into another person's
+   * account by typing their address.
+   */
+  const signedIn = await currentUser();
+  const owner = signedIn?.email ?? email;
+
   const projectId = await beginProject({
-    ownerEmail: email,
+    ownerEmail: owner,
     subject: {
       subjectName,
       displayName,
@@ -56,6 +83,18 @@ export const startProject = async (input: {
         : { interviewerName: input.interviewerName.trim() }),
     },
   });
+  /**
+   * Nobody is signed in, so send the link now rather than at the end.
+   *
+   * They keep going in this tab — nothing blocks — but the film already belongs
+   * to that address, and the email is how they get back to it on another
+   * device, or in six months when they want to watch it again. Failing to send
+   * does not fail the project: they have a URL, and they can sign in later.
+   */
+  if (signedIn === null) {
+    await sendMagicLink(owner, `/projects/${projectId}/capture`);
+  }
+
   return { ok: true, projectId };
 };
 
@@ -64,7 +103,7 @@ export const mintUploadFor = async (
   stepId: string,
   contentType: string,
 ): Promise<{ ok: true; mint: Mint } | { ok: false; error: string }> =>
-  mintUpload(projectId, stepId, contentType);
+  (await mine(projectId)) ?? mintUpload(projectId, stepId, contentType);
 
 export const finishUpload = async (
   projectId: string,
@@ -73,6 +112,9 @@ export const finishUpload = async (
   key: string,
   contentType: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
   const result = await completeUpload(projectId, stepId, assetId, key, contentType);
   if (result.ok) revalidatePath(`/projects/${projectId}/capture/${stepId}`);
   return result;
@@ -81,6 +123,9 @@ export const finishUpload = async (
 export const startTheFilm = async (
   projectId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
   const result = await startTheFilmFor(projectId);
   if (result.ok) revalidatePath(`/projects/${projectId}`);
   return result;
@@ -90,6 +135,9 @@ export const discardStep = async (
   projectId: string,
   stepId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
   const result = await discardCapture(projectId, stepId);
   if (result.ok) revalidatePath(`/projects/${projectId}/capture/${stepId}`);
   return result;

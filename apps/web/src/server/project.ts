@@ -72,12 +72,20 @@ export type ProjectSummary = {
   readonly warnings: AssetWarning[];
 };
 
-export const listProjects = async (): Promise<
-  { id: string; status: string; subjectName: string }[]
-> => {
+/**
+ * Somebody's films, or every film when nobody can sign in.
+ *
+ * The owner filter is not optional decoration: without it the front page is a
+ * directory of other people's recordings. `ownerId` undefined means auth is not
+ * configured — the development arrangement, which the page says out loud.
+ */
+export const listProjects = async (
+  ownerId?: string,
+): Promise<{ id: string; status: string; subjectName: string }[]> => {
   const rows = await db()
     .select({ id: projects.id, status: projects.status, subjectData: projects.subjectData })
     .from(projects)
+    .where(ownerId === undefined ? undefined : eq(projects.ownerId, ownerId))
     .orderBy(desc(projects.createdAt))
     .limit(50);
 

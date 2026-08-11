@@ -3,6 +3,7 @@ import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { createDb, deliverableFilm, filmFilename, subjectNameOf, type Db } from "@film/db";
 import { LocalObjectStore, contentDisposition } from "@film/storage";
+import { accessToProject } from "../../../../src/server/auth.js";
 import { store } from "../../../../src/server/project.js";
 
 let cached: Db | undefined;
@@ -22,17 +23,22 @@ const db = (): Db => {
  * including the join to `approvals` that keeps an unapproved render from ever
  * being downloadable. This route only moves bytes.
  *
- * NO AUTHENTICATION. Anyone who knows the project id can download the film,
- * exactly as anyone who knows it can already watch and approve it. That is the
- * documented state of the app before phase 8 and this route does not make it
- * worse — but it is the reason none of this is exposed publicly yet, and when
- * sessions arrive the check belongs here as much as on the page.
+ * The ownership check is HERE, not only on the page that links to it. A guard
+ * that lives on the page protects the link, not the file — and this route is
+ * where the film actually leaves the building. Both check.
  */
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await context.params;
+
+  // Same 404 as a project with no film. A download endpoint should not be a way
+  // to find out whose projects exist.
+  const access = await accessToProject(id);
+  if (!access.allowed) {
+    return NextResponse.json({ error: "no film is ready for this project" }, { status: 404 });
+  }
 
   const film = await deliverableFilm(db(), id);
   if (film === null) {

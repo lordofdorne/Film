@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { LocalObjectStore } from "@film/storage";
+import { accessToProject } from "../../../../src/server/auth.js";
 import { store } from "../../../../src/server/project.js";
 
 /**
@@ -27,6 +28,22 @@ export async function GET(
 
   const { key } = await context.params;
   const storageKey = key.join("/");
+
+  /**
+   * Every key this route may serve is project-scoped, and the project id is the
+   * second segment. That is not a coincidence to rely on quietly: `objectKey`
+   * puts the project first precisely so a deletion is a prefix delete, and it
+   * means the owner of any object is knowable from its key alone.
+   *
+   * Without this, the guards on the pages would protect the pages and not the
+   * media — someone with a key could still fetch the recordings.
+   */
+  const [prefix, projectId] = key;
+  if (prefix !== "projects" || projectId === undefined) {
+    return NextResponse.json({ error: "not found" }, { status: 404 });
+  }
+  const access = await accessToProject(projectId);
+  if (!access.allowed) return NextResponse.json({ error: "not found" }, { status: 404 });
 
   const head = await objects.head(storageKey);
   if (head === null) return NextResponse.json({ error: "not found" }, { status: 404 });

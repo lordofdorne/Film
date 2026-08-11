@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { guardProject } from "../../../src/server/auth.js";
 import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
 import { DeliveryPanel } from "./DeliveryPanel.js";
 import { PreviewClient } from "./PreviewClient.js";
@@ -16,6 +17,17 @@ export default async function ProjectPreviewPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  /**
+   * Before anything is read, let alone rendered.
+   *
+   * This page approves films and links to the download, so it is the surface
+   * where "anyone with the URL" mattered most. Signed out sends them to get a
+   * link; somebody else's film is a 404, because a refusal that says "not
+   * yours" confirms there is something there.
+   */
+  await guardProject(id, `/projects/${id}`);
+
   const loaded = await loadProjectForPreview(id);
   if (loaded === null) notFound();
 
