@@ -1,16 +1,17 @@
-# Checkpoint — 2026-08-10
+# Checkpoint — 2026-08-11
 
 State after Phase 1, the real-media proof, Blocks 1–3 of the production
-pipeline, and the download surface. Written so a session with no conversational
-context can pick this up from the repository alone.
+pipeline, the download surface and the capture walk-through. Written so a
+session with no conversational context can pick this up from the repository
+alone.
 
-`main` is at `f251a88`. Blocks 1, 2, 3, the download surface and the capture
-walk-through are all built. Ten packages, two apps, 271 tests.
+`main` is at `aed25b9`, and this branch adds the capture walk-through on top of
+it. Ten packages, two apps, 271 tests.
 
 **Capture requirements are at the bottom, in "The capture flow"** — they come
-from the owner rather than from the code. `docs/proposal/phase-3-capture.md`
-is the design written against them, and the walk-through is the first part of
-it built.
+from the owner rather than from the code. `docs/proposal/phase-3-capture.md` is
+the design written against them, and the walk-through is the first part of it
+built.
 
 ---
 
@@ -311,6 +312,28 @@ web app must not contain a single string that only makes sense for life-advice.
   can be aborted rather than billed for. Never used by anything.
 - `ObjectStore.signedPutUrl` — so media never proxies through the app server.
 
+### The design
+
+`docs/proposal/phase-3-capture.md`, 2026-08-10. It answers the questions this
+section used to leave open — the project is created before capture and sits in
+`capturing`, subject data is step zero, and resume works because state lives in
+rows rather than in React — and it found four things standing between "the
+walk-through works" and "the walk-through produces a film", none of them visible
+from the capture screens. One is now solved:
+
+- **Every take needs its words.** `compose` permanently rejects an interview
+  asset with no `selection.spoken`, and that text is typed by hand into
+  `incoming/project.json` today. **Still open, and it is the next block.**
+- **Every project needs a music bed**, which used to arrive as a file somebody
+  dropped in `incoming/songs`. **Solved:** an operator loads a track once with
+  `pnpm bed:upload` and every project takes its own copy when it is started.
+- **The dispatcher would fail a project mid-capture.** One permanently bad
+  photograph, when it is the only asset, is enough — while the customer is
+  standing right there and could pick another. **Still open**, and it is why
+  ingest does not run during capture yet.
+- **There is no page between capture and preview.** `/projects/[id]` 404s until
+  compose has written an EDL version. **Still open.**
+
 ### What is built, and what it cannot do yet
 
 The walk-through works: `/start` collects the subject, the project is created in
@@ -319,19 +342,18 @@ in one press, and resumes from rows rather than remembered state. Uploads go
 straight to storage and the row lands only once the bytes are confirmed.
 `assets.capture_method` is finally written for real.
 
-**It cannot yet produce a film.** `compose` permanently rejects an interview
-asset with no `selection.spoken`, and nothing transcribes an answer — that text
-is typed by hand into `incoming/project.json` on the terminal path. So a project
-finished in the browser ingests cleanly, reaches compose and dies. The
+**It cannot yet produce a film.** A project finished in the browser ingests
+cleanly, reaches compose and dies for want of the words of every answer. The
 `transcribe` stage is the missing piece; its queue, enum value and
-`assets.transcript_key` column already exist.
+`assets.transcript_key` column already exist, and the worker deliberately does
+not register it.
 
 Also still true of a browser-made project:
 
 - **Ingest does not run during capture.** The dispatcher's ACTIVE list excludes
   `capturing`, so QC warnings — too dark, almost no speech — still surface at
   approval rather than while the camera is up. Turning it on is two conditions
-  plus the rule that a capturing project must never be marked failed.
+  plus the rule above about never failing a capturing project.
 - **No multipart upload.** `upload_sessions` remains unused. One PUT per take,
   and a failure costs one step rather than the project.
 - **MediaRecorder is proven on Chrome only.** It reports `video/mp4` support and
