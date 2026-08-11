@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { discardStep, finishUpload, mintUploadFor } from "../../../../../src/server/captureActions.js";
-import type { StepState } from "../../../../../src/server/capture.js";
+import type { StepView } from "../../../../../src/server/capture.js";
 
 /**
  * One step of the walk-through: record it, look at it, do it again, move on.
@@ -43,7 +43,7 @@ export const StepClient = ({
   firstOfChapter,
 }: {
   readonly projectId: string;
-  readonly step: StepState;
+  readonly step: StepView;
   readonly previousId: string | null;
   readonly nextId: string | null;
   readonly totalSteps: number;
@@ -343,7 +343,7 @@ const SavingNote = ({ saving, saved }: { readonly saving: Saving; readonly saved
   return null;
 };
 
-const acceptAttribute = (step: StepState): string => {
+const acceptAttribute = (step: StepView): string => {
   const parts: string[] = [];
   if (step.accepts.includes("photo")) parts.push("image/*");
   if (step.accepts.includes("video")) parts.push("video/*");

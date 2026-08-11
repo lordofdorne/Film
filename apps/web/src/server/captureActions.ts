@@ -3,11 +3,11 @@
 import { revalidatePath } from "next/cache";
 
 import {
-  clearStep,
+  beginProject,
   completeUpload,
-  finishCapture,
+  discardCapture,
   mintUpload,
-  startCapture,
+  startTheFilmFor,
   type Mint,
 } from "./capture.js";
 
@@ -42,7 +42,7 @@ export const startProject = async (input: {
     return { ok: false, error: "That age does not look right" };
   }
 
-  const projectId = await startCapture({
+  const projectId = await beginProject({
     ownerEmail: email,
     subject: {
       subjectName,
@@ -81,7 +81,7 @@ export const finishUpload = async (
 export const startTheFilm = async (
   projectId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> => {
-  const result = await finishCapture(projectId);
+  const result = await startTheFilmFor(projectId);
   if (result.ok) revalidatePath(`/projects/${projectId}`);
   return result;
 };
@@ -90,7 +90,7 @@ export const discardStep = async (
   projectId: string,
   stepId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> => {
-  const result = await clearStep(projectId, stepId);
+  const result = await discardCapture(projectId, stepId);
   if (result.ok) revalidatePath(`/projects/${projectId}/capture/${stepId}`);
   return result;
 };

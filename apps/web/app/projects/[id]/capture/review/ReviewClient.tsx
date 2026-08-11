@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { startTheFilm } from "../../../../../src/server/captureActions.js";
-import type { StepState } from "../../../../../src/server/capture.js";
+import type { StepView } from "../../../../../src/server/capture.js";
 
 /**
  * The last screen before it stops being editable.
@@ -19,7 +19,7 @@ export const ReviewClient = ({
   missing,
 }: {
   readonly projectId: string;
-  readonly steps: readonly StepState[];
+  readonly steps: readonly StepView[];
   readonly missing: readonly string[];
 }) => {
   const router = useRouter();
@@ -94,7 +94,7 @@ const styles = {
   list: { listStyle: "none", margin: "28px 0 0", padding: 0 },
   chapter: { fontSize: 12, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase" as const, color: "#12603a", margin: "24px 0 8px" },
   row: { display: "flex", alignItems: "center", gap: 12, padding: "11px 12px", borderBottom: "1px solid #eee", textDecoration: "none", color: "inherit" },
-  mark: (step: StepState) => ({
+  mark: (step: StepView) => ({
     width: 22,
     height: 22,
     flex: "0 0 auto",

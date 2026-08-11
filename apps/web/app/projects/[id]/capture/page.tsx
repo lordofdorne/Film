@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { loadWalkthrough } from "../../../../src/server/capture.js";
+import { loadWalkthroughView } from "../../../../src/server/capture.js";
 
 /**
  * The bare capture URL always resumes.
@@ -16,7 +16,7 @@ export default async function CaptureEntryPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const walkthrough = await loadWalkthrough(id);
+  const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
 
   // Already started: the film is out of the customer's hands and into the
