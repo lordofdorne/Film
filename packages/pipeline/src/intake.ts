@@ -172,7 +172,11 @@ export const createProject = async (
  * intake. When Supabase Auth arrives the id comes from auth.users and this
  * becomes a lookup, not an insert.
  */
-export const ensureUser = async (db: Db, email: string): Promise<string> => {
+export const ensureUser = async (db: Db, rawEmail: string): Promise<string> => {
+  // Lower-cased, because sign-in looks this row up by the address the identity
+  // provider verified — and providers hand back a normalised one. Two rows
+  // differing only in case would mean signing in and not finding your films.
+  const email = rawEmail.trim().toLowerCase();
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const found = existing[0];
   if (found !== undefined) return found.id;

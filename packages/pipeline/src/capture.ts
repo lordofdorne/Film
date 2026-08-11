@@ -88,7 +88,10 @@ export const startCapture = async (
  * The same shape intake uses. When Supabase Auth arrives, both become a lookup
  * against auth.users rather than an insert.
  */
-const ensureOwner = async (db: Db, email: string): Promise<string> => {
+const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
+  // Lower-cased for the same reason intake does it: sign-in finds this row by
+  // the address the identity provider verified.
+  const email = rawEmail.trim().toLowerCase();
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const found = existing[0];
   if (found !== undefined) return found.id;
