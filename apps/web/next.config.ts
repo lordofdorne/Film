@@ -1,4 +1,23 @@
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
 import type { NextConfig } from "next";
+
+/**
+ * One .env for the whole repository, at the root.
+ *
+ * Next only looks for env files beside the app it is running, so this app used
+ * to keep its own copy of DATABASE_URL_WEB and STORAGE_ROOT — and the copies
+ * had to agree. When they disagreed the symptom was a blank preview with no
+ * error anywhere, which the checkpoint lists as one of three things that fail
+ * quietly. Two files that must match is not a configuration style, it is a bug
+ * with a waiting period.
+ *
+ * loadEnvFile does not overwrite variables already in the environment, so a
+ * deployment's real configuration still wins over anything left in a file.
+ */
+const ROOT_ENV = fileURLToPath(new URL("../../.env", import.meta.url));
+if (existsSync(ROOT_ENV)) process.loadEnvFile(ROOT_ENV);
 
 const config: NextConfig = {
   // Workspace packages ship compiled ESM; Next needs to know they are ours.
