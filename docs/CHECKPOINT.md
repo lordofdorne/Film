@@ -32,7 +32,7 @@ browser too, though a film cannot yet be made end to end from one — see
 ```bash
 pnpm install
 pnpm db:up && pnpm db:migrate
-cp .env.example .env && set -a && . ./.env && set +a
+cp .env.example .env   # one env file; every command below reads it
 
 pnpm auth:up    # local Supabase: sign-in, and Mailpit on :54324 for the links
 pnpm bed:upload # once: puts the music bed where capture can find it
@@ -44,8 +44,12 @@ pnpm web        # localhost:3200 — /start to capture, /projects/<id> to approv
 Three environment variables are easy to get wrong and fail quietly:
 
 - `STORAGE_ROOT` — the worker writes objects here and the web app reads them.
-  If they disagree, the symptom is a blank preview with no error anywhere.
-  `apps/web/.env.local` has its own copy and must match; use absolute paths.
+  **Use an absolute path.** Next runs with its working directory at `apps/web`,
+  so a relative one resolves somewhere different for the app than for the
+  worker, and the symptom is a blank preview with no error anywhere. There is
+  one env file now: `apps/web/.env.local` is gone, and `next.config.ts` loads
+  the root `.env` instead, because two files that had to agree was a bug with a
+  waiting period.
 - `ALLOW_UNLICENSED_MUSIC=1` — without it compose refuses the temp bed, which
   is correct and is also the only bed that exists right now.
 - `DATABASE_URL_WORKER` must be direct or session mode, never a transaction
