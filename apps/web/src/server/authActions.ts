@@ -52,12 +52,29 @@ export const sendMagicLink = async (rawEmail: string, next?: string): Promise<Se
   });
 
   /**
-   * Errors are reported, but "no such account" is not one of them — Supabase
-   * creates the user on first link, so there is nothing to disclose. If that
-   * ever changes, this must still not tell a stranger which addresses have
-   * accounts.
+   * Say what actually went wrong.
+   *
+   * This used to answer "Could not send the link. Try again in a moment." for
+   * every failure, which is the most useless thing it could have said: the real
+   * cause was a 429 from the provider's built-in mail service, and "try again
+   * in a moment" was advice to do the one thing guaranteed not to work. It cost
+   * an evening.
+   *
+   * Nothing here discloses whether an account exists — a magic link creates the
+   * user, so there is nothing to leak. If that ever changes, this must go back
+   * to being vague on purpose rather than by accident.
    */
-  if (error !== null) return { ok: false, error: "Could not send the link. Try again in a moment." };
+  if (error !== null) {
+    if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+      return {
+        ok: false,
+        error:
+          "This server has sent too many sign-in emails in the last hour and the " +
+          "mail provider is refusing more. Wait, or configure custom SMTP.",
+      };
+    }
+    return { ok: false, error: `Could not send the link: ${error.message}` };
+  }
   return { ok: true, email };
 };
 
