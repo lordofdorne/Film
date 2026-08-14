@@ -6,7 +6,7 @@ session with no conversational context can pick this up from the repository
 alone.
 
 `main` is at `aed25b9`, and this branch adds the capture walk-through on top of
-it. Ten packages, two apps, 271 tests.
+it. Ten packages, two apps, 279 tests.
 
 **Capture requirements are at the bottom, in "The capture flow"** — they come
 from the owner rather than from the code. `docs/proposal/phase-3-capture.md` is
@@ -34,6 +34,7 @@ pnpm install
 pnpm db:up && pnpm db:migrate
 cp .env.example .env && set -a && . ./.env && set +a
 
+pnpm auth:up    # local Supabase: sign-in, and Mailpit on :54324 for the links
 pnpm bed:upload # once: puts the music bed where capture can find it
 pnpm intake     # incoming/ -> object store + Postgres, then stops
 pnpm worker     # takes it from there
@@ -76,9 +77,9 @@ The offline path still works and still needs nothing: `pnpm film`,
 | 3 — Browser capture | Walk-through built: record or upload per step, retake, resume, finish. **Cannot yet produce a film** — see below. |
 | 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
 | 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
-| 6 — Preview and approval | Done. Player preview, warning gate, approval, download. **No auth.** |
+| 6 — Preview and approval | Done. Player preview, warning gate, approval, download, and only for the owner. |
 | 7 — Production render | Done. Worker, dispatcher, reconciler, render, deliver. |
-| 8 — Accounts and payment | Not started. Deliver sends no mail. |
+| 8 — Accounts and payment | Sign-in done: Supabase Auth, magic link. No payment. Deliver sends no mail. |
 
 ---
 
@@ -167,6 +168,17 @@ web app contains no string that only makes sense for life-advice.
 `validateTemplate` refuses a template whose walk-through does not ask for
 everything the film requires, exactly once.
 
+**Ownership is checked where the data is, not where the link is.** A guard on
+a page protects the page. The download route is where the film leaves the
+building, `/api/media` is where the raw recordings do, and server actions are
+callable whatever the page renders — so each of them checks, and each answers
+404 rather than 403, because a refusal that says "not yours" confirms there is
+something there.
+
+**A session is read with `getUser()`, never `getSession()`.** The second trusts
+the cookie the browser sent; the first verifies it with the auth server. That
+is the difference between an identity and a claim.
+
 **Deliver requires an approval for that exact cut.** A render row can exist
 without one; delivering against it would send someone a film they never
 watched. `deliverableFilm` re-establishes this with a join rather than trusting
@@ -218,6 +230,10 @@ progress.
   between them is two different values — the capture upload URL was minted with
   one secret and verified against another, and every upload answered 403.
   `globalThis` is the fix. Found by uploading a photograph.
+- **Supabase rejects a redirect it was not told about**, and silently falls
+  back to `site_url` — the magic link arrives pointing at the wrong port and
+  sign-in appears to do nothing. `supabase/config.toml` lists the app's
+  callback; a hosted project needs the same list in its dashboard.
 - **A dev server does not notice a package.json `exports` change.** Adding
   `@film/pipeline/capture` typechecks and builds while the running dev server
   still cannot resolve it. Restart it.
@@ -232,9 +248,12 @@ styling. Mechanisms exist; values are placeholders.
 
 **Known and deliberate gaps:**
 
-- **No authentication.** The approver is the project owner and there is no
-  session to check against, so anyone who can reach a project URL can approve
-  its film. Not deployable as-is.
+- **Auth is only as configured as its environment.** With
+  `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` unset the web
+  app runs with no sign-in and every film is open to anyone with its link. That
+  is what keeps the offline pipeline first-class, and every page says so in a
+  banner — but a deployment that forgets those two variables is wide open.
+- **No payment.** Nothing charges anyone.
 - **Deliver sends no mail.** No provider is configured. It marks the project
   delivered against a specific render and says so.
 - **`qc`, `transcribe` and `select` have queues and enum values but no
@@ -248,14 +267,12 @@ styling. Mechanisms exist; values are placeholders.
 ## Next
 
 1. **Browser capture (Phase 3).** The next block. See below.
-2. **Auth (Phase 8).** Needed before anything is exposed publicly, and capture
-   makes it urgent: a stranger who can reach a project URL can currently add
-   media to it. The two may want designing together.
-3. **Transcription (Phase 4).** Caption text is typed in at intake and word
+2. **Transcription (Phase 4).** Caption text is typed in at intake and word
    timings are estimated. The biggest quality gap in the output.
-4. **Delivery by email.** Deliver marks the project and says plainly that no
-   mail provider is configured. A customer who closes the tab is not told.
-5. **Re-render only what changed.** Segment caching keyed on content hash.
+3. **Delivery by email.** Deliver marks the project and says plainly that no
+   mail provider is configured. A customer who closes the tab is not told —
+   and sign-in already needs a mail provider, so one sender covers both.
+4. **Re-render only what changed.** Segment caching keyed on content hash.
    379s per film is fine now and will not be at volume.
 
 A different language would still not help: >99% of wall time is inside FFmpeg
@@ -359,7 +376,8 @@ Also still true of a browser-made project:
 - **MediaRecorder is proven on Chrome only.** It reports `video/mp4` support and
   produced h264/opus. iOS Safari is still unproven on a real device, and the
   fallback — the native camera through a file input — is already wired.
-- **The link is the credential.** No auth, exactly as for approve and download.
+- **Only the owner can reach it.** Signed out is a redirect to sign-in;
+  somebody else's film is a 404 on every surface, including the media route.
 
 ### Open questions for the owner
 

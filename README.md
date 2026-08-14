@@ -27,6 +27,7 @@ pnpm install
 pnpm db:up && pnpm db:migrate    # local Postgres 16 on :55432
 cp .env.example .env             # then: set -a; . ./.env; set +a
 
+pnpm auth:up                     # local Supabase for sign-in (Mailpit :54324)
 pnpm bed:upload                  # once: the music bed, where capture finds it
 pnpm intake                      # incoming/ -> object store + Postgres
 pnpm worker                      # ingest -> compose; then again after approval
@@ -61,7 +62,7 @@ pnpm film:real       # render project/real -> out/life-advice-real.mp4
 ```
 
 ```bash
-pnpm test        # 271 tests, including 23 golden frames
+pnpm test        # 279 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
@@ -78,7 +79,7 @@ is a property of Postgres, not of our code, and no mock can verify it.
 |---|---|
 | `pnpm intake` | Uploads originals, writes project and asset rows, exits. |
 | `pnpm worker` | Claims stages, runs them, dispatches and reconciles. Run as many as you like. |
-| `pnpm web` | Capture, preview and approval at `localhost:3200`. **No authentication yet.** |
+| `pnpm web` | Capture, preview and approval at `localhost:3200`, behind a sign-in. |
 
 Exactly-once comes from a unique constraint in Postgres, not from there being
 one worker. Scaling out is starting more of them.

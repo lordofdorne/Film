@@ -72,12 +72,35 @@ export const uploadStatus = pgEnum("upload_status", [
   "aborted",
 ]);
 
-export const users = pgTable("users", {
-  /** Mirrors auth.users.id. Not generated here. */
-  id: uuid("id").primaryKey(),
-  email: text("email").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey(),
+    email: text("email").notNull(),
+    /**
+     * The Supabase Auth identity, once there is one. Null until somebody signs
+     * in.
+     *
+     * Not the primary key, though the two could have been the same thing. A
+     * user row exists before any sign-in — intake creates one from an email
+     * address, and capture creates one the moment somebody types theirs at
+     * /start — so identity has to be something that can arrive later and be
+     * linked to a row that already owns films. Making it the primary key would
+     * mean rewriting a key that projects already reference, on the one code
+     * path that runs while a customer is waiting.
+     *
+     * Unique: two people cannot share an identity, and one identity cannot be
+     * spread over two rows.
+     */
+    authId: uuid("auth_id").unique(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    // Sign-in looks a user up by the address the identity provider verified, so
+    // that lookup is on the hot path of every first sign-in.
+    unique("users_email_unique").on(t.email),
+  ],
+);
 
 export const projects = pgTable(
   "projects",
