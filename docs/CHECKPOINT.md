@@ -355,6 +355,22 @@ from the capture screens. One is now solved:
 - **There is no page between capture and preview.** `/projects/[id]` 404s until
   compose has written an EDL version. **Still open.**
 
+### The capture experience is being redesigned
+
+**`docs/proposal/phase-3b-capture-ux.md` is the plan, and it supersedes the
+walk-through's shape.** The owner reviewed the built flow on 2026-08-14 and it
+is the wrong shape: a six-field form followed by seventeen numbered pages.
+
+What replaces it, from the owner's own answers: a **template chooser** first, a
+**hub** rather than a wizard — every ask as a card, tap one, come back — the
+person's **details woven in as steps** rather than a form, and three felt
+requirements: reassurance after each take, honest time remaining, and never
+feeling trapped.
+
+That plan is written to be executed by an agent with no memory of the
+conversation. Read it before touching `apps/web/app/projects/[id]/capture/` or
+`/start`, both of which it replaces.
+
 ### What is built, and what it cannot do yet
 
 The walk-through works: `/start` collects the subject, the project is created in
