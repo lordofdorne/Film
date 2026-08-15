@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { accessToProject, currentUser } from "./auth.js";
 import { sendMagicLink } from "./authActions.js";
+import { grantCapturePass } from "./capturePass.js";
 import {
   beginProject,
   completeUpload,
@@ -83,6 +84,9 @@ export const startProject = async (input: {
         : { interviewerName: input.interviewerName.trim() }),
     },
   });
+  // This browser started it, so it may carry on without waiting for the email.
+  await grantCapturePass(projectId);
+
   /**
    * Nobody is signed in, so send the link now rather than at the end.
    *

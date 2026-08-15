@@ -6,6 +6,8 @@ import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createDb, linkIdentity, ownsProject, type AppUser, type Db } from "@film/db";
 
+import { holdsCapturePass } from "./capturePass.js";
+
 /**
  * Who is asking, and may they.
  *
@@ -104,10 +106,22 @@ export const accessToProject = async (projectId: string): Promise<Access> => {
   if (!authConfigured()) return { allowed: true, user: null };
 
   const user = await currentUser();
-  if (user === null) return { allowed: false, reason: "signed-out" };
+  if (user !== null && (await ownsProject(db(), user.id, projectId))) {
+    return { allowed: true, user };
+  }
 
-  const owns = await ownsProject(db(), user.id, projectId);
-  return owns ? { allowed: true, user } : { allowed: false, reason: "not-yours" };
+  /**
+   * The browser that started this film, before the link in the email has been
+   * clicked.
+   *
+   * Without this the walk-through was unreachable: /start creates the project
+   * and sends the link, and the very next page bounced a signed-out visitor to
+   * /signin — one click into the product, waiting on an email. Checked after
+   * ownership rather than before, so a real session always decides first.
+   */
+  if (await holdsCapturePass(projectId)) return { allowed: true, user };
+
+  return { allowed: false, reason: user === null ? "signed-out" : "not-yours" };
 };
 
 /**
