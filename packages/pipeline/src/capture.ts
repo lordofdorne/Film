@@ -188,10 +188,19 @@ export const loadWalkthrough = async (
  * the step sheet shows the sentence, and nothing downstream should ever meet
  * an age of "ninety-four".
  */
+export type SavedDetail = {
+  readonly ok: true;
+  /** What kind of thing was saved — the caller that fires a sign-in link when
+   *  an owner address lands needs to know without a second query. */
+  readonly target: "subject" | "owner";
+  /** The canonical stored value, post-trim and lower-casing. */
+  readonly value: string | number | null;
+};
+
 export const saveDetail = async (
   deps: CaptureDeps,
   input: { readonly projectId: string; readonly fieldId: string; readonly value: string },
-): Promise<{ ok: true } | Failure> => {
+): Promise<SavedDetail | Failure> => {
   const walkthrough = await loadWalkthrough(deps, input.projectId);
   if (walkthrough === null) return { ok: false, error: "no such project" };
   if (walkthrough.status !== "capturing") {
@@ -233,7 +242,7 @@ export const saveDetail = async (
       .update(projects)
       .set({ deliverTo: value as string, updatedAt: new Date() })
       .where(eq(projects.id, input.projectId));
-    return { ok: true };
+    return { ok: true, target: "owner", value };
   }
 
   const subject: Record<string, string | number> = {
@@ -250,31 +259,32 @@ export const saveDetail = async (
     .update(projects)
     .set({ subjectData: subject, updatedAt: new Date() })
     .where(eq(projects.id, input.projectId));
-  return { ok: true };
+  return { ok: true, target: "subject", value };
 };
 
 const clearDetail = async (
   deps: CaptureDeps,
   projectId: string,
   field: DetailField,
-): Promise<{ ok: true }> => {
+): Promise<SavedDetail> => {
   if (field.target === "owner") {
     await deps.db
       .update(projects)
       .set({ deliverTo: null, updatedAt: new Date() })
       .where(eq(projects.id, projectId));
-    return { ok: true };
+    return { ok: true, target: "owner", value: null };
   }
   const rows = await deps.db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   const project = rows[0];
-  if (project === undefined) return { ok: true };
-  const subject = { ...(project.subjectData as Record<string, unknown>) };
-  delete subject[field.id];
-  await deps.db
-    .update(projects)
-    .set({ subjectData: subject, updatedAt: new Date() })
-    .where(eq(projects.id, projectId));
-  return { ok: true };
+  if (project !== undefined) {
+    const subject = { ...(project.subjectData as Record<string, unknown>) };
+    delete subject[field.id];
+    await deps.db
+      .update(projects)
+      .set({ subjectData: subject, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+  }
+  return { ok: true, target: "subject", value: null };
 };
 
 /* ── uploading ────────────────────────────────────────────────────────── */

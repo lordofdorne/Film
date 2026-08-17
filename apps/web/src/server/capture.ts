@@ -7,7 +7,6 @@ import {
   attachUpload,
   clearStep,
   ensureAnonymousOwner,
-  ensureOwner,
   finishCapture,
   loadWalkthrough,
   prepareUpload,
@@ -16,9 +15,10 @@ import {
   type CaptureDeps,
   type StepState as CaptureStepState,
   type Failure,
+  type SavedDetail,
 } from "@film/pipeline/capture";
 import { storeFromEnv, usingLocalStore } from "@film/storage";
-import type { PartialSubject, SubjectData } from "@film/templates";
+import type { PartialSubject } from "@film/templates";
 
 /**
  * The web app's side of capture: URLs, and nothing else.
@@ -45,6 +45,8 @@ export type StepView = Omit<CaptureStepState, "asset"> & {
     readonly kind: "photo" | "video" | "interview";
     readonly url: string;
   } | null;
+  /** Ingest's verdict in the customer's language, once ingest has run. */
+  readonly qcNote?: string;
 };
 
 export type WalkthroughView = {
@@ -79,45 +81,6 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
 };
 
 /**
- * The old /start form's shape, kept alive until the hub replaces it: create
- * the project empty, then feed the typed fields through the same saveDetail
- * every hub card will use — one code path, exercised early.
- */
-export const beginProject = async (input: {
-  /** The session's user — anonymous or real. Null only when auth is not
-   *  configured at all, where a row keyed by the typed address stands in. */
-  readonly ownerId: string | null;
-  readonly ownerEmail: string;
-  readonly subject: SubjectData;
-}): Promise<string> => {
-  const d = deps();
-  const ownerId = input.ownerId ?? (await ensureOwner(d.db, input.ownerEmail));
-  const started = await startCapture(d, {
-    ownerId,
-    templateId: "life-advice",
-    templateVersion: 1,
-  });
-  if (!started.ok) throw new Error(started.error);
-
-  const details: Record<string, string> = {
-    subjectName: input.subject.subjectName,
-    age: String(input.subject.age),
-    ownerEmail: input.ownerEmail,
-    ...(input.subject.displayName === input.subject.subjectName
-      ? {}
-      : { displayName: input.subject.displayName }),
-    ...(input.subject.relationshipLabel === undefined
-      ? {}
-      : { relationshipLabel: input.subject.relationshipLabel }),
-  };
-  for (const [fieldId, value] of Object.entries(details)) {
-    const saved = await saveDetail(d, { projectId: started.projectId, fieldId, value });
-    if (!saved.ok) throw new Error(saved.error);
-  }
-  return started.projectId;
-};
-
-/**
  * The chooser's door: a project of the chosen kind, owned by the session —
  * or, on a server with no auth at all, by a fresh anonymous row.
  */
@@ -135,7 +98,7 @@ export const saveDetailFor = async (
   projectId: string,
   fieldId: string,
   value: string,
-): Promise<{ ok: true } | Failure> => saveDetail(deps(), { projectId, fieldId, value });
+): Promise<SavedDetail | Failure> => saveDetail(deps(), { projectId, fieldId, value });
 
 /* ── upload URLs ──────────────────────────────────────────────────────── */
 

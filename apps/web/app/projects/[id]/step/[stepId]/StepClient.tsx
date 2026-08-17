@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -7,16 +8,16 @@ import { discardStep, finishUpload, mintUploadFor } from "../../../../../src/ser
 import type { StepView } from "../../../../../src/server/capture.js";
 
 /**
- * One step of the walk-through: record it, look at it, do it again, move on.
+ * One capture, opened from the hub: record it, look at it, do it again, go
+ * back. Both ways of giving us something are on every step, always — some
+ * moments have to be captured now, others already exist and only need
+ * finding, and that difference is about the moment, not the file.
  *
- * Both ways of giving us something are on every step, always. Some moments
- * have to be captured now — nobody has last year's answer to "what have you
- * learned about love" lying around — and others already exist and only need
- * finding. That difference is about the moment, not the file, so it is not two
- * different screens.
+ * No Next, no counter. The hub is the map; finishing here is walking back to
+ * it with the card ticked.
  *
- * Not a single string here is specific to life-advice. Everything the customer
- * reads arrives in `step`, which the template authored.
+ * Not a single string here is specific to one film type. Everything the
+ * customer reads arrives in `step`, which the template authored.
  */
 
 /** In preference order. Safari records mp4; Chrome and Firefox record webm. */
@@ -37,17 +38,9 @@ type Saving = { readonly state: "idle" | "saving" | "saved" | "failed"; readonly
 export const StepClient = ({
   projectId,
   step,
-  previousId,
-  nextId,
-  totalSteps,
-  firstOfChapter,
 }: {
   readonly projectId: string;
   readonly step: StepView;
-  readonly previousId: string | null;
-  readonly nextId: string | null;
-  readonly totalSteps: number;
-  readonly firstOfChapter: boolean;
 }) => {
   const router = useRouter();
 
@@ -184,12 +177,9 @@ export const StepClient = ({
   );
 
   /**
-   * Doing it again is one press, not two.
-   *
-   * The replacement is uploaded over the top — completeUpload swaps the row and
-   * removes the take it replaced — so there is no "delete, then record" dance.
-   * Somebody unhappy with an answer they just gave should be recording again
-   * before they have time to feel awkward about it.
+   * Doing it again is one press, not two. The replacement uploads over the
+   * top — the server swaps the row and removes the take it replaced — so there
+   * is no "delete, then record" dance.
    */
   const removeCapture = useCallback(() => {
     setLocalUrl((old) => {
@@ -209,16 +199,8 @@ export const StepClient = ({
     <main style={styles.page}>
       <header style={styles.head}>
         <span style={styles.chapter}>{step.chapterTitle}</span>
-        <span style={styles.counter}>
-          Step {step.number} of {totalSteps}
-          {!step.required && " · optional"}
-        </span>
+        {!step.required && <span style={styles.counter}>optional</span>}
       </header>
-      <div style={styles.track}>
-        <div style={{ ...styles.trackFill, width: `${String((step.number / totalSteps) * 100)}%` }} />
-      </div>
-
-      {firstOfChapter && <p style={styles.blurb}>{step.chapterBlurb}</p>}
 
       <h1 style={styles.ask}>{step.ask}</h1>
       {step.coaching !== undefined && <p style={styles.coaching}>{step.coaching}</p>}
@@ -229,6 +211,7 @@ export const StepClient = ({
           ))}
         </ul>
       )}
+      {step.qcNote !== undefined && <p style={styles.qcNote}>{step.qcNote}</p>}
 
       <section style={styles.stage}>
         {recording ? (
@@ -306,31 +289,12 @@ export const StepClient = ({
       </section>
 
       <nav style={styles.nav}>
-        {previousId === null ? (
-          <span />
-        ) : (
-          <a href={`/projects/${projectId}/capture/${previousId}`} style={styles.back}>
-            Back
-          </a>
-        )}
-        {nextId === null ? (
-          <a href={`/projects/${projectId}/capture/review`} style={styles.next}>
-            Review everything
-          </a>
-        ) : (
-          <a
-            href={`/projects/${projectId}/capture/${nextId}`}
-            style={{
-              ...styles.next,
-              // Never blocked, only discouraged: a required step left empty is
-              // caught at the end, and being trapped on a question someone does
-              // not want to answer yet is how people abandon a walk-through.
-              opacity: saved || !step.required ? 1 : 0.55,
-            }}
-          >
-            {saved || !step.required ? "Next" : "Skip for now"}
-          </a>
-        )}
+        <Link
+          href={`/projects/${projectId}`}
+          style={saved ? styles.done : styles.back}
+        >
+          {saved ? "Done — back to the film" : "Back to the film"}
+        </Link>
       </nav>
     </main>
   );
@@ -364,13 +328,11 @@ const styles = {
   head: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
   chapter: { fontSize: 13, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase" as const, color: "#12603a" },
   counter: { fontSize: 13, color: "#888" },
-  track: { height: 3, background: "#eee", borderRadius: 2, margin: "10px 0 0", overflow: "hidden" },
-  trackFill: { height: "100%", background: "#12603a", transition: "width 240ms ease" },
-  blurb: { fontSize: 14, lineHeight: 1.6, color: "#666", margin: "18px 0 0", padding: "12px 14px", background: "#f6f6f4", borderRadius: 8 },
-  ask: { fontSize: 26, fontWeight: 600, lineHeight: 1.3, letterSpacing: -0.4, margin: "24px 0 0" },
+  ask: { fontSize: 26, fontWeight: 600, lineHeight: 1.3, letterSpacing: -0.4, margin: "20px 0 0" },
   coaching: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "12px 0 0" },
   examples: { display: "flex", flexWrap: "wrap" as const, gap: 8, listStyle: "none", padding: 0, margin: "14px 0 0" },
   example: { fontSize: 13, color: "#5c4a33", background: "#fdf6ec", border: "1px solid #f0dcc0", borderRadius: 999, padding: "4px 12px" },
+  qcNote: { fontSize: 14, lineHeight: 1.5, color: "#7a4a12", background: "#fdf3e4", border: "1px solid #f0d6ae", borderRadius: 8, padding: "10px 12px", margin: "14px 0 0" },
   stage: { marginTop: 24 },
   media: { width: "100%", maxHeight: 460, objectFit: "contain" as const, background: "#000", borderRadius: 10, display: "block" },
   empty: {
@@ -391,7 +353,7 @@ const styles = {
   saving: { fontSize: 14, color: "#888" },
   savedNote: { fontSize: 14, color: "#12603a", fontWeight: 600 },
   error: { fontSize: 14, color: "#a11", margin: "10px 0 0" },
-  nav: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 36 },
+  nav: { display: "flex", justifyContent: "flex-start", marginTop: 36 },
   back: { color: "#666", textDecoration: "none", fontSize: 15 },
-  next: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "12px 26px", fontSize: 15, fontWeight: 600, textDecoration: "none" },
+  done: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "12px 26px", fontSize: 15, fontWeight: 600, textDecoration: "none" },
 } as const;
