@@ -1,12 +1,14 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { accessToProject, currentUser, ensureUser } from "./auth.js";
 import { sendMagicLink } from "./authActions.js";
 import {
   beginProject,
   completeUpload,
+  createProjectFor,
   discardCapture,
   mintUpload,
   startTheFilmFor,
@@ -38,6 +40,22 @@ const mine = async (projectId: string): Promise<{ ok: false; error: string } | n
 export type StartResult =
   | { readonly ok: true; readonly projectId: string }
   | { readonly ok: false; readonly error: string };
+
+/**
+ * The chooser chose. Sign the browser in (anonymously if nobody is), create
+ * the project, and land on its hub. The template id came over the wire, so
+ * startCapture treats it as a claim to verify, not a fact.
+ */
+export const chooseFilm = async (
+  templateId: string,
+  templateVersion: number,
+): Promise<StartResult> => {
+  const user = await ensureUser();
+  const created = await createProjectFor(user?.id ?? null, templateId, templateVersion);
+  if (!created.ok) return created;
+  // The hub. Until Block 5 lands it, the walk-through entry stands in.
+  redirect(`/projects/${created.projectId}/capture`);
+};
 
 export const startProject = async (input: {
   readonly ownerEmail: string;

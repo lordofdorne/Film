@@ -6,6 +6,7 @@ import { createDb, type Db } from "@film/db";
 import {
   attachUpload,
   clearStep,
+  ensureAnonymousOwner,
   ensureOwner,
   finishCapture,
   loadWalkthrough,
@@ -114,6 +115,20 @@ export const beginProject = async (input: {
     if (!saved.ok) throw new Error(saved.error);
   }
   return started.projectId;
+};
+
+/**
+ * The chooser's door: a project of the chosen kind, owned by the session —
+ * or, on a server with no auth at all, by a fresh anonymous row.
+ */
+export const createProjectFor = async (
+  ownerId: string | null,
+  templateId: string,
+  templateVersion: number,
+): Promise<{ ok: true; projectId: string } | Failure> => {
+  const d = deps();
+  const owner = ownerId ?? (await ensureAnonymousOwner(d.db));
+  return startCapture(d, { ownerId: owner, templateId, templateVersion });
 };
 
 export const saveDetailFor = async (

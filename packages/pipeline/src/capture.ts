@@ -94,6 +94,18 @@ export const startCapture = async (
  * it by the address the identity provider verified and the films made before
  * the first sign-in stay owned by the person who made them.
  */
+/**
+ * An owner row with no address and no identity, for a server with no auth
+ * configured at all. The offline path stays first-class: `pnpm web` against
+ * nothing but Postgres can still make a film, and the row is exactly what an
+ * anonymous sign-in would have produced minus the identity to link later.
+ */
+export const ensureAnonymousOwner = async (db: Db): Promise<string> => {
+  const id = randomUUID();
+  await db.insert(users).values({ id, email: null });
+  return id;
+};
+
 export const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
   const email = rawEmail.trim().toLowerCase();
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
