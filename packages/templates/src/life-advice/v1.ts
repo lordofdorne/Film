@@ -366,6 +366,8 @@ const config: Template = {
       kind: "number",
       required: true,
       target: "subject",
+      min: 1,
+      max: 120,
       estimatedSeconds: 5,
       guidance: {
         ask: "How old are they?",

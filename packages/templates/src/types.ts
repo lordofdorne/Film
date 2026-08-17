@@ -87,6 +87,10 @@ export type DetailField = {
   readonly guidance: Guidance & { readonly ask: string };
   /** Where the answer lands: the subject record, or the project's owner. */
   readonly target: "subject" | "owner";
+  /** For kind "number": the plausible range, inclusive. Content, not code —
+   *  an age and a year need different bounds and the template knows which. */
+  readonly min?: number;
+  readonly max?: number;
   /**
    * Subject fields this answer also fills when they are still empty.
    *

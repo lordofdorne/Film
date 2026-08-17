@@ -6,8 +6,9 @@ import { objectKey, projectPrefix, type ObjectStore } from "@film/storage";
 import {
   getTemplate,
   resolveCaptureSteps,
+  type DetailField,
+  type PartialSubject,
   type ResolvedCaptureStep,
-  type SubjectData,
 } from "@film/templates";
 
 import { MUSIC_BED_SLOT } from "./model.js";
@@ -37,11 +38,13 @@ export type CapturedAsset = {
 
 export type StepState = ResolvedCaptureStep & {
   readonly asset: CapturedAsset | null;
+  /** A detail step's answer, if given. Media steps never carry one. */
+  readonly value: string | number | null;
 };
 
 export type Walkthrough = {
   readonly projectId: string;
-  readonly subject: SubjectData;
+  readonly subject: PartialSubject;
   readonly status: string;
   readonly steps: readonly StepState[];
   /** Required steps still empty. Empty means the film can be started. */
@@ -50,47 +53,48 @@ export type Walkthrough = {
 
 export type Failure = { readonly ok: false; readonly error: string };
 
-/** The one template on offer. A chooser is a product decision, not a gap. */
-export const CAPTURE_TEMPLATE = { id: "life-advice", version: 1 } as const;
-
 /* ── starting ─────────────────────────────────────────────────────────── */
 
 /**
- * A project exists before capture starts.
+ * A project exists before anyone has said who it is about.
  *
- * Assets carry a non-null project_id, so something has to exist first. It lands
- * in `capturing` — a status that has been in the enum since the schema was
- * written and has never been used by anything — and the dispatcher's ACTIVE
- * list deliberately does not include it, so nothing is planned until the
- * walk-through hands the project over.
+ * The first thing after Start is choosing what kind of film to make, so at
+ * this moment there is no name, no age and no address — subject_data starts as
+ * the empty object and the detail steps fill it in. The project lands in
+ * `capturing`, which the dispatcher's ACTIVE list deliberately excludes, so
+ * nothing is planned until the walk-through hands it over.
  */
 export const startCapture = async (
   deps: CaptureDeps,
-  input: { readonly ownerEmail: string; readonly subject: SubjectData },
-): Promise<string> => {
-  const ownerId = await ensureOwner(deps.db, input.ownerEmail);
+  input: { readonly ownerId: string; readonly templateId: string; readonly templateVersion: number },
+): Promise<{ ok: true; projectId: string } | Failure> => {
+  try {
+    getTemplate(input.templateId, input.templateVersion);
+  } catch {
+    // The id came over the wire from a chooser form; refusing beats throwing.
+    return { ok: false, error: "no such kind of film" };
+  }
   const projectId = randomUUID();
   await deps.db.insert(projects).values({
     id: projectId,
-    ownerId,
-    templateId: CAPTURE_TEMPLATE.id,
-    templateVersion: CAPTURE_TEMPLATE.version,
-    subjectData: input.subject,
+    ownerId: input.ownerId,
+    templateId: input.templateId,
+    templateVersion: input.templateVersion,
+    subjectData: {},
     config: { questionPrompts: [] },
     status: "capturing",
   });
-  return projectId;
+  return { ok: true, projectId };
 };
 
 /**
- * The application's user row, created on demand because there is no auth yet.
+ * The application's user row for an address, created on demand.
  *
- * The same shape intake uses. When Supabase Auth arrives, both become a lookup
- * against auth.users rather than an insert.
+ * Intake's shape: a row keyed by a lower-cased address, so sign-in later finds
+ * it by the address the identity provider verified and the films made before
+ * the first sign-in stay owned by the person who made them.
  */
-const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
-  // Lower-cased for the same reason intake does it: sign-in finds this row by
-  // the address the identity provider verified.
+export const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
   const email = rawEmail.trim().toLowerCase();
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const found = existing[0];
@@ -114,16 +118,28 @@ export const loadWalkthrough = async (
   const project = rows[0];
   if (project === undefined) return null;
 
-  const subject = project.subjectData as SubjectData;
+  const subject = project.subjectData as PartialSubject;
   const template = getTemplate(project.templateId, project.templateVersion);
   const captured = await deps.db.select().from(assets).where(eq(assets.projectId, projectId));
 
   const steps: StepState[] = resolveCaptureSteps(template, subject).map((step) => {
+    if (step.kind === "detail") {
+      const field = step.field as DetailField;
+      // The owner's address lives on the project, not in the subject: it is
+      // delivery metadata, and users.email is reserved for verified identity.
+      const value =
+        field.target === "owner"
+          ? project.deliverTo
+          : ((subject as Record<string, string | number | undefined>)[field.id] ?? null);
+      return { ...step, asset: null, value };
+    }
+
     const row = captured.find((a) =>
       step.kind === "question" ? a.questionId === step.questionId : a.slotId === step.slotId,
     );
     return {
       ...step,
+      value: null,
       asset:
         row === undefined
           ? null
@@ -144,8 +160,109 @@ export const loadWalkthrough = async (
     subject,
     status: project.status,
     steps,
-    missing: steps.filter((s) => s.required && s.asset === null).map((s) => s.id),
+    missing: steps
+      .filter((s) => s.required && s.asset === null && (s.value === null || s.value === ""))
+      .map((s) => s.id),
   };
+};
+
+/* ── details ──────────────────────────────────────────────────────────── */
+
+/**
+ * One typed answer, validated against the template's own field and merged in.
+ *
+ * The value arrives as a string because it came out of an input; the field's
+ * kind decides what it must parse to. Everything refusable is refused here —
+ * the step sheet shows the sentence, and nothing downstream should ever meet
+ * an age of "ninety-four".
+ */
+export const saveDetail = async (
+  deps: CaptureDeps,
+  input: { readonly projectId: string; readonly fieldId: string; readonly value: string },
+): Promise<{ ok: true } | Failure> => {
+  const walkthrough = await loadWalkthrough(deps, input.projectId);
+  if (walkthrough === null) return { ok: false, error: "no such project" };
+  if (walkthrough.status !== "capturing") {
+    return { ok: false, error: "this film has already been started" };
+  }
+  const step = walkthrough.steps.find((s) => s.kind === "detail" && s.id === input.fieldId);
+  const field = step?.field;
+  if (step === undefined || field === undefined) {
+    return { ok: false, error: `no detail "${input.fieldId}"` };
+  }
+
+  const raw = input.value.trim();
+  if (raw === "") {
+    // Clearing an answer is allowed the way removing a take is: an optional
+    // one goes quietly, a required one goes back to "missing".
+    return clearDetail(deps, input.projectId, field);
+  }
+  if (raw.length > 200) return { ok: false, error: "that is too long" };
+
+  let value: string | number;
+  if (field.kind === "number") {
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed)) return { ok: false, error: "that needs to be a whole number" };
+    if (parsed < (field.min ?? 1) || parsed > (field.max ?? Number.MAX_SAFE_INTEGER)) {
+      return { ok: false, error: "that number does not look right" };
+    }
+    value = parsed;
+  } else if (field.kind === "email") {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+      return { ok: false, error: "that does not look like an email address" };
+    }
+    value = raw.toLowerCase();
+  } else {
+    value = raw;
+  }
+
+  if (field.target === "owner") {
+    await deps.db
+      .update(projects)
+      .set({ deliverTo: value as string, updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId));
+    return { ok: true };
+  }
+
+  const subject: Record<string, string | number> = {
+    ...(walkthrough.subject as Record<string, string | number>),
+    [field.id]: value,
+  };
+  // "Who is this film for?" also answers "what do you call them?" until the
+  // customer says otherwise on the optional step.
+  for (const prefill of field.prefills ?? []) {
+    subject[prefill] ??= value;
+  }
+
+  await deps.db
+    .update(projects)
+    .set({ subjectData: subject, updatedAt: new Date() })
+    .where(eq(projects.id, input.projectId));
+  return { ok: true };
+};
+
+const clearDetail = async (
+  deps: CaptureDeps,
+  projectId: string,
+  field: DetailField,
+): Promise<{ ok: true }> => {
+  if (field.target === "owner") {
+    await deps.db
+      .update(projects)
+      .set({ deliverTo: null, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+    return { ok: true };
+  }
+  const rows = await deps.db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  const project = rows[0];
+  if (project === undefined) return { ok: true };
+  const subject = { ...(project.subjectData as Record<string, unknown>) };
+  delete subject[field.id];
+  await deps.db
+    .update(projects)
+    .set({ subjectData: subject, updatedAt: new Date() })
+    .where(eq(projects.id, projectId));
+  return { ok: true };
 };
 
 /* ── uploading ────────────────────────────────────────────────────────── */

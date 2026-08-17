@@ -6,16 +6,18 @@ import { createDb, type Db } from "@film/db";
 import {
   attachUpload,
   clearStep,
+  ensureOwner,
   finishCapture,
   loadWalkthrough,
   prepareUpload,
+  saveDetail,
   startCapture,
   type CaptureDeps,
   type StepState as CaptureStepState,
   type Failure,
 } from "@film/pipeline/capture";
 import { storeFromEnv, usingLocalStore } from "@film/storage";
-import type { SubjectData } from "@film/templates";
+import type { PartialSubject, SubjectData } from "@film/templates";
 
 /**
  * The web app's side of capture: URLs, and nothing else.
@@ -46,7 +48,7 @@ export type StepView = Omit<CaptureStepState, "asset"> & {
 
 export type WalkthroughView = {
   readonly projectId: string;
-  readonly subject: SubjectData;
+  readonly subject: PartialSubject;
   readonly status: string;
   readonly steps: readonly StepView[];
   readonly missing: readonly string[];
@@ -75,10 +77,47 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
   return { ...walkthrough, steps };
 };
 
+/**
+ * The old /start form's shape, kept alive until the hub replaces it: create
+ * the project empty, then feed the typed fields through the same saveDetail
+ * every hub card will use — one code path, exercised early.
+ */
 export const beginProject = async (input: {
   readonly ownerEmail: string;
   readonly subject: SubjectData;
-}): Promise<string> => startCapture(deps(), input);
+}): Promise<string> => {
+  const d = deps();
+  const ownerId = await ensureOwner(d.db, input.ownerEmail);
+  const started = await startCapture(d, {
+    ownerId,
+    templateId: "life-advice",
+    templateVersion: 1,
+  });
+  if (!started.ok) throw new Error(started.error);
+
+  const details: Record<string, string> = {
+    subjectName: input.subject.subjectName,
+    age: String(input.subject.age),
+    ownerEmail: input.ownerEmail,
+    ...(input.subject.displayName === input.subject.subjectName
+      ? {}
+      : { displayName: input.subject.displayName }),
+    ...(input.subject.relationshipLabel === undefined
+      ? {}
+      : { relationshipLabel: input.subject.relationshipLabel }),
+  };
+  for (const [fieldId, value] of Object.entries(details)) {
+    const saved = await saveDetail(d, { projectId: started.projectId, fieldId, value });
+    if (!saved.ok) throw new Error(saved.error);
+  }
+  return started.projectId;
+};
+
+export const saveDetailFor = async (
+  projectId: string,
+  fieldId: string,
+  value: string,
+): Promise<{ ok: true } | Failure> => saveDetail(deps(), { projectId, fieldId, value });
 
 /* ── upload URLs ──────────────────────────────────────────────────────── */
 
