@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 
-import { authConfigured, currentUser, supabase } from "../../../src/server/auth.js";
+import { adoptFilms } from "@film/db";
+
+import { authConfigured, currentUser, dbForAuth, supabase } from "../../../src/server/auth.js";
 
 /**
  * Where the link in the email lands.
@@ -30,6 +32,23 @@ export async function GET(request: Request): Promise<Response> {
   }
 
   const client = await supabase();
+
+  /**
+   * Who was holding this browser BEFORE the exchange — possibly the anonymous
+   * identity that pressed Start and made a film. Read now, because the
+   * exchange replaces the session, and read with getUser() so it is a claim
+   * the auth server has verified rather than whatever was in the cookie.
+   *
+   * This is the deliberate half of the merge: the browser demonstrably holds
+   * the anonymous session, and clicking the link demonstrably proves the
+   * address. Only a request that shows both moves any films.
+   */
+  const before = await client.auth.getUser();
+  const anonymousAuthId =
+    before.error === null && before.data.user !== null && before.data.user.is_anonymous === true
+      ? before.data.user.id
+      : null;
+
   const { error } = await client.auth.exchangeCodeForSession(code);
   if (error !== null) {
     // Expired, already used, or opened in a different browser from the one that
@@ -38,6 +57,13 @@ export async function GET(request: Request): Promise<Response> {
     return NextResponse.redirect(new URL("/signin?error=expired", url.origin));
   }
 
-  await currentUser();
+  const user = await currentUser();
+  if (user !== null && anonymousAuthId !== null && user.authId !== anonymousAuthId) {
+    // The films made before the address was proved follow the person.
+    // adoptFilms itself refuses any source row that has an email, so a
+    // confused or hostile caller cannot drain a real account through this.
+    await adoptFilms(dbForAuth(), { fromAuthId: anonymousAuthId, toUserId: user.id });
+  }
+
   return NextResponse.redirect(new URL(destination, url.origin));
 }

@@ -1,0 +1,12 @@
+-- A user row can now exist before there is an address for it.
+--
+-- Project creation signs the browser in anonymously — a real identity in
+-- auth.users with no email — so the project is owned properly from birth and
+-- every ownership check works unchanged. That identity maps to a row here,
+-- and the row has no address until the person supplies one and clicks the
+-- link that proves it.
+--
+-- The unique constraint on email survives untouched: Postgres does not count
+-- NULLs as equal in a unique constraint, so any number of anonymous rows can
+-- coexist while two rows still cannot share a verified address.
+ALTER TABLE "users" ALTER COLUMN "email" DROP NOT NULL;

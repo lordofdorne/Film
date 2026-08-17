@@ -2,9 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 
-import { accessToProject, currentUser } from "./auth.js";
+import { accessToProject, currentUser, ensureUser } from "./auth.js";
 import { sendMagicLink } from "./authActions.js";
-import { grantCapturePass } from "./capturePass.js";
 import {
   beginProject,
   completeUpload,
@@ -59,19 +58,15 @@ export const startProject = async (input: {
   }
 
   /**
-   * The address that owns the film is the signed-in one when there is a
-   * session, and the typed one otherwise.
-   *
-   * Not a formality: taking the typed address from somebody who is already
-   * signed in as somebody else would hand them a film they cannot see
-   * afterwards, and would let anyone put a project into another person's
-   * account by typing their address.
+   * The browser is signed in before the project exists — anonymously if nobody
+   * is — so the film is owned properly from birth and every guard on every
+   * surface works unchanged. No pass, no placeholder.
    */
-  const signedIn = await currentUser();
-  const owner = signedIn?.email ?? email;
+  const user = await ensureUser();
 
   const projectId = await beginProject({
-    ownerEmail: owner,
+    ownerId: user?.id ?? null,
+    ownerEmail: email,
     subject: {
       subjectName,
       displayName,
@@ -79,24 +74,17 @@ export const startProject = async (input: {
       ...(input.relationshipLabel === undefined || input.relationshipLabel.trim() === ""
         ? {}
         : { relationshipLabel: input.relationshipLabel.trim() }),
-      ...(input.interviewerName === undefined || input.interviewerName.trim() === ""
-        ? {}
-        : { interviewerName: input.interviewerName.trim() }),
     },
   });
-  // This browser started it, so it may carry on without waiting for the email.
-  await grantCapturePass(projectId);
 
   /**
-   * Nobody is signed in, so send the link now rather than at the end.
-   *
-   * They keep going in this tab — nothing blocks — but the film already belongs
-   * to that address, and the email is how they get back to it on another
-   * device, or in six months when they want to watch it again. Failing to send
-   * does not fail the project: they have a URL, and they can sign in later.
+   * An anonymous owner gets the link now rather than at the end: clicking it
+   * proves the address and moves this film to the verified identity. Nothing
+   * blocks — they keep going in this tab — and failing to send does not fail
+   * the project, because they can sign in later.
    */
-  if (signedIn === null) {
-    await sendMagicLink(owner, `/projects/${projectId}/capture`);
+  if (user === null || user.email === null) {
+    await sendMagicLink(email, `/projects/${projectId}/capture`);
   }
 
   return { ok: true, projectId };

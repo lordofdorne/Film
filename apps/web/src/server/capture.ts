@@ -83,11 +83,14 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
  * every hub card will use — one code path, exercised early.
  */
 export const beginProject = async (input: {
+  /** The session's user — anonymous or real. Null only when auth is not
+   *  configured at all, where a row keyed by the typed address stands in. */
+  readonly ownerId: string | null;
   readonly ownerEmail: string;
   readonly subject: SubjectData;
 }): Promise<string> => {
   const d = deps();
-  const ownerId = await ensureOwner(d.db, input.ownerEmail);
+  const ownerId = input.ownerId ?? (await ensureOwner(d.db, input.ownerEmail));
   const started = await startCapture(d, {
     ownerId,
     templateId: "life-advice",

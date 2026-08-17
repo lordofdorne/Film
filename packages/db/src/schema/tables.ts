@@ -76,7 +76,13 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey(),
-    email: text("email").notNull(),
+    /**
+     * Null for an anonymous user — somebody who pressed Start and has not yet
+     * proved an address. The unique constraint below ignores NULLs, so any
+     * number of anonymous rows coexist while a verified address still cannot
+     * belong to two rows.
+     */
+    email: text("email"),
     /**
      * The Supabase Auth identity, once there is one. Null until somebody signs
      * in.
