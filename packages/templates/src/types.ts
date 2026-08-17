@@ -53,6 +53,10 @@ export type Question = {
    *  holding the camera. `guidance.ask` overrides the question wording only
    *  when the two must differ. */
   readonly guidance?: Guidance;
+  /** An honest guess at how long this takes to give, including the retake
+   *  somebody usually wants. Content, not code: the hub sums these to say how
+   *  much is left, and a wrong number here is a lie on that screen. */
+  readonly estimatedSeconds: number;
 };
 
 export type MediaSlot = {
@@ -61,12 +65,44 @@ export type MediaSlot = {
   readonly required: boolean;
   readonly accepts?: readonly ("photo" | "video")[];
   readonly guidance?: Guidance;
+  readonly estimatedSeconds: number;
+};
+
+/**
+ * A typed answer the film needs — a name, an age, an address.
+ *
+ * These are steps in the walk-through, not a form on the way in. "What do you
+ * call them?" is a card in the hub next to "Add a photo of the person from
+ * another time"; one opens a text field and the other opens a camera, and both
+ * are things the film needs. The wording lives here for the same reason all
+ * guidance does: a second film type ships its own walk-through with no React
+ * changing.
+ */
+export type DetailField = {
+  /** For `target: "subject"`, a SubjectData key; it is written verbatim. */
+  readonly id: string;
+  readonly kind: "text" | "number" | "email";
+  readonly required: boolean;
+  /** `ask` is mandatory here — a typed field has no question wording to lean on. */
+  readonly guidance: Guidance & { readonly ask: string };
+  /** Where the answer lands: the subject record, or the project's owner. */
+  readonly target: "subject" | "owner";
+  /**
+   * Subject fields this answer also fills when they are still empty.
+   *
+   * How "Who is this film for?" satisfies `displayName` without a second
+   * required card: most people call their grandmother what everyone calls her,
+   * and the one who says "Nana" can still change it on the optional step.
+   */
+  readonly prefills?: readonly string[];
+  readonly estimatedSeconds: number;
 };
 
 /** One thing the walk-through asks for, in the order it asks. */
 export type CaptureStepRef =
   | { readonly kind: "question"; readonly questionId: string }
-  | { readonly kind: "slot"; readonly slotId: string };
+  | { readonly kind: "slot"; readonly slotId: string }
+  | { readonly kind: "detail"; readonly fieldId: string };
 
 /**
  * A run of steps that belong together, with a break between chapters.
@@ -124,6 +160,9 @@ export type Template = {
   readonly photoSlots: readonly MediaSlot[];
   readonly videoSlots: readonly MediaSlot[];
   readonly optionalSlots: readonly MediaSlot[];
+  /** The typed answers this film needs, in the same shape as everything else
+   *  the customer reads. */
+  readonly details: readonly DetailField[];
   /**
    * The walk-through, as an explicit ordered list rather than one derived from
    * `questions[].order` plus the slot arrays.

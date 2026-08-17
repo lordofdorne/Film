@@ -75,6 +75,7 @@ const config: Template = {
       text: "What is your name?",
       narrativeRole: "introduction",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         coaching:
           "Ask for the whole sentence — \"My name is Ada Lovelace\" — rather than " +
@@ -87,6 +88,7 @@ const config: Template = {
       text: "How old are you?",
       narrativeRole: "introduction",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         coaching:
           "A full sentence again: \"I'm 94.\" The film's title is built from this " +
@@ -99,6 +101,7 @@ const config: Template = {
       text: "What year were you born?",
       narrativeRole: "introduction",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         coaching:
           "Let them add where, if they want to. The place a life started is " +
@@ -118,6 +121,7 @@ const config: Template = {
       },
       narrativeRole: "personality",
       required: true,
+      estimatedSeconds: 90,
       guidance: {
         coaching:
           "This one is usually answered with a joke first. Let the joke land, " +
@@ -130,6 +134,7 @@ const config: Template = {
       text: "What is the greatest lesson life has taught you?",
       narrativeRole: "wisdom",
       required: true,
+      estimatedSeconds: 120,
       guidance: {
         coaching:
           "The most important answer in the film — it opens it and it closes " +
@@ -143,6 +148,7 @@ const config: Template = {
       text: "What advice would you give to younger people?",
       narrativeRole: "wisdom",
       required: true,
+      estimatedSeconds: 90,
       guidance: {
         coaching:
           "If it comes out general — \"work hard\" — ask who they would say it " +
@@ -156,6 +162,7 @@ const config: Template = {
       text: "What does this family or group mean to you?",
       narrativeRole: "relationships",
       required: true,
+      estimatedSeconds: 90,
       guidance: {
         coaching:
           "Name the group out loud when you ask — the family, the team, the " +
@@ -170,6 +177,7 @@ const config: Template = {
       text: "What have you learned about love?",
       narrativeRole: "love",
       required: true,
+      estimatedSeconds: 90,
       guidance: {
         coaching:
           "Learned, not defined. If they start describing what love is, ask " +
@@ -184,6 +192,7 @@ const config: Template = {
       text: "What would you like to say to whoever watches this?",
       narrativeRole: "closing",
       required: true,
+      estimatedSeconds: 90,
       guidance: {
         coaching:
           "Ask them to look straight down the lens for this one, and to talk " +
@@ -197,6 +206,7 @@ const config: Template = {
       text: "What do you think of {{interviewerName}}, your {{interviewerRelationship}}?",
       narrativeRole: "bonus",
       required: false,
+      estimatedSeconds: 90,
       guidance: {
         ask: "Ask them what they think of you",
         coaching:
@@ -217,6 +227,7 @@ const config: Template = {
       id: "photo_early",
       label: "An earlier photo",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Add a photo of the person from another time",
         coaching:
@@ -230,6 +241,7 @@ const config: Template = {
       id: "photo_personality",
       label: "A photo that shows their personality",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Add a photo that is unmistakably them",
         coaching:
@@ -244,6 +256,7 @@ const config: Template = {
       id: "photo_group",
       label: "A meaningful group photo",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Add a photo of them with their people",
         coaching:
@@ -260,6 +273,7 @@ const config: Template = {
       id: "video_environment",
       label: "A place or detail connected to them",
       required: false,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Film somewhere that belongs to them",
         coaching:
@@ -272,6 +286,7 @@ const config: Template = {
       id: "video_group",
       label: "A group moment",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Film them with other people",
         coaching:
@@ -283,6 +298,7 @@ const config: Template = {
       id: "video_personality",
       label: "A candid moment",
       required: true,
+      estimatedSeconds: 60,
       guidance: {
         ask: "Film them being themselves, not answering anything",
         coaching:
@@ -297,6 +313,7 @@ const config: Template = {
       id: "keepsake",
       label: "A meaningful or funny object",
       required: false,
+      estimatedSeconds: 60,
       accepts: ["photo", "video"],
       guidance: {
         ask: "Add an object that means something",
@@ -309,12 +326,100 @@ const config: Template = {
   ],
 
   /**
-   * The walk-through. Three chapters, and the break between them is the point:
+   * The typed answers the film needs, worded like everything else the customer
+   * reads. These are cards in the hub, not a form on the way in — "Who is this
+   * film for?" sits next to "Add a photo of the person from another time", and
+   * neither feels like signing up for something.
+   */
+  details: [
+    {
+      id: "subjectName",
+      kind: "text",
+      required: true,
+      target: "subject",
+      // Most people call their grandmother what everyone calls her; the one
+      // who says "Nana" changes it on the optional step below.
+      prefills: ["displayName"],
+      estimatedSeconds: 10,
+      guidance: {
+        ask: "Who is this film for?",
+        coaching: "Their name, the way it should appear on screen.",
+        examples: ["Ada Lovelace", "Grandpa Joe"],
+      },
+    },
+    {
+      id: "displayName",
+      kind: "text",
+      required: false,
+      target: "subject",
+      estimatedSeconds: 5,
+      guidance: {
+        ask: "What do you call them?",
+        coaching:
+          "Only if it is different from their name — the film signs off with " +
+          "this word.",
+        examples: ["Nana", "Pops"],
+      },
+    },
+    {
+      id: "age",
+      kind: "number",
+      required: true,
+      target: "subject",
+      estimatedSeconds: 5,
+      guidance: {
+        ask: "How old are they?",
+        coaching: "The film's title is built from this number.",
+      },
+    },
+    {
+      id: "relationshipLabel",
+      kind: "text",
+      required: false,
+      target: "subject",
+      estimatedSeconds: 5,
+      guidance: {
+        ask: "What are they to you?",
+        coaching: "One word, from your side of it.",
+        examples: ["Grandmother", "Dad", "Oldest friend"],
+      },
+    },
+    {
+      id: "ownerEmail",
+      kind: "email",
+      required: true,
+      target: "owner",
+      estimatedSeconds: 15,
+      guidance: {
+        ask: "Where should we send it?",
+        coaching:
+          "The finished film goes to this address, and it is how you get back " +
+          "to this page from another phone or another day.",
+      },
+    },
+  ],
+
+  /**
+   * The walk-through. Four chapters, and the break between them is the point:
    * the interview needs two people in one room, the photographs and b-roll do
    * not, and nobody should be kept in a chair while someone hunts for a print.
    */
   capture: {
     chapters: [
+      {
+        id: "details",
+        title: "The film",
+        blurb:
+          "A few quick answers before the camera comes out — who this is " +
+          "about, and where the finished film should go.",
+        steps: [
+          { kind: "detail", fieldId: "subjectName" },
+          { kind: "detail", fieldId: "displayName" },
+          { kind: "detail", fieldId: "age" },
+          { kind: "detail", fieldId: "relationshipLabel" },
+          { kind: "detail", fieldId: "ownerEmail" },
+        ],
+      },
       {
         id: "story",
         title: "Their story",
