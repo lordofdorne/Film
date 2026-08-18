@@ -406,6 +406,58 @@ describe("dispatchActiveProjects", () => {
   });
 });
 
+describe("ingest during capture", () => {
+  const capturing = async (): Promise<void> => {
+    await db.update(projects).set({ status: "capturing" }).where(eq(projects.id, projectId));
+  };
+
+  it("ingests a capturing project's takes while the camera is still up", async () => {
+    needsDb();
+    await capturing();
+    const sent: string[] = [];
+    await dispatchActiveProjects(db, async (job) => {
+      if (job.projectId === projectId) sent.push(job.stage);
+    });
+    expect(sent).toContain("ingest");
+  });
+
+  /** A film is only ever cut from what the customer decided was complete. */
+  it("never plans compose while the customer is still capturing", async () => {
+    needsDb();
+    await capturing();
+    for (const row of await rows()) {
+      await record(ingest(row, FORMAT), { status: "succeeded" });
+    }
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).not.toContain("compose");
+
+    // The moment the customer hands it over, the same rows plan a compose.
+    await db.update(projects).set({ status: "processing" }).where(eq(projects.id, projectId));
+    const after = await planProject(db, projectId);
+    expect(after.jobs.map((j) => j.stage)).toContain("compose");
+  });
+
+  /**
+   * One permanently bad photograph, when it is the only asset so far, must
+   * not end a film while the customer is sitting right there able to replace
+   * it. The dead end surfaces as a warning on the hub card instead.
+   */
+  it("never marks a capturing project failed", async () => {
+    needsDb();
+    await capturing();
+    for (const row of await rows()) {
+      await record(ingest(row, FORMAT), {
+        status: "failed",
+        failureClass: "permanent",
+        error: "unreadable",
+      });
+    }
+    await dispatchActiveProjects(db, async () => undefined);
+    const status = (await db.select().from(projects).where(eq(projects.id, projectId)))[0]?.status;
+    expect(status).toBe("capturing");
+  });
+});
+
 describe("reconcileStalledStages", () => {
   it("leaves work that a worker is plausibly still doing", async () => {
     needsDb();

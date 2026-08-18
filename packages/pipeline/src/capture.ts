@@ -34,6 +34,14 @@ export type CapturedAsset = {
   readonly kind: "photo" | "video" | "interview";
   readonly storageKey: string;
   readonly contentType: string | null;
+  /** Whether ingest has looked at this yet. False right after an upload. */
+  readonly ingested: boolean;
+  /** Ingest's verdicts, verbatim. The web app words them for the customer. */
+  readonly warnings: readonly { readonly code: string; readonly message: string }[];
+  /** Seconds of actual speech ingest heard in an interview take, once known.
+   *  The reassurance the plan asked for — "we could hear you" — comes from
+   *  this, and so does its opposite. */
+  readonly speechSeconds: number | null;
 };
 
 export type StepState = ResolvedCaptureStep & {
@@ -163,6 +171,9 @@ export const loadWalkthrough = async (
               // is the take they just recorded.
               storageKey: row.storageKey,
               contentType: row.contentType,
+              ingested: row.normalisedKey !== null,
+              warnings: (row.warnings ?? []) as { code: string; message: string }[],
+              speechSeconds: speechSecondsOf(row.qcMetrics),
             },
     };
   });
@@ -176,6 +187,14 @@ export const loadWalkthrough = async (
       .filter((s) => s.required && s.asset === null && (s.value === null || s.value === ""))
       .map((s) => s.id),
   };
+};
+
+/** Total speech ingest heard, from the runs it measured on the original. */
+const speechSecondsOf = (qcMetrics: unknown): number | null => {
+  const runs = (qcMetrics as { speechRuns?: { startMs: number; endMs: number }[] } | null)
+    ?.speechRuns;
+  if (runs === undefined) return null;
+  return runs.reduce((sum, r) => sum + (r.endMs - r.startMs), 0) / 1000;
 };
 
 /* ── details ──────────────────────────────────────────────────────────── */
