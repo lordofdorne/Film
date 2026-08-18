@@ -40,6 +40,9 @@ const db = (): Db => {
   return cached;
 };
 
+/** The same connection, for the one route that adopts films after sign-in. */
+export const dbForAuth = (): Db => db();
+
 /**
  * A Supabase client bound to this request's cookies.
  *
@@ -79,10 +82,40 @@ export const currentUser = async (): Promise<AppUser | null> => {
   const { data, error } = await client.auth.getUser();
   if (error !== null || data.user === null) return null;
 
-  const email = data.user.email;
-  if (email === undefined || email === "") return null;
+  // An anonymous identity has no email and is still an identity: the browser
+  // that pressed Start owns its film through exactly this path.
+  return linkIdentity(db(), { authId: data.user.id, email: data.user.email ?? null });
+};
 
-  return linkIdentity(db(), { authId: data.user.id, email });
+/**
+ * The signed-in user, creating an anonymous one if nobody is.
+ *
+ * How a project is owned from birth: the first press of Start signs the
+ * browser in with `signInAnonymously()` — a real identity with no email — so
+ * every ownership check works unchanged and there is no gap for a pass or a
+ * placeholder to paper over. When the person later proves an address, the
+ * callback route moves these films to the verified identity.
+ *
+ * Only callable where cookies can be written: a server action or a route
+ * handler. A page render must use currentUser instead.
+ */
+export const ensureUser = async (): Promise<AppUser | null> => {
+  if (!authConfigured()) return null;
+
+  const existing = await currentUser();
+  if (existing !== null) return existing;
+
+  const client = await supabase();
+  const { data, error } = await client.auth.signInAnonymously();
+  if (error !== null || data.user === null) {
+    // Almost always anonymous sign-in disabled on the Supabase project — a
+    // configuration state, and one worth naming precisely at the surface.
+    throw new Error(
+      `could not create a visitor session: ${error?.message ?? "no user returned"}. ` +
+        "Anonymous sign-ins must be enabled on the Supabase project.",
+    );
+  }
+  return linkIdentity(db(), { authId: data.user.id, email: data.user.email ?? null });
 };
 
 export type Access =
@@ -104,10 +137,11 @@ export const accessToProject = async (projectId: string): Promise<Access> => {
   if (!authConfigured()) return { allowed: true, user: null };
 
   const user = await currentUser();
-  if (user === null) return { allowed: false, reason: "signed-out" };
+  if (user !== null && (await ownsProject(db(), user.id, projectId))) {
+    return { allowed: true, user };
+  }
 
-  const owns = await ownsProject(db(), user.id, projectId);
-  return owns ? { allowed: true, user } : { allowed: false, reason: "not-yours" };
+  return { allowed: false, reason: user === null ? "signed-out" : "not-yours" };
 };
 
 /**

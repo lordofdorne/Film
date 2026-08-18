@@ -32,20 +32,24 @@ browser too, though a film cannot yet be made end to end from one — see
 ```bash
 pnpm install
 pnpm db:up && pnpm db:migrate
-cp .env.example .env && set -a && . ./.env && set +a
+cp .env.example .env   # one env file; every command below reads it
 
 pnpm auth:up    # local Supabase: sign-in, and Mailpit on :54324 for the links
 pnpm bed:upload # once: puts the music bed where capture can find it
 pnpm intake     # incoming/ -> object store + Postgres, then stops
 pnpm worker     # takes it from there
-pnpm web        # localhost:3200 — /start to capture, /projects/<id> to approve
+pnpm web        # localhost:3200 — /make to start a film, /projects/<id> is its hub
 ```
 
 Three environment variables are easy to get wrong and fail quietly:
 
 - `STORAGE_ROOT` — the worker writes objects here and the web app reads them.
-  If they disagree, the symptom is a blank preview with no error anywhere.
-  `apps/web/.env.local` has its own copy and must match; use absolute paths.
+  **Use an absolute path.** Next runs with its working directory at `apps/web`,
+  so a relative one resolves somewhere different for the app than for the
+  worker, and the symptom is a blank preview with no error anywhere. There is
+  one env file now: `apps/web/.env.local` is gone, and `next.config.ts` loads
+  the root `.env` instead, because two files that had to agree was a bug with a
+  waiting period.
 - `ALLOW_UNLICENSED_MUSIC=1` — without it compose refuses the temp bed, which
   is correct and is also the only bed that exists right now.
 - `DATABASE_URL_WORKER` must be direct or session mode, never a transaction
@@ -237,6 +241,16 @@ progress.
 - **A dev server does not notice a package.json `exports` change.** Adding
   `@film/pipeline/capture` typechecks and builds while the running dev server
   still cannot resolve it. Restart it.
+- **`storeFromEnv()` used to build a client per call**, and the hub asks once
+  per card — twenty pieces of media was twenty S3 clients and twenty cold TLS
+  handshakes. It memoises on the resolved config now.
+- **`pnpm worker` runs `pnpm build` first**, which runs `next build` and
+  overwrites the dev server's `.next`. Running the worker beside a dev server
+  means `tsx apps/worker/src/main.ts` directly, or a dead preview.
+- **An unordered `LIMIT` over active projects starves live work.** Capturing
+  projects are planned now and most are abandoned, so the dispatcher orders by
+  `updated_at` — otherwise half-made films nobody returns to would fill the
+  budget ahead of a customer waiting on a render.
 
 ---
 
@@ -351,26 +365,54 @@ from the capture screens. One is now solved:
 - **There is no page between capture and preview.** `/projects/[id]` 404s until
   compose has written an EDL version. **Still open.**
 
-### What is built, and what it cannot do yet
+### The capture experience was redesigned — blocks 1–7 are built
 
-The walk-through works: `/start` collects the subject, the project is created in
-`capturing`, and each step records or accepts an upload, plays it back, retakes
-in one press, and resumes from rows rather than remembered state. Uploads go
-straight to storage and the row lands only once the bytes are confirmed.
-`assets.capture_method` is finally written for real.
+**`docs/proposal/phase-3b-capture-ux.md` is the plan, and blocks 1 to 7 of it
+are done.** The owner reviewed the first flow on 2026-08-14 and it was the
+wrong shape: a six-field form followed by seventeen numbered pages. Both are
+deleted.
+
+What exists now:
+
+```
+/make                          choose a film      (reads TEMPLATE_REGISTRY)
+   │  press Start: anonymous sign-in, then a project owned from birth
+   ▼
+/projects/[id]                 THE HUB            (while status = capturing)
+   │                           every ask a card: done / missing / optional,
+   │                           thumbnail, QC note, honest minutes remaining
+   ▼
+/projects/[id]/step/[stepId]   one step, then back to the hub
+```
+
+- **Details are steps.** `CaptureStepRef` has a third kind, `detail`, and
+  `Template.details` describes the typed answers a film needs. `subject_data`
+  starts as `{}` and `saveDetail` fills it in.
+- **The delivery address is `projects.deliver_to`, never `users.email`.** That
+  column is unique and decides ownership; an address typed mid-capture is
+  unverified. Clicking the link is what turns an address into an identity.
+- **Ownership from the first press.** `signInAnonymously()` gives a real
+  identity with no email. `capturePass.ts` is deleted rather than kept beside
+  its replacement. When the person proves an address, `adoptFilms` moves the
+  anonymous browser's films to the verified identity — and refuses any source
+  row that HAS an email, so it cannot drain a real account.
+- **Ingest runs during capture**, and a capturing project is never marked
+  failed. Warnings reach the hub card in the customer's language.
+
+Requires `enable_anonymous_sign_ins = true` on the Supabase project. Without
+it, pressing Start says so on the page rather than doing nothing.
+
+### What it still cannot do
 
 **It cannot yet produce a film.** A project finished in the browser ingests
 cleanly, reaches compose and dies for want of the words of every answer. The
 `transcribe` stage is the missing piece; its queue, enum value and
 `assets.transcript_key` column already exist, and the worker deliberately does
-not register it.
+not register it. **Block 8 of the 3b plan, and the owner deferred the provider
+decision on 2026-08-17.**
 
 Also still true of a browser-made project:
 
-- **Ingest does not run during capture.** The dispatcher's ACTIVE list excludes
-  `capturing`, so QC warnings — too dark, almost no speech — still surface at
-  approval rather than while the camera is up. Turning it on is two conditions
-  plus the rule above about never failing a capturing project.
 - **No multipart upload.** `upload_sessions` remains unused. One PUT per take,
   and a failure costs one step rather than the project.
 - **MediaRecorder is proven on Chrome only.** It reports `video/mp4` support and
@@ -378,10 +420,15 @@ Also still true of a browser-made project:
   fallback — the native camera through a file input — is already wired.
 - **Only the owner can reach it.** Signed out is a redirect to sign-in;
   somebody else's film is a 404 on every surface, including the media route.
+- **Nothing sweeps abandoned films.** Anonymous users and half-made projects
+  accumulate; `projects.retention_expires_at` exists and nothing sets it. The
+  ceiling until then is `MAX_UNFINISHED_FILMS` (10 per owner).
 
 ### Open questions for the owner
 
 - Which speech-to-text provider, and on what terms — it is customer voice, so
-  the licence must forbid training on it.
+  the licence must forbid training on it. **Asked 2026-08-17; the owner deferred
+  it and took blocks 1–7 without it.** Nothing delivers a finished film until
+  this is decided.
 - Whether the walk-through's sixteen pieces of coaching copy read the way the
   owner would say them. They are the highest-leverage strings in the product.

@@ -17,7 +17,7 @@ export default async function Home() {
           A short documentary made from an interview with someone you love.
         </p>
         <div style={styles.actions}>
-          <Link href="/start" style={styles.primary}>
+          <Link href="/make" style={styles.primary}>
             Make a film
           </Link>
           <Link href="/signin" style={styles.secondary}>
@@ -55,7 +55,7 @@ export default async function Home() {
 
       {projects.length === 0 ? (
         <p style={styles.blurb}>
-          Nothing here yet. <Link href="/start">Make a film</Link>.
+          Nothing here yet. <Link href="/make">Make a film</Link>.
         </p>
       ) : (
         <ul style={styles.list}>
@@ -71,7 +71,7 @@ export default async function Home() {
       )}
 
       <p style={styles.footer}>
-        <Link href="/start" style={styles.secondary}>
+        <Link href="/make" style={styles.secondary}>
           Start another
         </Link>
       </p>

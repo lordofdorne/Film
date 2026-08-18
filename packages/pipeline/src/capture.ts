@@ -1,13 +1,14 @@
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { assets, projects, users, isProjectId, type Db } from "@film/db";
 import { objectKey, projectPrefix, type ObjectStore } from "@film/storage";
 import {
   getTemplate,
   resolveCaptureSteps,
+  type DetailField,
+  type PartialSubject,
   type ResolvedCaptureStep,
-  type SubjectData,
 } from "@film/templates";
 
 import { MUSIC_BED_SLOT } from "./model.js";
@@ -33,15 +34,25 @@ export type CapturedAsset = {
   readonly kind: "photo" | "video" | "interview";
   readonly storageKey: string;
   readonly contentType: string | null;
+  /** Whether ingest has looked at this yet. False right after an upload. */
+  readonly ingested: boolean;
+  /** Ingest's verdicts, verbatim. The web app words them for the customer. */
+  readonly warnings: readonly { readonly code: string; readonly message: string }[];
+  /** Seconds of actual speech ingest heard in an interview take, once known.
+   *  The reassurance the plan asked for — "we could hear you" — comes from
+   *  this, and so does its opposite. */
+  readonly speechSeconds: number | null;
 };
 
 export type StepState = ResolvedCaptureStep & {
   readonly asset: CapturedAsset | null;
+  /** A detail step's answer, if given. Media steps never carry one. */
+  readonly value: string | number | null;
 };
 
 export type Walkthrough = {
   readonly projectId: string;
-  readonly subject: SubjectData;
+  readonly subject: PartialSubject;
   readonly status: string;
   readonly steps: readonly StepState[];
   /** Required steps still empty. Empty means the film can be started. */
@@ -50,47 +61,82 @@ export type Walkthrough = {
 
 export type Failure = { readonly ok: false; readonly error: string };
 
-/** The one template on offer. A chooser is a product decision, not a gap. */
-export const CAPTURE_TEMPLATE = { id: "life-advice", version: 1 } as const;
-
 /* ── starting ─────────────────────────────────────────────────────────── */
 
 /**
- * A project exists before capture starts.
+ * A project exists before anyone has said who it is about.
  *
- * Assets carry a non-null project_id, so something has to exist first. It lands
- * in `capturing` — a status that has been in the enum since the schema was
- * written and has never been used by anything — and the dispatcher's ACTIVE
- * list deliberately does not include it, so nothing is planned until the
- * walk-through hands the project over.
+ * The first thing after Start is choosing what kind of film to make, so at
+ * this moment there is no name, no age and no address — subject_data starts as
+ * the empty object and the detail steps fill it in. The project lands in
+ * `capturing`, which the dispatcher's ACTIVE list deliberately excludes, so
+ * nothing is planned until the walk-through hands it over.
  */
+/**
+ * How many films one person may have on the go at once.
+ *
+ * Generous — nobody is making a tenth family film this afternoon — and it is
+ * here because pressing Start needs no account and no payment. Without a
+ * ceiling, one visitor holding one session can write rows for as long as they
+ * care to, and the first anyone would know is the bill.
+ */
+export const MAX_UNFINISHED_FILMS = 10;
+
 export const startCapture = async (
   deps: CaptureDeps,
-  input: { readonly ownerEmail: string; readonly subject: SubjectData },
-): Promise<string> => {
-  const ownerId = await ensureOwner(deps.db, input.ownerEmail);
+  input: { readonly ownerId: string; readonly templateId: string; readonly templateVersion: number },
+): Promise<{ ok: true; projectId: string } | Failure> => {
+  try {
+    getTemplate(input.templateId, input.templateVersion);
+  } catch {
+    // The id came over the wire from a chooser form; refusing beats throwing.
+    return { ok: false, error: "no such kind of film" };
+  }
+
+  const unfinished = await deps.db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.ownerId, input.ownerId), eq(projects.status, "capturing")))
+    .limit(MAX_UNFINISHED_FILMS);
+  if (unfinished.length >= MAX_UNFINISHED_FILMS) {
+    return {
+      ok: false,
+      error: "You have several films on the go already — finish or delete one before starting another.",
+    };
+  }
   const projectId = randomUUID();
   await deps.db.insert(projects).values({
     id: projectId,
-    ownerId,
-    templateId: CAPTURE_TEMPLATE.id,
-    templateVersion: CAPTURE_TEMPLATE.version,
-    subjectData: input.subject,
+    ownerId: input.ownerId,
+    templateId: input.templateId,
+    templateVersion: input.templateVersion,
+    subjectData: {},
     config: { questionPrompts: [] },
     status: "capturing",
   });
-  return projectId;
+  return { ok: true, projectId };
 };
 
 /**
- * The application's user row, created on demand because there is no auth yet.
+ * The application's user row for an address, created on demand.
  *
- * The same shape intake uses. When Supabase Auth arrives, both become a lookup
- * against auth.users rather than an insert.
+ * Intake's shape: a row keyed by a lower-cased address, so sign-in later finds
+ * it by the address the identity provider verified and the films made before
+ * the first sign-in stay owned by the person who made them.
  */
-const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
-  // Lower-cased for the same reason intake does it: sign-in finds this row by
-  // the address the identity provider verified.
+/**
+ * An owner row with no address and no identity, for a server with no auth
+ * configured at all. The offline path stays first-class: `pnpm web` against
+ * nothing but Postgres can still make a film, and the row is exactly what an
+ * anonymous sign-in would have produced minus the identity to link later.
+ */
+export const ensureAnonymousOwner = async (db: Db): Promise<string> => {
+  const id = randomUUID();
+  await db.insert(users).values({ id, email: null });
+  return id;
+};
+
+export const ensureOwner = async (db: Db, rawEmail: string): Promise<string> => {
   const email = rawEmail.trim().toLowerCase();
   const existing = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const found = existing[0];
@@ -114,16 +160,28 @@ export const loadWalkthrough = async (
   const project = rows[0];
   if (project === undefined) return null;
 
-  const subject = project.subjectData as SubjectData;
+  const subject = project.subjectData as PartialSubject;
   const template = getTemplate(project.templateId, project.templateVersion);
   const captured = await deps.db.select().from(assets).where(eq(assets.projectId, projectId));
 
   const steps: StepState[] = resolveCaptureSteps(template, subject).map((step) => {
+    if (step.kind === "detail") {
+      const field = step.field as DetailField;
+      // The owner's address lives on the project, not in the subject: it is
+      // delivery metadata, and users.email is reserved for verified identity.
+      const value =
+        field.target === "owner"
+          ? project.deliverTo
+          : ((subject as Record<string, string | number | undefined>)[field.id] ?? null);
+      return { ...step, asset: null, value };
+    }
+
     const row = captured.find((a) =>
       step.kind === "question" ? a.questionId === step.questionId : a.slotId === step.slotId,
     );
     return {
       ...step,
+      value: null,
       asset:
         row === undefined
           ? null
@@ -135,6 +193,9 @@ export const loadWalkthrough = async (
               // is the take they just recorded.
               storageKey: row.storageKey,
               contentType: row.contentType,
+              ingested: row.normalisedKey !== null,
+              warnings: (row.warnings ?? []) as { code: string; message: string }[],
+              speechSeconds: speechSecondsOf(row.qcMetrics),
             },
     };
   });
@@ -144,8 +205,138 @@ export const loadWalkthrough = async (
     subject,
     status: project.status,
     steps,
-    missing: steps.filter((s) => s.required && s.asset === null).map((s) => s.id),
+    missing: steps
+      .filter((s) => s.required && s.asset === null && (s.value === null || s.value === ""))
+      .map((s) => s.id),
   };
+};
+
+/** Total speech ingest heard, from the runs it measured on the original. */
+const speechSecondsOf = (qcMetrics: unknown): number | null => {
+  const runs = (qcMetrics as { speechRuns?: { startMs: number; endMs: number }[] } | null)
+    ?.speechRuns;
+  if (runs === undefined) return null;
+  return runs.reduce((sum, r) => sum + (r.endMs - r.startMs), 0) / 1000;
+};
+
+/* ── details ──────────────────────────────────────────────────────────── */
+
+/**
+ * One typed answer, validated against the template's own field and merged in.
+ *
+ * The value arrives as a string because it came out of an input; the field's
+ * kind decides what it must parse to. Everything refusable is refused here —
+ * the step sheet shows the sentence, and nothing downstream should ever meet
+ * an age of "ninety-four".
+ */
+export type SavedDetail = {
+  readonly ok: true;
+  /** What kind of thing was saved — the caller that fires a sign-in link when
+   *  an owner address lands needs to know without a second query. */
+  readonly target: "subject" | "owner";
+  /** The canonical stored value, post-trim and lower-casing. */
+  readonly value: string | number | null;
+  /**
+   * Whether this actually differs from what was already stored.
+   *
+   * Load-bearing for the address: saving it is what sends a sign-in email, and
+   * without this every re-save of the same address sends another one — which
+   * is a way to mail-bomb a stranger through our server, and a way to burn the
+   * mail quota, using nothing but a project anyone can create.
+   */
+  readonly changed: boolean;
+};
+
+export const saveDetail = async (
+  deps: CaptureDeps,
+  input: { readonly projectId: string; readonly fieldId: string; readonly value: string },
+): Promise<SavedDetail | Failure> => {
+  const walkthrough = await loadWalkthrough(deps, input.projectId);
+  if (walkthrough === null) return { ok: false, error: "no such project" };
+  if (walkthrough.status !== "capturing") {
+    return { ok: false, error: "this film has already been started" };
+  }
+  const step = walkthrough.steps.find((s) => s.kind === "detail" && s.id === input.fieldId);
+  const field = step?.field;
+  if (step === undefined || field === undefined) {
+    return { ok: false, error: `no detail "${input.fieldId}"` };
+  }
+
+  const raw = input.value.trim();
+  if (raw === "") {
+    // Clearing an answer is allowed the way removing a take is: an optional
+    // one goes quietly, a required one goes back to "missing".
+    return clearDetail(deps, input.projectId, field);
+  }
+  if (raw.length > 200) return { ok: false, error: "that is too long" };
+
+  let value: string | number;
+  if (field.kind === "number") {
+    const parsed = Number(raw);
+    if (!Number.isInteger(parsed)) return { ok: false, error: "that needs to be a whole number" };
+    if (parsed < (field.min ?? 1) || parsed > (field.max ?? Number.MAX_SAFE_INTEGER)) {
+      return { ok: false, error: "that number does not look right" };
+    }
+    value = parsed;
+  } else if (field.kind === "email") {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+      return { ok: false, error: "that does not look like an email address" };
+    }
+    value = raw.toLowerCase();
+  } else {
+    value = raw;
+  }
+
+  if (field.target === "owner") {
+    const changed = step.value !== value;
+    await deps.db
+      .update(projects)
+      .set({ deliverTo: value as string, updatedAt: new Date() })
+      .where(eq(projects.id, input.projectId));
+    return { ok: true, target: "owner", value, changed };
+  }
+
+  const subject: Record<string, string | number> = {
+    ...(walkthrough.subject as Record<string, string | number>),
+    [field.id]: value,
+  };
+  // "Who is this film for?" also answers "what do you call them?" until the
+  // customer says otherwise on the optional step.
+  for (const prefill of field.prefills ?? []) {
+    subject[prefill] ??= value;
+  }
+
+  await deps.db
+    .update(projects)
+    .set({ subjectData: subject, updatedAt: new Date() })
+    .where(eq(projects.id, input.projectId));
+  return { ok: true, target: "subject", value, changed: step.value !== value };
+};
+
+const clearDetail = async (
+  deps: CaptureDeps,
+  projectId: string,
+  field: DetailField,
+): Promise<SavedDetail> => {
+  if (field.target === "owner") {
+    await deps.db
+      .update(projects)
+      .set({ deliverTo: null, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+    // Nothing to announce and nothing to send: clearing is not an address.
+    return { ok: true, target: "owner", value: null, changed: false };
+  }
+  const rows = await deps.db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  const project = rows[0];
+  if (project !== undefined) {
+    const subject = { ...(project.subjectData as Record<string, unknown>) };
+    delete subject[field.id];
+    await deps.db
+      .update(projects)
+      .set({ subjectData: subject, updatedAt: new Date() })
+      .where(eq(projects.id, projectId));
+  }
+  return { ok: true, target: "subject", value: null, changed: false };
 };
 
 /* ── uploading ────────────────────────────────────────────────────────── */

@@ -32,8 +32,14 @@ import { deliverIdentity } from "./stages/deliver.js";
  */
 export const MAX_ATTEMPTS = 4;
 
-/** Project states in which there may still be work to do. */
-const ACTIVE = ["processing", "awaiting_approval", "approved", "rendering"] as const;
+/**
+ * Project states in which there may still be work to do.
+ *
+ * `capturing` is here so ingest runs while the camera is still up: "we could
+ * barely hear that one" is actionable while the customer is standing there
+ * able to record again, and useless at approval, hours after they went home.
+ */
+const ACTIVE = ["capturing", "processing", "awaiting_approval", "approved", "rendering"] as const;
 
 type ExecutionRow = typeof stageExecutions.$inferSelect;
 
@@ -125,8 +131,10 @@ export const planProject = async (
     if (verdict !== "done") allIngested = false;
   }
 
-  /* ── 2. compose, once every asset is in ───────────────────────────── */
-  if (allIngested) {
+  /* ── 2. compose, once every asset is in AND the customer has finished ── */
+  // Never while capturing: the set of assets is still changing under it, and
+  // a film must only ever be cut from what the customer decided was complete.
+  if (allIngested && project.status !== "capturing") {
     const identity = composeIdentity(project, rows, ingestHashes);
     if (consider(identity, "compose") === "dispatch") jobs.push(payload(identity));
   }
@@ -204,22 +212,43 @@ export const dispatchActiveProjects = async (
   enqueue: (job: JobPayload) => Promise<unknown>,
   options: { readonly limit?: number } = {},
 ): Promise<DispatchResult> => {
+  /**
+   * Most recently touched first, and that ordering is load-bearing.
+   *
+   * Capturing projects are planned now, and most of them are abandoned — half
+   * a film somebody started and never came back to. They never finish and they
+   * never fail, so they accumulate for ever, and an unordered LIMIT would let
+   * them fill the whole budget and starve the projects with a customer waiting
+   * on them. `updated_at` moves whenever a take, a detail or a stage lands, so
+   * ordering by it puts live work at the front and abandonment at the back.
+   *
+   * The (status, updated_at) index exists for exactly this shape of query.
+   */
   const active = await db
-    .select({ id: projects.id })
+    .select({ id: projects.id, status: projects.status })
     .from(projects)
     .where(inArray(projects.status, [...ACTIVE]))
+    .orderBy(desc(projects.updatedAt))
     .limit(options.limit ?? 200);
 
   let jobsEnqueued = 0;
   let projectsBlocked = 0;
 
-  for (const { id } of active) {
+  for (const { id, status } of active) {
     const { jobs, blocked } = await planProject(db, id);
     for (const job of jobs) {
       await enqueue(job);
       jobsEnqueued += 1;
     }
     if (blocked.length > 0 && jobs.length === 0) {
+      /**
+       * NEVER mark a capturing project failed. One permanently bad photograph,
+       * when it is the only asset so far, is otherwise enough to end a film
+       * while the customer is sitting right there able to replace it. A
+       * capturing project's dead ends surface as warnings on its hub cards;
+       * "failed" is reserved for a film the customer has already handed over.
+       */
+      if (status === "capturing") continue;
       projectsBlocked += 1;
       /**
        * Marked failed only when nothing else is moving.

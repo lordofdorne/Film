@@ -25,7 +25,7 @@ The pipeline runs end to end, unattended. Drop recordings in, get a film out.
 ```bash
 pnpm install
 pnpm db:up && pnpm db:migrate    # local Postgres 16 on :55432
-cp .env.example .env             # then: set -a; . ./.env; set +a
+cp .env.example .env             # one env file; every command reads it
 
 pnpm auth:up                     # local Supabase for sign-in (Mailpit :54324)
 pnpm bed:upload                  # once: the music bed, where capture finds it

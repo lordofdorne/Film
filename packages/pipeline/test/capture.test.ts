@@ -15,10 +15,13 @@ import {
   attachUpload,
   bedSpecKey,
   clearStep,
+  ensureOwner,
   finishCapture,
+  MAX_UNFINISHED_FILMS,
   loadWalkthrough,
   originalPrefix,
   prepareUpload,
+  saveDetail,
   startCapture,
   type CaptureDeps,
 } from "../src/capture.js";
@@ -37,13 +40,20 @@ let root: string;
 let available = false;
 let projectId = "";
 
-const SUBJECT = {
+/** The typed answers, fed through the same door the hub cards use. */
+const DETAILS: Record<string, string> = {
   subjectName: "Ada Lovelace",
   displayName: "Ada",
-  age: 94,
+  age: "94",
   relationshipLabel: "grandmother",
-  interviewerName: "Asim",
-  interviewerRelationship: "grandson",
+  ownerEmail: EMAIL,
+};
+
+const fillDetails = async (): Promise<void> => {
+  for (const [fieldId, value] of Object.entries(DETAILS)) {
+    const saved = await saveDetail(deps, { projectId, fieldId, value });
+    if (!saved.ok) throw new Error(saved.error);
+  }
 };
 
 beforeAll(async () => {
@@ -84,7 +94,14 @@ afterAll(async () => {
 beforeEach(async () => {
   if (!available) return;
   await wipe();
-  projectId = await startCapture(deps, { ownerEmail: EMAIL, subject: SUBJECT });
+  const ownerId = await ensureOwner(db, EMAIL);
+  const started = await startCapture(deps, {
+    ownerId,
+    templateId: "life-advice",
+    templateVersion: 1,
+  });
+  if (!started.ok) throw new Error(started.error);
+  projectId = started.projectId;
 });
 
 const needsDb = (): void => {
@@ -134,6 +151,154 @@ describe("starting", () => {
   it("is not found rather than a server error for a malformed id", async () => {
     needsDb();
     expect(await loadWalkthrough(deps, "not-a-uuid")).toBeNull();
+  });
+
+  it("starts with no subject at all, and every step still worded", async () => {
+    needsDb();
+    const walkthrough = await loadWalkthrough(deps, projectId);
+    expect(walkthrough?.subject).toEqual({});
+    for (const step of walkthrough?.steps ?? []) {
+      expect(step.ask.length, step.id).toBeGreaterThan(0);
+    }
+  });
+
+  /**
+   * Pressing Start needs no account and no payment, so without a ceiling one
+   * visitor holding one session can write rows for as long as they care to.
+   */
+  it("refuses to start an eleventh unfinished film for the same person", async () => {
+    needsDb();
+    const ownerId = await ensureOwner(db, EMAIL);
+    // One already exists from beforeEach.
+    for (let i = 1; i < MAX_UNFINISHED_FILMS; i += 1) {
+      const made = await startCapture(deps, { ownerId, templateId: "life-advice", templateVersion: 1 });
+      expect(made.ok, `film ${String(i)}`).toBe(true);
+    }
+    const refused = await startCapture(deps, {
+      ownerId,
+      templateId: "life-advice",
+      templateVersion: 1,
+    });
+    expect(refused.ok).toBe(false);
+
+    // Handing one over frees the slot, because only capturing films count.
+    await db.update(projects).set({ status: "processing" }).where(eq(projects.id, projectId));
+    const allowed = await startCapture(deps, {
+      ownerId,
+      templateId: "life-advice",
+      templateVersion: 1,
+    });
+    expect(allowed.ok).toBe(true);
+  });
+
+  it("refuses a kind of film that does not exist", async () => {
+    needsDb();
+    const ownerId = await ensureOwner(db, EMAIL);
+    const started = await startCapture(deps, {
+      ownerId,
+      templateId: "wedding-toast",
+      templateVersion: 1,
+    });
+    expect(started).toEqual({ ok: false, error: "no such kind of film" });
+  });
+});
+
+describe("details", () => {
+  it("counts an unanswered required detail as missing, and an answered one as not", async () => {
+    needsDb();
+    const before = await loadWalkthrough(deps, projectId);
+    expect(before?.missing).toContain("subjectName");
+    expect(before?.missing).toContain("ownerEmail");
+
+    await fillDetails();
+    const after = await loadWalkthrough(deps, projectId);
+    expect(after?.missing).not.toContain("subjectName");
+    expect(after?.missing).not.toContain("ownerEmail");
+    expect(after?.steps.find((s) => s.id === "age")?.value).toBe(94);
+  });
+
+  it("prefills what the customer has not said otherwise, and never what they have", async () => {
+    needsDb();
+    await saveDetail(deps, { projectId, fieldId: "subjectName", value: "Ada Lovelace" });
+    let walkthrough = await loadWalkthrough(deps, projectId);
+    expect(walkthrough?.subject.displayName).toBe("Ada Lovelace");
+
+    await saveDetail(deps, { projectId, fieldId: "displayName", value: "Nana" });
+    await saveDetail(deps, { projectId, fieldId: "subjectName", value: "Ada King" });
+    walkthrough = await loadWalkthrough(deps, projectId);
+    expect(walkthrough?.subject.subjectName).toBe("Ada King");
+    expect(walkthrough?.subject.displayName).toBe("Nana");
+  });
+
+  /**
+   * The address lands on the project, never on users.email: that column is
+   * unique and decides who owns which films, and this address is unverified.
+   */
+  it("stores the delivery address on the project, not the identity column", async () => {
+    needsDb();
+    await saveDetail(deps, { projectId, fieldId: "ownerEmail", value: "Someone@Example.COM " });
+    const project = (await db.select().from(projects).where(eq(projects.id, projectId)))[0];
+    expect(project?.deliverTo).toBe("someone@example.com");
+    expect((project?.subjectData as Record<string, unknown>)["ownerEmail"]).toBeUndefined();
+  });
+
+  it("refuses what the field's own rules refuse", async () => {
+    needsDb();
+    for (const [fieldId, value] of [
+      ["age", "ninety-four"],
+      ["age", "0"],
+      ["age", "121"],
+      ["ownerEmail", "not-an-address"],
+      ["shoeSize", "9"],
+    ] as const) {
+      const result = await saveDetail(deps, { projectId, fieldId, value });
+      expect(result.ok, `${fieldId}=${value}`).toBe(false);
+    }
+  });
+
+  /**
+   * Saving the address is what sends a sign-in email, so a re-save that sends
+   * another one is a way to mail-bomb a stranger through our server.
+   */
+  it("reports whether an answer actually changed, so the link is sent once", async () => {
+    needsDb();
+    const first = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "someone@example.com",
+    });
+    expect(first).toMatchObject({ ok: true, changed: true });
+
+    const again = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "  Someone@Example.com ",
+    });
+    expect(again).toMatchObject({ ok: true, changed: false });
+
+    const moved = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "elsewhere@example.com",
+    });
+    expect(moved).toMatchObject({ ok: true, changed: true });
+  });
+
+  it("clears an answer given an empty value", async () => {
+    needsDb();
+    await fillDetails();
+    await saveDetail(deps, { projectId, fieldId: "relationshipLabel", value: "  " });
+    await saveDetail(deps, { projectId, fieldId: "ownerEmail", value: "" });
+    const walkthrough = await loadWalkthrough(deps, projectId);
+    expect(walkthrough?.subject.relationshipLabel).toBeUndefined();
+    expect(walkthrough?.missing).toContain("ownerEmail");
+  });
+
+  it("refuses once the film has been handed to the pipeline", async () => {
+    needsDb();
+    await db.update(projects).set({ status: "processing" }).where(eq(projects.id, projectId));
+    const result = await saveDetail(deps, { projectId, fieldId: "subjectName", value: "Ada" });
+    expect(result.ok).toBe(false);
   });
 });
 
@@ -324,10 +489,11 @@ describe("doing it again", () => {
 
 describe("finishing", () => {
   const everything = async (): Promise<void> => {
+    await fillDetails();
     const walkthrough = await loadWalkthrough(deps, projectId);
     if (walkthrough === null) throw new Error("no walkthrough");
     for (const step of walkthrough.steps) {
-      if (!step.required) continue;
+      if (!step.required || step.kind === "detail") continue;
       await capture(step.id, step.accepts.includes("photo") ? "image/jpeg" : "video/mp4");
     }
   };

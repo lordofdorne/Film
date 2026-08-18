@@ -1,14 +1,16 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
-import { accessToProject, currentUser } from "./auth.js";
+import { accessToProject, currentUser, ensureUser } from "./auth.js";
 import { sendMagicLink } from "./authActions.js";
 import {
-  beginProject,
   completeUpload,
+  createProjectFor,
   discardCapture,
   mintUpload,
+  saveDetailFor,
   startTheFilmFor,
   type Mint,
 } from "./capture.js";
@@ -39,63 +41,73 @@ export type StartResult =
   | { readonly ok: true; readonly projectId: string }
   | { readonly ok: false; readonly error: string };
 
-export const startProject = async (input: {
-  readonly ownerEmail: string;
-  readonly subjectName: string;
-  readonly displayName: string;
-  readonly age: number;
-  readonly relationshipLabel?: string;
-  readonly interviewerName?: string;
-}): Promise<StartResult> => {
-  const email = input.ownerEmail.trim();
-  const subjectName = input.subjectName.trim();
-  const displayName = input.displayName.trim() === "" ? subjectName : input.displayName.trim();
-
-  if (!email.includes("@")) return { ok: false, error: "That does not look like an email address" };
-  if (subjectName === "") return { ok: false, error: "Who is the film about?" };
-  if (!Number.isInteger(input.age) || input.age < 1 || input.age > 120) {
-    return { ok: false, error: "That age does not look right" };
+/**
+ * The chooser chose. Sign the browser in (anonymously if nobody is), create
+ * the project, and land on its hub. The template id came over the wire, so
+ * startCapture treats it as a claim to verify, not a fact.
+ */
+export const chooseFilm = async (
+  templateId: string,
+  templateVersion: number,
+): Promise<StartResult> => {
+  let user;
+  try {
+    user = await ensureUser();
+  } catch (error: unknown) {
+    // Usually anonymous sign-ins disabled on the Supabase project. A button
+    // that says why beats a button that seems to do nothing — that bug is the
+    // one this whole redesign started from.
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
   }
+  const created = await createProjectFor(user?.id ?? null, templateId, templateVersion);
+  if (!created.ok) return created;
+  redirect(`/projects/${created.projectId}`);
+};
+
+export type DetailResult =
+  | { readonly ok: true; readonly linkSentTo: string | null }
+  | { readonly ok: false; readonly error: string };
+
+/**
+ * One typed answer from a step sheet. Validation is the template's, in
+ * @film/pipeline/capture, where it is tested against a real database.
+ *
+ * Saving the owner's address is also the moment sign-in becomes possible, so
+ * the magic link goes out here — once, non-blocking, and only when the session
+ * has no verified address of its own. Clicking it is what turns the typed
+ * address into ownership; not clicking it costs nothing today.
+ */
+export const submitDetail = async (
+  projectId: string,
+  fieldId: string,
+  value: string,
+): Promise<DetailResult> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
+  const saved = await saveDetailFor(projectId, fieldId, value);
+  if (!saved.ok) return saved;
 
   /**
-   * The address that owns the film is the signed-in one when there is a
-   * session, and the typed one otherwise.
+   * The link goes out only when the address is NEW to this project.
    *
-   * Not a formality: taking the typed address from somebody who is already
-   * signed in as somebody else would hand them a film they cannot see
-   * afterwards, and would let anyone put a project into another person's
-   * account by typing their address.
+   * Sending on every save would let anyone with a project — which is anyone at
+   * all — mail an arbitrary address as often as they can press a button, using
+   * our sender's reputation and our quota. Re-saving the same address is a
+   * no-op, and someone who never got the first link can ask for another from
+   * the sign-in page, where asking is the whole point.
    */
-  const signedIn = await currentUser();
-  const owner = signedIn?.email ?? email;
-
-  const projectId = await beginProject({
-    ownerEmail: owner,
-    subject: {
-      subjectName,
-      displayName,
-      age: input.age,
-      ...(input.relationshipLabel === undefined || input.relationshipLabel.trim() === ""
-        ? {}
-        : { relationshipLabel: input.relationshipLabel.trim() }),
-      ...(input.interviewerName === undefined || input.interviewerName.trim() === ""
-        ? {}
-        : { interviewerName: input.interviewerName.trim() }),
-    },
-  });
-  /**
-   * Nobody is signed in, so send the link now rather than at the end.
-   *
-   * They keep going in this tab — nothing blocks — but the film already belongs
-   * to that address, and the email is how they get back to it on another
-   * device, or in six months when they want to watch it again. Failing to send
-   * does not fail the project: they have a URL, and they can sign in later.
-   */
-  if (signedIn === null) {
-    await sendMagicLink(owner, `/projects/${projectId}/capture`);
+  let linkSentTo: string | null = null;
+  if (saved.target === "owner" && saved.changed && typeof saved.value === "string") {
+    const user = await currentUser();
+    if (user === null || user.email === null) {
+      const sent = await sendMagicLink(saved.value, `/projects/${projectId}`);
+      if (sent.ok) linkSentTo = saved.value;
+    }
   }
 
-  return { ok: true, projectId };
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true, linkSentTo };
 };
 
 export const mintUploadFor = async (
@@ -116,7 +128,11 @@ export const finishUpload = async (
   if (refused !== null) return refused;
 
   const result = await completeUpload(projectId, stepId, assetId, key, contentType);
-  if (result.ok) revalidatePath(`/projects/${projectId}/capture/${stepId}`);
+  if (result.ok) {
+    revalidatePath(`/projects/${projectId}/step/${stepId}`);
+    // The hub's card for this step ticks the moment they walk back to it.
+    revalidatePath(`/projects/${projectId}`);
+  }
   return result;
 };
 
@@ -139,6 +155,9 @@ export const discardStep = async (
   if (refused !== null) return refused;
 
   const result = await discardCapture(projectId, stepId);
-  if (result.ok) revalidatePath(`/projects/${projectId}/capture/${stepId}`);
+  if (result.ok) {
+    revalidatePath(`/projects/${projectId}/step/${stepId}`);
+    revalidatePath(`/projects/${projectId}`);
+  }
   return result;
 };

@@ -1,5 +1,6 @@
 import { getFormat } from "@film/formats";
 import { resolveTrack } from "@film/music";
+import { REQUIRED_SUBJECT_FIELDS } from "./interpolate.js";
 import { LIFE_ADVICE_V1 } from "./life-advice/v1.js";
 import type { Template } from "./types.js";
 
@@ -169,11 +170,18 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
    * step. A question nobody is asked produces a project that ingests happily
    * and then cannot be composed, and the customer is long gone by then.
    */
+  const fieldIds = new Set(t.details.map((f) => f.id));
   const asked = new Map<string, number>();
   for (const chapter of t.capture.chapters) {
     for (const step of chapter.steps) {
-      const id = step.kind === "question" ? step.questionId : step.slotId;
-      const known = step.kind === "question" ? questionIds.has(id) : slotIds.has(id);
+      const id =
+        step.kind === "question" ? step.questionId : step.kind === "slot" ? step.slotId : step.fieldId;
+      const known =
+        step.kind === "question"
+          ? questionIds.has(id)
+          : step.kind === "slot"
+            ? slotIds.has(id)
+            : fieldIds.has(id);
       if (!known) {
         issues.push({
           severity: "error",
@@ -205,6 +213,37 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
       issues.push({
         severity: "error",
         message: `slot "${slot.id}" is required but capture never asks for it`,
+      });
+    }
+  }
+  for (const field of t.details) {
+    if (field.required && !asked.has(field.id)) {
+      issues.push({
+        severity: "error",
+        message: `detail "${field.id}" is required but capture never asks for it`,
+      });
+    }
+  }
+
+  /**
+   * The walk-through must be able to fill the subject in.
+   *
+   * Details are steps now, so a project's subject starts empty and ends with
+   * whatever the walk-through collected. A subject field the film requires
+   * that no required detail step ever asks for — directly, or as a prefill of
+   * another answer — is a film that cannot be worded, which is worse than one
+   * that cannot be started.
+   */
+  const requiredDetails = t.details.filter((f) => f.required && asked.has(f.id));
+  for (const name of REQUIRED_SUBJECT_FIELDS) {
+    const covered = requiredDetails.some(
+      (f) =>
+        (f.target === "subject" && f.id === name) || (f.prefills?.includes(name) ?? false),
+    );
+    if (!covered) {
+      issues.push({
+        severity: "error",
+        message: `subject field "${name}" is required to word the film but no required detail step collects it`,
       });
     }
   }

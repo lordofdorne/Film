@@ -1,6 +1,6 @@
-import type { SubjectData } from "./interpolate.js";
+import type { PartialSubject } from "./interpolate.js";
 import { resolveQuestionText } from "./interpolate.js";
-import type { CaptureChapter, Guidance, MediaSlot, Template } from "./types.js";
+import type { CaptureChapter, DetailField, Guidance, MediaSlot, Template } from "./types.js";
 
 /**
  * The walk-through, resolved for one subject.
@@ -11,13 +11,17 @@ import type { CaptureChapter, Guidance, MediaSlot, Template } from "./types.js";
  * template ships its own walk-through with no React changing.
  */
 export type ResolvedCaptureStep = {
-  /** The id in the URL. A question id or a slot id; unique across the flow. */
+  /** The id in the URL. A question, slot or field id; unique across the flow. */
   readonly id: string;
-  readonly kind: "question" | "slot";
-  /** Exactly one of these is set, and it is what the asset row binds to. */
+  readonly kind: "question" | "slot" | "detail";
+  /** Exactly one of these three is set, and it is what the answer binds to. */
   readonly questionId?: string;
   readonly slotId?: string;
-  /** What may be given here. A question always wants a recorded answer. */
+  /** A detail step carries its whole field: the step sheet needs the input
+   *  kind and saveDetail needs the target, and neither may guess. */
+  readonly field?: DetailField;
+  /** What may be given here. A question always wants a recorded answer; a
+   *  detail wants no media at all. */
   readonly accepts: readonly ("photo" | "video")[];
   readonly required: boolean;
   /** The big line: the question to ask aloud, or the thing to go and find. */
@@ -29,6 +33,8 @@ export type ResolvedCaptureStep = {
   readonly chapterBlurb: string;
   /** 1-based, across the whole walk-through rather than within the chapter. */
   readonly number: number;
+  /** The template's honest guess, summed by the hub into time remaining. */
+  readonly estimatedSeconds: number;
 };
 
 const slotsOf = (template: Template): readonly MediaSlot[] => [
@@ -59,10 +65,11 @@ const guidanceOf = (g: Guidance | undefined): Pick<ResolvedCaptureStep, "coachin
  */
 export const resolveCaptureSteps = (
   template: Template,
-  subject: SubjectData,
+  subject: PartialSubject,
 ): readonly ResolvedCaptureStep[] => {
   const questions = new Map(template.questions.map((q) => [q.id, q]));
   const slots = new Map(slotsOf(template).map((s) => [s.id, s]));
+  const fields = new Map(template.details.map((f) => [f.id, f]));
   const steps: ResolvedCaptureStep[] = [];
 
   for (const chapter of template.capture.chapters) {
@@ -73,6 +80,27 @@ export const resolveCaptureSteps = (
         chapterBlurb: chapter.blurb,
         number: steps.length + 1,
       };
+
+      if (ref.kind === "detail") {
+        const field = fields.get(ref.fieldId);
+        if (field === undefined) {
+          throw new Error(
+            `${template.id}@${String(template.version)} capture references unknown detail "${ref.fieldId}"`,
+          );
+        }
+        steps.push({
+          id: field.id,
+          kind: "detail",
+          field,
+          accepts: [],
+          required: field.required,
+          ask: field.guidance.ask,
+          ...guidanceOf(field.guidance),
+          ...chapterFields,
+          estimatedSeconds: field.estimatedSeconds,
+        });
+        continue;
+      }
 
       if (ref.kind === "question") {
         const question = questions.get(ref.questionId);
@@ -99,6 +127,7 @@ export const resolveCaptureSteps = (
           ask,
           ...guidanceOf(question.guidance),
           ...chapterFields,
+          estimatedSeconds: question.estimatedSeconds,
         });
         continue;
       }
@@ -118,6 +147,7 @@ export const resolveCaptureSteps = (
         ask: slot.guidance?.ask ?? slot.label,
         ...guidanceOf(slot.guidance),
         ...chapterFields,
+        estimatedSeconds: slot.estimatedSeconds,
       });
     }
   }

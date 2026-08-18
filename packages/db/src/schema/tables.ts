@@ -76,7 +76,13 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey(),
-    email: text("email").notNull(),
+    /**
+     * Null for an anonymous user — somebody who pressed Start and has not yet
+     * proved an address. The unique constraint below ignores NULLs, so any
+     * number of anonymous rows coexist while a verified address still cannot
+     * belong to two rows.
+     */
+    email: text("email"),
     /**
      * The Supabase Auth identity, once there is one. Null until somebody signs
      * in.
@@ -119,6 +125,13 @@ export const projects = pgTable(
      *  what stops the template's schema having to know about the pipeline. */
     config: jsonb("config").notNull().default({}),
     status: projectStatus("status").notNull().default("draft"),
+    /**
+     * Where the finished film should go, typed as a step of the walk-through.
+     * Deliberately not users.email: that column is unique and decides who owns
+     * which films, and an address typed mid-capture is unverified. Clicking the
+     * magic link is what turns this address into an identity.
+     */
+    deliverTo: text("deliver_to"),
     stripePaymentId: text("stripe_payment_id"),
     /** Raw recordings may be irreplaceable. Never delete while active; warn
      *  before this passes. */

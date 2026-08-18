@@ -18,7 +18,9 @@ import { projects, users } from "./schema/tables.js";
 
 export type AppUser = {
   readonly id: string;
-  readonly email: string;
+  /** Null for an anonymous user: a real identity that has not yet proved an
+   *  address. */
+  readonly email: string | null;
   readonly authId: string | null;
 };
 
@@ -44,9 +46,12 @@ export type AppUser = {
  */
 export const linkIdentity = async (
   db: Db,
-  identity: { readonly authId: string; readonly email: string },
+  identity: { readonly authId: string; readonly email: string | null },
 ): Promise<AppUser> => {
-  const email = identity.email.trim().toLowerCase();
+  const email =
+    identity.email === null || identity.email.trim() === ""
+      ? null
+      : identity.email.trim().toLowerCase();
 
   const linked = await db
     .select()
@@ -56,6 +61,27 @@ export const linkIdentity = async (
   const already = linked[0];
   if (already !== undefined) {
     return { id: already.id, email: already.email, authId: already.authId };
+  }
+
+  /**
+   * An anonymous identity: a real row in auth.users with no email. It gets a
+   * real row here too, keyed by the identity, so a project can be owned
+   * properly from the moment it exists. There is no address to claim an older
+   * row with, so the email paths below do not apply.
+   */
+  if (email === null) {
+    const made = await db
+      .insert(users)
+      .values({ id: identity.authId, email: null, authId: identity.authId })
+      .onConflictDoNothing()
+      .returning();
+    const anon = made[0];
+    if (anon !== undefined) return { id: anon.id, email: anon.email, authId: anon.authId };
+    // Lost a race with ourselves — two requests from the same fresh session.
+    const raced = await db.select().from(users).where(eq(users.authId, identity.authId)).limit(1);
+    const row = raced[0];
+    if (row !== undefined) return { id: row.id, email: row.email, authId: row.authId };
+    throw new Error("could not create a user for an anonymous identity");
   }
 
   /**
@@ -112,6 +138,51 @@ export const linkIdentity = async (
   // one address for two identities, so this should be unreachable — and if it
   // ever happens, refusing the sign-in is the only safe answer.
   throw new Error(`${email} is already linked to a different identity`);
+};
+
+/**
+ * Move an anonymous browser's films to the person who clicked the link.
+ *
+ * The one deliberate merge in the system. A browser presses Start, gets an
+ * anonymous identity, makes a film — then types an address and clicks the
+ * magic link, which signs it in as a different, verified identity. The films
+ * must follow the person, and this is the only way they ever change hands.
+ *
+ * Two guards, both load-bearing:
+ *
+ *   - The source must be ANONYMOUS — `email is null` in the where clause. The
+ *     caller names the source by authId, and a caller that names a real
+ *     account, by bug or by malice, must move nothing. This is the collision
+ *     the plan called the dangerous one: refuse, never silently hand over.
+ *   - The caller must have verified BOTH sides itself: the anonymous session
+ *     from the cookie jar it is holding, the signed-in user from the exchange
+ *     it just performed. This function trusts its arguments the way every
+ *     @film/db function does, and the web callback is the only caller.
+ *
+ * The emptied anonymous row is left in place rather than deleted: approvals
+ * may reference it, and a sweep of childless anonymous rows is retention's
+ * job, not sign-in's.
+ */
+export const adoptFilms = async (
+  db: Db,
+  move: { readonly fromAuthId: string; readonly toUserId: string },
+): Promise<number> => {
+  if (!isProjectId(move.fromAuthId) || !isProjectId(move.toUserId)) return 0;
+
+  const source = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(and(eq(users.authId, move.fromAuthId), isNull(users.email)))
+    .limit(1);
+  const anon = source[0];
+  if (anon === undefined || anon.id === move.toUserId) return 0;
+
+  const moved = await db
+    .update(projects)
+    .set({ ownerId: move.toUserId })
+    .where(eq(projects.ownerId, anon.id))
+    .returning({ id: projects.id });
+  return moved.length;
 };
 
 /**

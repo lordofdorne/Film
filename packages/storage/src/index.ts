@@ -139,6 +139,8 @@ export const clampTtl = (requested: number | undefined): number =>
   Math.min(requested ?? 300, MAX_SIGNED_URL_TTL_SECONDS);
 
 
+import { createHash } from "node:crypto";
+
 import { LocalObjectStore } from "./local.js";
 import { R2ObjectStore } from "./r2.js";
 
@@ -156,17 +158,41 @@ export * from "./r2.js";
  * real rather than a mock, which is what keeps the whole pipeline runnable
  * with no cloud account attached.
  */
+/**
+ * Reused across calls, keyed on the configuration it was built from.
+ *
+ * An R2 store owns an S3 client, and an S3 client owns a connection pool and a
+ * credential chain. Building one per call throws that away every time — and
+ * the hub asks for a store once per card, so a page with twenty pieces of
+ * media was twenty clients and twenty cold TLS handshakes. Keying on the
+ * config rather than caching a single instance keeps this honest when the
+ * environment changes underneath it, which is what tests do.
+ */
+let memo: { readonly key: string; readonly store: ObjectStore } | undefined;
+
 export const storeFromEnv = (): ObjectStore => {
-  const accountId = process.env["R2_ACCOUNT_ID"];
-  if (accountId === undefined || accountId === "") {
-    return new LocalObjectStore(process.env["STORAGE_ROOT"] ?? ".storage");
-  }
-  return new R2ObjectStore({
-    accountId,
-    bucket: process.env["R2_BUCKET"] ?? "",
-    accessKeyId: process.env["R2_ACCESS_KEY_ID"] ?? "",
-    secretAccessKey: process.env["R2_SECRET_ACCESS_KEY"] ?? "",
-  });
+  const accountId = process.env["R2_ACCOUNT_ID"] ?? "";
+  const bucket = process.env["R2_BUCKET"] ?? "";
+  const accessKeyId = process.env["R2_ACCESS_KEY_ID"] ?? "";
+  const secretAccessKey = process.env["R2_SECRET_ACCESS_KEY"] ?? "";
+  const root = process.env["STORAGE_ROOT"] ?? ".storage";
+
+  // The secret is part of what identifies the configuration, so it is hashed
+  // rather than held in a key that could end up in a log line.
+  const key =
+    accountId === ""
+      ? `local:${root}`
+      : `r2:${accountId}:${bucket}:${accessKeyId}:${createHash("sha256").update(secretAccessKey).digest("hex")}`;
+
+  if (memo?.key === key) return memo.store;
+
+  const store: ObjectStore =
+    accountId === ""
+      ? new LocalObjectStore(root)
+      : new R2ObjectStore({ accountId, bucket, accessKeyId, secretAccessKey });
+
+  memo = { key, store };
+  return store;
 };
 
 /** True when objects live on local disk, so they must be streamed, not signed. */

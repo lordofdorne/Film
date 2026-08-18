@@ -10,6 +10,23 @@ export type SubjectData = {
   readonly interviewerRelationship?: string;
 };
 
+/**
+ * A subject mid-capture: the same shape with nothing promised yet.
+ *
+ * Details are steps in the walk-through now, so a project exists before anyone
+ * has said who it is about. Everything that words a capture step accepts this;
+ * everything that words a film still demands the full SubjectData, because a
+ * film with a hole in its title must stay impossible to produce.
+ */
+export type PartialSubject = Partial<SubjectData>;
+
+/**
+ * What a subject must have before a film can be composed. Lives beside
+ * SubjectData so the two cannot drift apart quietly; validateTemplate uses it
+ * to refuse a template whose walk-through could never fill the subject in.
+ */
+export const REQUIRED_SUBJECT_FIELDS = ["subjectName", "displayName", "age"] as const;
+
 export type TextResult =
   | { readonly ok: true; readonly text: string; readonly usedFallback: boolean }
   | { readonly ok: false; readonly reason: "unresolved" | "too-long"; readonly detail: string };
@@ -37,7 +54,7 @@ export const interpolate = (
 };
 
 export const subjectVars = (
-  subject: SubjectData,
+  subject: PartialSubject,
   template: Template,
 ): Readonly<Record<string, string | number | undefined>> => ({
   subjectName: subject.subjectName,
@@ -140,7 +157,7 @@ const CONDITION = /^subject\.([A-Za-z_][A-Za-z0-9_]*)\s*(>=|<=|>|<|===|!==)\s*(-
 
 export const evaluateCondition = (
   expression: string,
-  subject: SubjectData,
+  subject: PartialSubject,
 ): boolean => {
   const match = CONDITION.exec(expression.trim());
   if (match === null) {
@@ -170,7 +187,7 @@ export const evaluateCondition = (
 /** The wording a given subject is actually asked, with tokens substituted. */
 export const resolveQuestionText = (
   question: Question,
-  subject: SubjectData,
+  subject: PartialSubject,
   template: Template,
 ): TextResult => {
   const spec: QuestionText = question.text;
