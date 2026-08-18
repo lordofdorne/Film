@@ -62,9 +62,29 @@ export async function GET(
     });
   }
 
+  /**
+   * Clamped before it reaches the filesystem. A range beyond the end of the
+   * file makes createReadStream throw — which surfaced as a 500 on a route
+   * that otherwise only ever answers 404 — and a start past the end is the
+   * one case HTTP has a dedicated status for.
+   */
   const match = /bytes=(\d*)-(\d*)/.exec(range);
   const start = Number(match?.[1] ?? 0);
-  const end = match?.[2] !== undefined && match[2] !== "" ? Number(match[2]) : head.byteSize - 1;
+  if (!Number.isFinite(start) || start >= head.byteSize) {
+    return new Response(null, {
+      status: 416,
+      headers: { "content-range": `bytes */${String(head.byteSize)}` },
+    });
+  }
+  const requestedEnd =
+    match?.[2] !== undefined && match[2] !== "" ? Number(match[2]) : head.byteSize - 1;
+  const end = Math.min(Number.isFinite(requestedEnd) ? requestedEnd : head.byteSize - 1, head.byteSize - 1);
+  if (end < start) {
+    return new Response(null, {
+      status: 416,
+      headers: { "content-range": `bytes */${String(head.byteSize)}` },
+    });
+  }
 
   return new Response(Readable.toWeb(createReadStream(path, { start, end })) as ReadableStream, {
     status: 206,

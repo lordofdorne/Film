@@ -17,6 +17,7 @@ import {
   clearStep,
   ensureOwner,
   finishCapture,
+  MAX_UNFINISHED_FILMS,
   loadWalkthrough,
   originalPrefix,
   prepareUpload,
@@ -161,6 +162,35 @@ describe("starting", () => {
     }
   });
 
+  /**
+   * Pressing Start needs no account and no payment, so without a ceiling one
+   * visitor holding one session can write rows for as long as they care to.
+   */
+  it("refuses to start an eleventh unfinished film for the same person", async () => {
+    needsDb();
+    const ownerId = await ensureOwner(db, EMAIL);
+    // One already exists from beforeEach.
+    for (let i = 1; i < MAX_UNFINISHED_FILMS; i += 1) {
+      const made = await startCapture(deps, { ownerId, templateId: "life-advice", templateVersion: 1 });
+      expect(made.ok, `film ${String(i)}`).toBe(true);
+    }
+    const refused = await startCapture(deps, {
+      ownerId,
+      templateId: "life-advice",
+      templateVersion: 1,
+    });
+    expect(refused.ok).toBe(false);
+
+    // Handing one over frees the slot, because only capturing films count.
+    await db.update(projects).set({ status: "processing" }).where(eq(projects.id, projectId));
+    const allowed = await startCapture(deps, {
+      ownerId,
+      templateId: "life-advice",
+      templateVersion: 1,
+    });
+    expect(allowed.ok).toBe(true);
+  });
+
   it("refuses a kind of film that does not exist", async () => {
     needsDb();
     const ownerId = await ensureOwner(db, EMAIL);
@@ -224,6 +254,34 @@ describe("details", () => {
       const result = await saveDetail(deps, { projectId, fieldId, value });
       expect(result.ok, `${fieldId}=${value}`).toBe(false);
     }
+  });
+
+  /**
+   * Saving the address is what sends a sign-in email, so a re-save that sends
+   * another one is a way to mail-bomb a stranger through our server.
+   */
+  it("reports whether an answer actually changed, so the link is sent once", async () => {
+    needsDb();
+    const first = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "someone@example.com",
+    });
+    expect(first).toMatchObject({ ok: true, changed: true });
+
+    const again = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "  Someone@Example.com ",
+    });
+    expect(again).toMatchObject({ ok: true, changed: false });
+
+    const moved = await saveDetail(deps, {
+      projectId,
+      fieldId: "ownerEmail",
+      value: "elsewhere@example.com",
+    });
+    expect(moved).toMatchObject({ ok: true, changed: true });
   });
 
   it("clears an answer given an empty value", async () => {

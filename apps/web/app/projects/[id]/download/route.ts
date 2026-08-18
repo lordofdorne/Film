@@ -108,9 +108,19 @@ export async function GET(
     });
   }
 
+  // Clamped before the filesystem sees it: a range past the end of the file
+  // makes createReadStream throw, and 416 is the honest answer anyway.
   const match = /bytes=(\d*)-(\d*)/.exec(range);
   const start = Number(match?.[1] ?? 0);
-  const end = match?.[2] !== undefined && match[2] !== "" ? Number(match[2]) : head.byteSize - 1;
+  const requestedEnd =
+    match?.[2] !== undefined && match[2] !== "" ? Number(match[2]) : head.byteSize - 1;
+  const end = Math.min(Number.isFinite(requestedEnd) ? requestedEnd : head.byteSize - 1, head.byteSize - 1);
+  if (!Number.isFinite(start) || start >= head.byteSize || end < start) {
+    return new Response(null, {
+      status: 416,
+      headers: { "content-range": `bytes */${String(head.byteSize)}` },
+    });
+  }
 
   return new Response(Readable.toWeb(createReadStream(path, { start, end })) as ReadableStream, {
     status: 206,

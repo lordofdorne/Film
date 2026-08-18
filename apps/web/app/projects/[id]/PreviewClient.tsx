@@ -17,12 +17,10 @@ import type { AssetWarning, ProjectSummary } from "../../../src/server/project.j
 export const PreviewClient = ({
   summary,
   props,
-  approverId,
   delivery,
 }: {
   readonly summary: ProjectSummary;
   readonly props: FilmProps;
-  readonly approverId: string;
   /**
    * The delivery panel, rendered by the server page and passed through.
    *
@@ -48,17 +46,12 @@ export const PreviewClient = ({
   const approve = useCallback(() => {
     setError(null);
     startTransition(async () => {
-      const result = await approveEdlVersion(
-        summary.id,
-        summary.edlVersionId,
-        approverId,
-        summary.templateId,
-        summary.templateVersion,
-      );
+      // Who is approving, and under which template, is the server's to know.
+      const result = await approveEdlVersion(summary.id, summary.edlVersionId);
       if (result.ok) setApproved(true);
       else setError(result.error);
     });
-  }, [approverId, summary.edlVersionId, summary.id, summary.templateId, summary.templateVersion]);
+  }, [summary.edlVersionId, summary.id]);
 
   return (
     <main style={styles.page}>

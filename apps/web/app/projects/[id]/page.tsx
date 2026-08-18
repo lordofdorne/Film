@@ -50,20 +50,12 @@ export default async function ProjectPage({
     return <WorkingNote />;
   }
 
-  /**
-   * The approver is the signed-in owner where there is one; on an
-   * unconfigured server it falls back to the project's owner row, which is
-   * also who guardProject let through.
-   */
-  const approverId = loaded.summary.ownerId;
-
   const delivery = (await loadDelivery(id)) ?? { kind: "unapproved" as const };
 
   return (
     <PreviewClient
       summary={loaded.summary}
       props={loaded.props}
-      approverId={approverId}
       delivery={<DeliveryPanel projectId={id} initial={delivery} />}
     />
   );

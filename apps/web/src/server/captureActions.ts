@@ -50,7 +50,15 @@ export const chooseFilm = async (
   templateId: string,
   templateVersion: number,
 ): Promise<StartResult> => {
-  const user = await ensureUser();
+  let user;
+  try {
+    user = await ensureUser();
+  } catch (error: unknown) {
+    // Usually anonymous sign-ins disabled on the Supabase project. A button
+    // that says why beats a button that seems to do nothing — that bug is the
+    // one this whole redesign started from.
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
   const created = await createProjectFor(user?.id ?? null, templateId, templateVersion);
   if (!created.ok) return created;
   redirect(`/projects/${created.projectId}`);
@@ -80,8 +88,17 @@ export const submitDetail = async (
   const saved = await saveDetailFor(projectId, fieldId, value);
   if (!saved.ok) return saved;
 
+  /**
+   * The link goes out only when the address is NEW to this project.
+   *
+   * Sending on every save would let anyone with a project — which is anyone at
+   * all — mail an arbitrary address as often as they can press a button, using
+   * our sender's reputation and our quota. Re-saving the same address is a
+   * no-op, and someone who never got the first link can ask for another from
+   * the sign-in page, where asking is the whole point.
+   */
   let linkSentTo: string | null = null;
-  if (saved.target === "owner" && typeof saved.value === "string") {
+  if (saved.target === "owner" && saved.changed && typeof saved.value === "string") {
     const user = await currentUser();
     if (user === null || user.email === null) {
       const sent = await sendMagicLink(saved.value, `/projects/${projectId}`);

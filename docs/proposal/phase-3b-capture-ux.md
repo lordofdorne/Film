@@ -1,6 +1,20 @@
 # Phase 3b — The capture experience
 
-**Status:** Plan · 2026-08-14 · ready to execute
+**Status:** Blocks 1–7 built and merged · 2026-08-18. Block 8 (transcription)
+is open: the owner deferred the provider decision on 2026-08-17, and until it
+is made a browser-made film still reaches compose and dies there.
+
+Three things landed differently from the plan below, and the code is right
+where they differ:
+
+- **The delivery address lives on `projects.deliver_to`**, not in `users`.
+  `users.email` is unique and decides ownership, so an address typed
+  mid-capture — unverified, by an anonymous visitor — must not touch it.
+- **Blocks 5 and 6 shipped as one commit.** The hub links to the step sheet and
+  the step sheet returns to the hub; splitting them would have left a commit
+  where neither worked.
+- **`adoptFilms` is how films follow a person** from the anonymous identity to
+  the verified one, and it refuses any source row that has an email.
 
 The walk-through built in Block 5 works mechanically and is the wrong shape.
 This is the redesign, written so an agent with no memory of the conversation can

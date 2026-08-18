@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { assets, projects, users, isProjectId, type Db } from "@film/db";
 import { objectKey, projectPrefix, type ObjectStore } from "@film/storage";
 import {
@@ -72,6 +72,16 @@ export type Failure = { readonly ok: false; readonly error: string };
  * `capturing`, which the dispatcher's ACTIVE list deliberately excludes, so
  * nothing is planned until the walk-through hands it over.
  */
+/**
+ * How many films one person may have on the go at once.
+ *
+ * Generous — nobody is making a tenth family film this afternoon — and it is
+ * here because pressing Start needs no account and no payment. Without a
+ * ceiling, one visitor holding one session can write rows for as long as they
+ * care to, and the first anyone would know is the bill.
+ */
+export const MAX_UNFINISHED_FILMS = 10;
+
 export const startCapture = async (
   deps: CaptureDeps,
   input: { readonly ownerId: string; readonly templateId: string; readonly templateVersion: number },
@@ -81,6 +91,18 @@ export const startCapture = async (
   } catch {
     // The id came over the wire from a chooser form; refusing beats throwing.
     return { ok: false, error: "no such kind of film" };
+  }
+
+  const unfinished = await deps.db
+    .select({ id: projects.id })
+    .from(projects)
+    .where(and(eq(projects.ownerId, input.ownerId), eq(projects.status, "capturing")))
+    .limit(MAX_UNFINISHED_FILMS);
+  if (unfinished.length >= MAX_UNFINISHED_FILMS) {
+    return {
+      ok: false,
+      error: "You have several films on the go already — finish or delete one before starting another.",
+    };
   }
   const projectId = randomUUID();
   await deps.db.insert(projects).values({
@@ -214,6 +236,15 @@ export type SavedDetail = {
   readonly target: "subject" | "owner";
   /** The canonical stored value, post-trim and lower-casing. */
   readonly value: string | number | null;
+  /**
+   * Whether this actually differs from what was already stored.
+   *
+   * Load-bearing for the address: saving it is what sends a sign-in email, and
+   * without this every re-save of the same address sends another one — which
+   * is a way to mail-bomb a stranger through our server, and a way to burn the
+   * mail quota, using nothing but a project anyone can create.
+   */
+  readonly changed: boolean;
 };
 
 export const saveDetail = async (
@@ -257,11 +288,12 @@ export const saveDetail = async (
   }
 
   if (field.target === "owner") {
+    const changed = step.value !== value;
     await deps.db
       .update(projects)
       .set({ deliverTo: value as string, updatedAt: new Date() })
       .where(eq(projects.id, input.projectId));
-    return { ok: true, target: "owner", value };
+    return { ok: true, target: "owner", value, changed };
   }
 
   const subject: Record<string, string | number> = {
@@ -278,7 +310,7 @@ export const saveDetail = async (
     .update(projects)
     .set({ subjectData: subject, updatedAt: new Date() })
     .where(eq(projects.id, input.projectId));
-  return { ok: true, target: "subject", value };
+  return { ok: true, target: "subject", value, changed: step.value !== value };
 };
 
 const clearDetail = async (
@@ -291,7 +323,8 @@ const clearDetail = async (
       .update(projects)
       .set({ deliverTo: null, updatedAt: new Date() })
       .where(eq(projects.id, projectId));
-    return { ok: true, target: "owner", value: null };
+    // Nothing to announce and nothing to send: clearing is not an address.
+    return { ok: true, target: "owner", value: null, changed: false };
   }
   const rows = await deps.db.select().from(projects).where(eq(projects.id, projectId)).limit(1);
   const project = rows[0];
@@ -303,7 +336,7 @@ const clearDetail = async (
       .set({ subjectData: subject, updatedAt: new Date() })
       .where(eq(projects.id, projectId));
   }
-  return { ok: true, target: "subject", value: null };
+  return { ok: true, target: "subject", value: null, changed: false };
 };
 
 /* ── uploading ────────────────────────────────────────────────────────── */

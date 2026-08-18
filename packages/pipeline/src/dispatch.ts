@@ -212,10 +212,23 @@ export const dispatchActiveProjects = async (
   enqueue: (job: JobPayload) => Promise<unknown>,
   options: { readonly limit?: number } = {},
 ): Promise<DispatchResult> => {
+  /**
+   * Most recently touched first, and that ordering is load-bearing.
+   *
+   * Capturing projects are planned now, and most of them are abandoned — half
+   * a film somebody started and never came back to. They never finish and they
+   * never fail, so they accumulate for ever, and an unordered LIMIT would let
+   * them fill the whole budget and starve the projects with a customer waiting
+   * on them. `updated_at` moves whenever a take, a detail or a stage lands, so
+   * ordering by it puts live work at the front and abandonment at the back.
+   *
+   * The (status, updated_at) index exists for exactly this shape of query.
+   */
   const active = await db
     .select({ id: projects.id, status: projects.status })
     .from(projects)
     .where(inArray(projects.status, [...ACTIVE]))
+    .orderBy(desc(projects.updatedAt))
     .limit(options.limit ?? 200);
 
   let jobsEnqueued = 0;
