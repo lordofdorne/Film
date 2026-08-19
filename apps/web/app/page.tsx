@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { authConfigured, currentUser } from "../src/server/auth.js";
+import { authConfigured, currentUser, sessionIdentity } from "../src/server/auth.js";
 import { listProjects } from "../src/server/project.js";
 import { SignOutButton } from "./SignOutButton.js";
 
@@ -28,6 +28,7 @@ export default async function Home() {
     );
   }
 
+  const identity = await sessionIdentity();
   const projects = await listProjects(user?.id);
 
   return (
@@ -35,8 +36,25 @@ export default async function Home() {
       <header style={styles.header}>
         <h1 style={styles.title}>Your films</h1>
         {user !== null && (
+          /**
+           * Say something true. This rendered `user.email` and nothing else,
+           * which for an anonymous visitor — now the ordinary case, since
+           * pressing Start signs one in — was an empty gap followed by a dot.
+           */
           <span style={styles.who}>
-            {user.email} · <SignOutButton />
+            {identity?.email !== null && identity?.email !== undefined ? (
+              <>
+                {identity.email} · <Link href="/account/password" style={styles.quiet}>Password</Link>
+              </>
+            ) : identity?.pendingEmail !== null && identity?.pendingEmail !== undefined ? (
+              <>Waiting for you to confirm {identity.pendingEmail}</>
+            ) : (
+              <>
+                Not signed in — these are kept in this browser ·{" "}
+                <Link href="/signin" style={styles.quiet}>Sign in</Link>
+              </>
+            )}{" "}
+            · <SignOutButton />
           </span>
         )}
       </header>
@@ -84,6 +102,7 @@ const styles = {
   header: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" as const },
   title: { fontSize: 24, fontWeight: 600, margin: 0 },
   who: { fontSize: 13, color: "#888" },
+  quiet: { color: "#12603a", textDecoration: "underline" },
   blurb: { color: "#666", fontSize: 16, lineHeight: 1.6 },
   actions: { display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" as const },
   primary: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "12px 22px", fontSize: 15, fontWeight: 600, textDecoration: "none" },

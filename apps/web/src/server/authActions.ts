@@ -1,9 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { authConfigured, supabase } from "./auth.js";
+import { authConfigured, sessionIdentity, supabase } from "./auth.js";
+import { origin, safeNext } from "./origin.js";
 
 /**
  * Sign-in, such as it is: type an address, get a link, click it.
@@ -15,18 +15,15 @@ import { authConfigured, supabase } from "./auth.js";
  */
 
 export type SendResult =
-  | { readonly ok: true; readonly email: string }
+  | {
+      readonly ok: true;
+      readonly email: string;
+      /** Nothing new was sent: a confirmation for this address is already in
+       *  that person's inbox, and a second email would have made a second
+       *  account. */
+      readonly already: boolean;
+    }
   | { readonly ok: false; readonly error: string };
-
-/** Where this deployment lives, for the link in the email to point back at. */
-const origin = async (): Promise<string> => {
-  const configured = process.env["NEXT_PUBLIC_SITE_URL"] ?? "";
-  if (configured !== "") return configured.replace(/\/$/, "");
-  const head = await headers();
-  const host = head.get("host") ?? "localhost:3200";
-  const protocol = host.startsWith("localhost") ? "http" : "https";
-  return `${protocol}://${host}`;
-};
 
 export const sendMagicLink = async (rawEmail: string, next?: string): Promise<SendResult> => {
   if (!authConfigured()) {
@@ -38,13 +35,27 @@ export const sendMagicLink = async (rawEmail: string, next?: string): Promise<Se
     return { ok: false, error: "That does not look like an email address." };
   }
 
+  /**
+   * The one place the two ways in could collide, and it is not obvious.
+   *
+   * Setting a password on an anonymous session leaves the address pending in
+   * `new_email` until it is confirmed. Asking for a magic link to that same
+   * address does NOT find it — Supabase happily creates a second identity for
+   * the address, and the confirmation still sitting in the inbox can then
+   * never be honoured, because by the time it is clicked the address belongs
+   * to somebody else. The person ends up with a password on an account they
+   * can no longer reach.
+   *
+   * So: while a confirmation is in flight, send nothing and say so. The link
+   * they need is already in their inbox.
+   */
+  const identity = await sessionIdentity();
+  if (identity?.pendingEmail === email) return { ok: true, email, already: true };
+
   const client = await supabase();
   const target = new URL("/auth/callback", await origin());
-  // Only ever a path, never a full URL somebody handed us: an open redirect on
-  // the end of a sign-in link is how a login page becomes a phishing page.
-  if (next !== undefined && next.startsWith("/") && !next.startsWith("//")) {
-    target.searchParams.set("next", next);
-  }
+  const destination = safeNext(next);
+  if (destination !== null) target.searchParams.set("next", destination);
 
   const { error } = await client.auth.signInWithOtp({
     email,
@@ -75,7 +86,7 @@ export const sendMagicLink = async (rawEmail: string, next?: string): Promise<Se
     }
     return { ok: false, error: `Could not send the link: ${error.message}` };
   }
-  return { ok: true, email };
+  return { ok: true, email, already: false };
 };
 
 export const signOut = async (): Promise<void> => {

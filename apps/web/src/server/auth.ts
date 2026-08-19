@@ -4,7 +4,14 @@ import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { createDb, linkIdentity, ownsProject, type AppUser, type Db } from "@film/db";
+import {
+  adoptFilms,
+  createDb,
+  linkIdentity,
+  ownsProject,
+  type AppUser,
+  type Db,
+} from "@film/db";
 
 /**
  * Who is asking, and may they.
@@ -116,6 +123,77 @@ export const ensureUser = async (): Promise<AppUser | null> => {
     );
   }
   return linkIdentity(db(), { authId: data.user.id, email: data.user.email ?? null });
+};
+
+/**
+ * The session as the auth provider describes it, before it is mapped to a row.
+ *
+ * `currentUser` answers "who is this, to the application". This answers "what
+ * state is their identity in", which is a different question and only two
+ * surfaces ask it: the offer to set a password, and the decision whether
+ * sending a magic link would collide with a confirmation already in flight.
+ *
+ * `pendingEmail` is the one that matters. Setting a password on an anonymous
+ * session gives Supabase an address it will not attach until somebody proves
+ * they can read that mailbox — it sits in `new_email` meanwhile, and the
+ * application's own row still says null, correctly. Anything that would send
+ * a second email to that address has to know it is there.
+ */
+export type SessionIdentity = {
+  readonly authId: string;
+  /** Proved, and therefore ours to use. */
+  readonly email: string | null;
+  /** Given, not yet proved. Never treated as an address we may rely on. */
+  readonly pendingEmail: string | null;
+  readonly anonymous: boolean;
+};
+
+export const sessionIdentity = async (): Promise<SessionIdentity | null> => {
+  if (!authConfigured()) return null;
+  const client = await supabase();
+  const { data, error } = await client.auth.getUser();
+  if (error !== null || data.user === null) return null;
+
+  const email = data.user.email ?? "";
+  const pending = data.user.new_email ?? "";
+  return {
+    authId: data.user.id,
+    email: email === "" ? null : email,
+    pendingEmail: pending === "" ? null : pending,
+    anonymous: data.user.is_anonymous === true,
+  };
+};
+
+/**
+ * The films made before an address was proved follow the person.
+ *
+ * Shared by every route a proving link can land on — the magic link and the
+ * password-recovery link both arrive as an exchanged code, and both may be
+ * clicked in a browser that has been making a film anonymously all along.
+ *
+ * The caller reads `before` from the session it is holding, ahead of the
+ * exchange that replaces it. `adoptFilms` itself refuses any source row that
+ * has an address, so a confused or hostile caller cannot drain a real account
+ * through this.
+ */
+export const anonymousHolder = async (client: SupabaseClient): Promise<string | null> => {
+  const before = await client.auth.getUser();
+  return before.error === null &&
+    before.data.user !== null &&
+    before.data.user.is_anonymous === true
+    ? before.data.user.id
+    : null;
+};
+
+export const carryFilmsOver = async (
+  fromAuthId: string | null,
+  user: AppUser | null,
+): Promise<void> => {
+  // Same identity on both sides is the ordinary case now: confirming an
+  // address on an anonymous session keeps its auth id, so there is nothing to
+  // move and moving would be wrong.
+  if (fromAuthId === null || user === null || user.authId === fromAuthId) return;
+  await adoptFilms(db(), { fromAuthId, toUserId: user.id });
 };
 
 export type Access =
