@@ -65,7 +65,13 @@ export const chooseFilm = async (
 };
 
 export type DetailResult =
-  | { readonly ok: true; readonly linkSentTo: string | null }
+  | {
+      readonly ok: true;
+      readonly linkSentTo: string | null;
+      /** The link was already in their inbox — a confirmation from setting a
+       *  password — so nothing new went out. */
+      readonly already: boolean;
+    }
   | { readonly ok: false; readonly error: string };
 
 /**
@@ -98,16 +104,23 @@ export const submitDetail = async (
    * the sign-in page, where asking is the whole point.
    */
   let linkSentTo: string | null = null;
+  let already = false;
   if (saved.target === "owner" && saved.changed && typeof saved.value === "string") {
     const user = await currentUser();
     if (user === null || user.email === null) {
+      // sendMagicLink refuses to send a second email to an address this
+      // session is already waiting to confirm — that is what would create a
+      // duplicate account and leave the film behind on the first one.
       const sent = await sendMagicLink(saved.value, `/projects/${projectId}`);
-      if (sent.ok) linkSentTo = saved.value;
+      if (sent.ok) {
+        linkSentTo = saved.value;
+        already = sent.already;
+      }
     }
   }
 
   revalidatePath(`/projects/${projectId}`);
-  return { ok: true, linkSentTo };
+  return { ok: true, linkSentTo, already };
 };
 
 export const mintUploadFor = async (

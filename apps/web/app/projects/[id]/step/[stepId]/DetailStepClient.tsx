@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 
 import { submitDetail } from "../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../src/server/capture.js";
+import { SetPasswordOffer } from "../../../../SetPasswordOffer.js";
 
 /**
  * A typed answer, dressed exactly like a capture: the ask, the coaching, one
@@ -23,7 +24,7 @@ export const DetailStepClient = ({
   const [value, setValue] = useState(step.value === null ? "" : String(step.value));
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
+  const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
   const inputType =
     step.field?.kind === "number" ? "number" : step.field?.kind === "email" ? "email" : "text";
@@ -38,7 +39,7 @@ export const DetailStepClient = ({
       }
       if (result.linkSentTo !== null) {
         // Stay: the one message worth reading before going back.
-        setLinkSentTo(result.linkSentTo);
+        setLinkSentTo({ email: result.linkSentTo, already: result.already });
         return;
       }
       router.push(`/projects/${projectId}`);
@@ -51,10 +52,27 @@ export const DetailStepClient = ({
         <span style={styles.chapter}>{step.chapterTitle}</span>
         <h1 style={styles.ask}>One click, whenever suits</h1>
         <p style={styles.coaching}>
-          We sent a link to <strong>{linkSentTo}</strong>. Clicking it signs you in, so
-          this film is yours from any phone or laptop — and it is how we send the
-          finished thing. No rush; everything here keeps working meanwhile.
+          {linkSentTo.already ? (
+            <>
+              There is already a link waiting in <strong>{linkSentTo.email}</strong> from
+              when you set a password. Open that one — it does the same job, and a
+              second would make a second account.
+            </>
+          ) : (
+            <>
+              We sent a link to <strong>{linkSentTo.email}</strong>. Clicking it signs you
+              in, so this film is yours from any phone or laptop — and it is how we send
+              the finished thing. No rush; everything here keeps working meanwhile.
+            </>
+          )}
         </p>
+        {!linkSentTo.already && (
+          /* Beside the link, never in front of it. Nothing here waits on it. */
+          <SetPasswordOffer
+            defaultEmail={linkSentTo.email}
+            prompt="…or set a password now, so you can just sign in"
+          />
+        )}
         <Link href={`/projects/${projectId}`} style={styles.primaryLink}>
           Back to the film
         </Link>
