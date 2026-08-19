@@ -16,6 +16,24 @@ import { projects, users } from "./schema/tables.js";
  * database. A route handler cannot be.
  */
 
+/**
+ * Postgres unique_violation. The only database error this file interprets
+ * rather than re-throwing, because it is the only one that means something
+ * about people rather than about the database.
+ *
+ * Walks the cause chain: Drizzle wraps the driver's error in one of its own,
+ * so the code is a level down and a check on the outer error alone quietly
+ * never matches.
+ */
+const isUniqueViolation = (error: unknown): boolean => {
+  for (let cause = error, depth = 0; cause !== undefined && cause !== null && depth < 5; depth++) {
+    if (typeof cause !== "object") return false;
+    if ((cause as { code?: unknown }).code === "23505") return true;
+    cause = (cause as { cause?: unknown }).cause;
+  }
+  return false;
+};
+
 export type AppUser = {
   readonly id: string;
   /** Null for an anonymous user: a real identity that has not yet proved an
@@ -60,7 +78,48 @@ export const linkIdentity = async (
     .limit(1);
   const already = linked[0];
   if (already !== undefined) {
-    return { id: already.id, email: already.email, authId: already.authId };
+    /**
+     * Nothing to learn: the address is the one we already hold, or this
+     * request carries none.
+     *
+     * The null case is a guard, not a formality. `users.email` decides who
+     * owns a film, and a null arriving from anywhere — a token read before a
+     * refresh, a provider that omits the claim — must leave a proved address
+     * exactly where it is. Erasing one would orphan every film on the row.
+     */
+    if (email === null || email === already.email) {
+      return { id: already.id, email: already.email, authId: already.authId };
+    }
+
+    /**
+     * The identity gained an address. This is not a rare path: it is what
+     * happens the moment an anonymous visitor sets a password, because
+     * Supabase puts the address on the same auth.users row and keeps its id.
+     * No films change hands and none should — they are already owned by this
+     * identity. Only the application's record of who they are is out of date.
+     *
+     * Returning the stale row instead was the original bug, and it was
+     * invisible: no error, no wrong page, just a row that said `email is null`
+     * for ever and a film with nowhere to be sent.
+     */
+    try {
+      const relearned = await db
+        .update(users)
+        .set({ email })
+        .where(eq(users.id, already.id))
+        .returning();
+      const now = relearned[0];
+      if (now !== undefined) return { id: now.id, email: now.email, authId: now.authId };
+    } catch (cause: unknown) {
+      // 23505: another row already holds this address. Refuse the sign-in
+      // rather than carry on with a row that will never learn it — and never
+      // reach across and take the other row, which is the one thing here that
+      // could hand somebody else's memories over. `addressTaken` lets the
+      // surfaces that cause this refuse before it happens.
+      if (!isUniqueViolation(cause)) throw cause;
+      throw new Error(`${email} already belongs to a different account`, { cause });
+    }
+    throw new Error(`could not record the address for ${identity.authId}`);
   }
 
   /**
@@ -138,6 +197,35 @@ export const linkIdentity = async (
   // one address for two identities, so this should be unreachable — and if it
   // ever happens, refusing the sign-in is the only safe answer.
   throw new Error(`${email} is already linked to a different identity`);
+};
+
+/**
+ * Does this address already belong to somebody who is not this user?
+ *
+ * Asked before an address is attached to an identity, so the refusal happens
+ * where it can be explained — "that address already has films on it, sign in
+ * with the link we email you" — rather than as a unique violation on a later
+ * request, when the person is somewhere else entirely and the auth provider
+ * has already recorded the address.
+ *
+ * A check-then-act, so it races in principle. `linkIdentity` still refuses on
+ * the constraint, which is the part that has to be right; this only decides
+ * whether anyone ever sees that error.
+ */
+export const addressTaken = async (
+  db: Db,
+  email: string,
+  exceptUserId: string,
+): Promise<boolean> => {
+  const normalised = email.trim().toLowerCase();
+  if (normalised === "") return false;
+  const rows = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, normalised))
+    .limit(1);
+  const row = rows[0];
+  return row !== undefined && row.id !== exceptUserId;
 };
 
 /**
