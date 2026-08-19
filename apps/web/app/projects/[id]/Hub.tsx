@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { StepView, WalkthroughView } from "../../../src/server/capture.js";
+import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
 
 /**
@@ -32,6 +33,8 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
 
   return (
     <main style={styles.page}>
+      {/* Thumbnails here are signed URLs with a fifteen-minute life. */}
+      <FreshenOnReturn />
       <header style={styles.head}>
         <h1 style={styles.title}>{name === undefined ? "Your film" : `${name}’s film`}</h1>
         <p style={styles.progress}>

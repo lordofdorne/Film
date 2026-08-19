@@ -1,4 +1,5 @@
-import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { mkdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -218,14 +219,22 @@ export const runRender = async (ctx: StageContext, renderId: string): Promise<st
     kind: "render",
     name: `${render.quality}-${format.id}-v${String(version.version)}.mp4`,
   });
-  const stored = await ctx.store.put(key, await readFile(delivery), { contentType: "video/mp4" });
+  /**
+   * Streamed, not read. This film is around 120 MB, and a worker that buffers
+   * it holds all of it per concurrent render while ffmpeg and a headless
+   * browser are already on the same box. The store uploads it in parts.
+   */
+  const { size } = await stat(delivery);
+  const stored = await ctx.store.put(key, createReadStream(delivery), {
+    contentType: "video/mp4",
+    contentLength: size,
+  });
 
   await ctx.db
     .update(renders)
     .set({ outputKey: key, status: "succeeded", error: null })
     .where(eq(renders.id, renderId));
 
-  const { size } = await stat(delivery);
   await ctx.log.info(
     `${key} — ${(size / 1e6).toFixed(1)} MB in ${((Date.now() - started) / 1000).toFixed(0)}s`,
   );

@@ -6,6 +6,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { Upload } from "@aws-sdk/lib-storage";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import type {
   ObjectStore,
@@ -47,20 +48,46 @@ export class R2ObjectStore implements ObjectStore {
     });
   }
 
+  /**
+   * Multipart, always.
+   *
+   * A finished film is around 120 MB and the things being stored are whole
+   * video files, so the two ways to get this wrong are both real: buffer the
+   * file and a worker holds 120 MB per concurrent render; hand the SDK a bare
+   * stream and it cannot retry, because a stream that has been read once
+   * cannot be read again — a blip at 90 MB would throw away a render that took
+   * minutes of CPU.
+   *
+   * `Upload` avoids both. It reads the stream in parts, holds only the parts
+   * in flight, and retries a failed part rather than the file. For anything
+   * smaller than one part it does a plain PUT, so the small objects — an
+   * EDL, a still, the music bed — cost nothing extra.
+   *
+   * The dangling cost of multipart is an aborted upload leaving parts nobody
+   * can see and everybody pays for, which is what the bucket's
+   * abort-incomplete-multipart lifecycle rule is for. It is not optional.
+   */
   async put(
     key: string,
     body: Uint8Array | NodeJS.ReadableStream,
     options: PutOptions = {},
   ): Promise<StoredObject> {
-    const result = await this.#client.send(
-      new PutObjectCommand({
+    const upload = new Upload({
+      client: this.#client,
+      params: {
         Bucket: this.#bucket,
         Key: key,
         Body: body as never,
         ...(options.contentType === undefined ? {} : { ContentType: options.contentType }),
-        ...(options.contentLength === undefined ? {} : { ContentLength: options.contentLength }),
-      }),
-    );
+      },
+      // 8 MB × 4 in flight: about 32 MB of headroom per upload, against a
+      // worker that also has ffmpeg and a browser on it.
+      partSize: 8 * 1024 * 1024,
+      queueSize: 4,
+      leavePartsOnError: false,
+    });
+
+    const result = (await upload.done()) as { ETag?: string };
     const head = await this.head(key);
     return {
       key,
