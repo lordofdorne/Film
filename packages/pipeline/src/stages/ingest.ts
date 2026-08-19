@@ -1,4 +1,5 @@
-import { readFile, writeFile } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import { stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { eq } from "drizzle-orm";
@@ -102,8 +103,12 @@ export const runIngest = async (ctx: StageContext): Promise<string | null> => {
     assetId: row.id,
     name: normalisedName(row),
   });
-  const stored = await ctx.store.put(key, await readFile(output), {
+  // Streamed for the same reason as the render: a normalised interview is
+  // hundreds of megabytes, and ingest runs several at once.
+  const { size } = await stat(output);
+  const stored = await ctx.store.put(key, createReadStream(output), {
     contentType: row.kind === "photo" ? "image/jpeg" : row.kind === "audio" ? "audio/wav" : "video/mp4",
+    contentLength: size,
   });
 
   await ctx.db

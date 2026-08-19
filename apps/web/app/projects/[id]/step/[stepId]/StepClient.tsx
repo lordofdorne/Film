@@ -84,16 +84,23 @@ export const StepClient = ({
         setSaving({ state: "failed", error: minted.error });
         return;
       }
-      const { assetId, key, uploadUrl } = minted.mint;
+      const { assetId, key, uploadUrl, contentType: signedType } = minted.mint;
 
       /**
        * Straight to storage. In production this URL is R2's, signed for one
        * key and one method, and these bytes never touch the app server.
+       *
+       * The header is the type the URL was SIGNED for, not the one the blob
+       * happens to carry. R2 covers content-type in the signature and
+       * MediaRecorder hands us `video/webm;codecs=vp9,opus`, so sending the
+       * blob's own type would be a 403 on every recording — and one that
+       * local development cannot reproduce, because the local upload route
+       * does not check a signature at all.
        */
       const put = await fetch(uploadUrl, {
         method: "PUT",
         body: blob,
-        headers: { "content-type": contentType },
+        headers: { "content-type": signedType },
       }).catch(() => null);
 
       if (put === null || !put.ok) {
@@ -102,7 +109,7 @@ export const StepClient = ({
       }
 
       // The row is written only now, once the bytes are known to have landed.
-      const done = await finishUpload(projectId, step.id, assetId, key, contentType);
+      const done = await finishUpload(projectId, step.id, assetId, key, signedType);
       setSaving(done.ok ? { state: "saved" } : { state: "failed", error: done.error });
       if (done.ok) router.refresh();
     },
