@@ -224,6 +224,85 @@ describe("a person who started as nobody", () => {
     const signedIn = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
     expect(await adoptFilms(db, { fromAuthId: randomUUID(), toUserId: signedIn.id })).toBe(0);
   });
+
+  /**
+   * The other way an anonymous person gains an address, and the one that made
+   * this a bug: they set a password on the session they already have. Supabase
+   * puts an address on that same auth.users row and keeps its id, so no
+   * adoption happens or should — but the application row still says email is
+   * null, and it is the application row that decides where the film is sent.
+   *
+   * Matching on authId first is right and stays. Returning the row without
+   * looking at the address was the mistake.
+   */
+  it("learns the address when an anonymous identity gains one", async () => {
+    needsDb();
+    const { authId, userId } = await anonymous();
+    const film = await addProject(userId);
+
+    const now = await linkIdentity(db, { authId, email: EMAIL });
+
+    expect(now.id).toBe(userId);
+    expect(now.email).toBe(EMAIL);
+    expect(await ownsProject(db, userId, film)).toBe(true);
+    // The row learned, rather than a second row appearing beside it.
+    expect(await db.select().from(users).where(eq(users.email, EMAIL))).toHaveLength(1);
+  });
+
+  it("normalises the address it learns, and settles there", async () => {
+    needsDb();
+    const { authId, userId } = await anonymous();
+    await linkIdentity(db, { authId, email: `  ${EMAIL.toUpperCase()} ` });
+
+    const rows = await db.select().from(users).where(eq(users.id, userId));
+    expect(rows[0]?.email).toBe(EMAIL);
+
+    // Every page render calls this; the stored form must match what arrives
+    // next time, or it would write on every request for ever.
+    const again = await linkIdentity(db, { authId, email: EMAIL.toUpperCase() });
+    expect(again.email).toBe(EMAIL);
+    expect(await db.select().from(users).where(eq(users.id, userId))).toHaveLength(1);
+  });
+
+  /**
+   * The collision the plan warned about. Somebody made films anonymously, then
+   * set a password using an address that already belongs to an older account
+   * of theirs — or of somebody else's. The unique constraint refuses the
+   * update, and this must refuse the sign-in rather than carry on with a row
+   * that will never learn where to send anything.
+   */
+  it("refuses when the address it is handed belongs to another row", async () => {
+    needsDb();
+    const older = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
+    const theirFilm = await addProject(older.id);
+
+    const { authId, userId } = await anonymous();
+
+    await expect(linkIdentity(db, { authId, email: EMAIL })).rejects.toThrow(
+      /already belongs to a different account/,
+    );
+
+    // Nothing changed hands, and nothing was quietly left half-done.
+    expect(await ownsProject(db, older.id, theirFilm)).toBe(true);
+    const anon = await db.select().from(users).where(eq(users.id, userId));
+    expect(anon[0]?.email).toBeNull();
+  });
+
+  /**
+   * A request without an address must never erase one. `users.email` decides
+   * ownership; a null arriving from anywhere — a token read before a refresh,
+   * a provider that omits the claim — must leave a proved address alone.
+   */
+  it("never forgets an address because a request arrived without one", async () => {
+    needsDb();
+    const authId = randomUUID();
+    const known = await linkIdentity(db, { authId, email: EMAIL });
+
+    const again = await linkIdentity(db, { authId, email: null });
+
+    expect(again.id).toBe(known.id);
+    expect(again.email).toBe(EMAIL);
+  });
 });
 
 describe("ownsProject", () => {
