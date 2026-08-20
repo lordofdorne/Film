@@ -153,20 +153,48 @@ export const claimAccount = async (
 
   if (error !== null) {
     /**
-     * The address belongs to an identity already — very often one this same
-     * person made minutes ago by asking for a magic link, which creates the
-     * account the moment it is requested.
+     * By code, never by status.
      *
-     * This does disclose that the address is in use, and there is no way not
-     * to: GoTrue answers 422 and the alternative is to pretend it worked and
-     * leave somebody with a password that never signs them in. Point them at
-     * the door that does work.
+     * Every one of these is a 422, and the first version of this mapped the
+     * status rather than the code — so somebody who retyped the same password
+     * after a failed attempt was told "that address already has an account
+     * here" about an address nobody had ever used, and sent off to a door that
+     * would not open. Found by walking the flow, not by reading it.
      */
-    if (error.code === "email_exists" || error.status === 422) {
+    if (error.code === "email_exists") {
+      /**
+       * The address belongs to an identity already — very often one this same
+       * person made minutes ago by asking for a magic link, which creates the
+       * account the moment it is requested.
+       *
+       * This does disclose that the address is in use, and there is no way
+       * not to: the alternative is to pretend it worked and leave somebody
+       * with a password that never signs them in. Point them at the door that
+       * does work.
+       */
       return { ok: false, error: ALREADY_HERE };
+    }
+    if (error.code === "same_password") {
+      return { ok: false, error: "That is already your password — you are all set." };
+    }
+    if (error.code === "weak_password") {
+      return { ok: false, error: "That password is too easy to guess. Try a longer one." };
     }
     if (error.status === 429) {
       return { ok: false, error: "Too many emails from this server in the last hour. Try again later." };
+    }
+    /**
+     * Only reachable with `secure_password_change` on, which this project
+     * deliberately leaves off — it refuses any session older than a day, and
+     * the person being offered a password here is somebody who made a film
+     * last Tuesday. Handled anyway, because a setting on the hosted dashboard
+     * can be turned on by somebody who has not read the config file.
+     */
+    if (error.code === "reauthentication_needed") {
+      return {
+        ok: false,
+        error: "This browser has been signed in a while. Use the link we emailed you, then set a password.",
+      };
     }
     return { ok: false, error: `Could not set that up: ${error.message}` };
   }
@@ -242,6 +270,13 @@ export const chooseNewPassword = async (password: string): Promise<PasswordResul
   const client = await supabase();
   const { error } = await client.auth.updateUser({ password });
   if (error !== null) {
+    // By code, never by status — the same lesson as claimAccount above.
+    if (error.code === "same_password") {
+      return { ok: false, error: "That is the password you already have. Pick a different one." };
+    }
+    if (error.code === "weak_password") {
+      return { ok: false, error: "That password is too easy to guess. Try a longer one." };
+    }
     if (error.code === "reauthentication_needed" || error.status === 401) {
       return {
         ok: false,

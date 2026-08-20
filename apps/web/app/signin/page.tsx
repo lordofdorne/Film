@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { authConfigured, sessionIdentity } from "../../src/server/auth.js";
 import { safeNext } from "../../src/server/origin.js";
+import { LinkTrouble } from "./LinkTrouble.js";
 import { SignInForm } from "./SignInForm.js";
 
 const MESSAGES: Readonly<Record<string, string>> = {
@@ -49,9 +50,9 @@ export default async function SignInPage({
         Use your password if you set one. If you did not — most people have not — we
         will email you a link instead, and it works just as well.
       </p>
-      {error !== undefined && MESSAGES[error] !== undefined && (
-        <p style={styles.notice}>{MESSAGES[error]}</p>
-      )}
+      {/* Supabase leaves the real reason in the URL fragment, which never
+          reaches here — so the server's message is only the fallback. */}
+      <LinkTrouble {...(error !== undefined && MESSAGES[error] !== undefined ? { fallback: MESSAGES[error] } : {})} />
       <SignInForm {...(next === undefined ? {} : { next })} />
     </main>
   );
@@ -67,14 +68,4 @@ const styles = {
   },
   title: { fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: -0.4 },
   blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "14px 0 0" },
-  notice: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    color: "#5c4a33",
-    background: "#fdf6ec",
-    border: "1px solid #f0dcc0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    margin: "16px 0 0",
-  },
 } as const;
