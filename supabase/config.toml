@@ -220,7 +220,21 @@ double_confirm_changes = true
 # session leaves the address pending until the confirmation link is clicked.
 enable_confirmations = true
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
-secure_password_change = true
+#
+# Off, after trying it on. It does not only guard a password CHANGE — GoTrue
+# applies it to setting a first one too, and refuses any session that did not
+# sign in within the last day. The person this product offers a password to is
+# somebody who made a film last Tuesday and has decided to keep it, so with
+# this on the central offer fails for exactly the people it is for, with
+# "Password update requires reauthentication".
+#
+# What is given up: somebody holding a stolen session cookie can change that
+# account's password without proving they can read the mailbox. What is kept:
+# they cannot ATTACH an address to an anonymous session without confirming it,
+# which is the conversion path this flag was blocking. If this is ever turned
+# back on, `claimAccount` and `chooseNewPassword` already word the refusal
+# properly — the flows still have to be walked through, not just typechecked.
+secure_password_change = false
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
 max_frequency = "1s"
 # Number of characters used in the email OTP.
