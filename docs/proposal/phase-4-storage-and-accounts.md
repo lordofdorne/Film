@@ -1,6 +1,34 @@
 # Phase 4 — Real storage, and an account you can sign into
 
-**Status:** Plan · 2026-08-18 · ready to execute
+**Status:** 2026-08-19 · **Part B is built and walked through. Part A's code
+is built; its buckets are not.**
+
+What is left, and only these:
+
+- **Part A1** — the owner's Cloudflare dashboard steps, and the four `R2_*`
+  variables. Nothing in the repository can do them.
+- **Part A4** — the proving run against a real bucket. Everything in A3 is
+  written and typechecked and has never met R2. **Do not mark this done on a
+  passing test suite.**
+- **Custom SMTP.** Deferred by the owner to last, and it is what stands
+  between Part B and a real person using it.
+
+Two things in the plan below turned out to be wrong when walked through, and
+the code follows what happened rather than what was written here:
+
+- **`secure_password_change = true` is wrong for this product** (§B2 asks for
+  it). GoTrue applies it to setting a FIRST password too, and refuses any
+  session that did not sign in within the last day — which is exactly the
+  person being offered one. It is off, and `supabase/config.toml` says why.
+- **§A3.4 looked in the wrong place.** `runDeliver` puts nothing; it only
+  heads the object. The 120 MB read was in `render.ts`, and a second one in
+  `ingest.ts`. Both stream now, through `@aws-sdk/lib-storage` so a failed
+  part retries rather than the whole file.
+
+One thing the plan did not anticipate, found by walking it: **a confirmation
+in flight is invisible to `signInWithOtp`**, which will happily create a second
+identity for the same address and strand the password on the first one.
+`sendMagicLink` refuses while one is pending.
 
 Two pieces of work the owner asked for on 2026-08-18, written so an agent with
 no memory of the conversation can carry them out. Read `docs/CHECKPOINT.md`
