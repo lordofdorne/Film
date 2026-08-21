@@ -211,6 +211,14 @@ progress.
 - **Env is read at boot.** A worker started before `.env` was corrected goes on
   failing with errors that describe the code rather than the process. Restart
   the worker after touching `.env`.
+- **The database-backed tests share one development Postgres and run in
+  parallel.** Seen flaking once on 2026-08-21 — `dispatch.test.ts` failed in a
+  full run and passed alone, immediately after two more DB-backed files were
+  added. Not reproduced since, and not diagnosed. If it recurs, the one-line
+  answer is `vitest run --no-file-parallelism`, which was measured at 31s
+  against 18s; that 13s was judged too much to pay on every run for a single
+  unreproduced failure. Scoped project ids are evidently not sufficient
+  isolation on their own.
 - **The web app must import `@film/pipeline` by subpath, never the root.** The
   root re-exports every stage, which drags Remotion's bundler and renderer into
   the Next server graph; the symptom is `Module parse failed: Unexpected

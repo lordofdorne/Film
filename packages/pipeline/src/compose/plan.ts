@@ -430,10 +430,32 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
           );
     const before = editing.minSubjectVisibleBeforeInsertMs;
     const after = editing.returnToSubjectBeforeAnswerEndsMs;
-    const canInsert = options.insert !== undefined && totalDur >= before + insertDur + after + 2000;
+    /**
+     * An insert whose slot is empty is not an error.
+     *
+     * `video_environment` and `keepsake` are `required: false` in the
+     * template, so the hub lets somebody finish a film without them — and
+     * then compose demanded them anyway and failed permanently, which is a
+     * film killed by a step the customer was told was optional. The two
+     * halves have to agree about what a film needs, and the template is the
+     * one holding the answer.
+     */
+    const haveMedia =
+      options.insert === undefined
+        ? false
+        : options.insert.kind === "photo"
+          ? input.stills.some((s) => s.slotId === options.insert?.slotId)
+          : input.brollAssetIds[options.insert.slotId] !== undefined;
+
+    const canInsert =
+      options.insert !== undefined && haveMedia && totalDur >= before + insertDur + after + 2000;
 
     if (!canInsert) {
-      if (options.insert !== undefined) {
+      if (options.insert !== undefined && !haveMedia) {
+        notes.push(
+          `nothing in slot "${options.insert.slotId}"; "${questionId}" stays on the subject`,
+        );
+      } else if (options.insert !== undefined) {
         notes.push(
           `"${questionId}" too short (${String(totalDur)}ms) for an insert; kept on the subject`,
         );
@@ -561,20 +583,33 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   addAnswerBeat("closing_message");
 
   /* ── 11. keepsake, then the group photo ────────────────────────────── */
-  const keepsake = still("keepsake");
+  /**
+   * The keepsake is optional, and the closing sequence has to survive without
+   * it. This called `still("keepsake")` and threw — so a customer who skipped
+   * the card the hub had marked "optional" got a film that failed to compose,
+   * hours later, with no way to connect the two.
+   *
+   * Skipped rather than substituted: the group photo that follows is the real
+   * ending, and an object nobody chose would be worse than no object.
+   */
+  const keepsake = input.stills.find((s) => s.slotId === "keepsake");
   const group = still("photo_group");
-  visual.push({
-    id: "v_keepsake",
-    kind: "photo",
-    durationMs: 4600,
-    transitionIn: XFADE,
-    assetId: keepsake.assetId,
-    slotId: keepsake.slotId,
-    focalPoint: { x: 0.5, y: 0.5 },
-    motion: "still",
-    intensity: 0,
-    entry: "insetExpand",
-  });
+  if (keepsake === undefined) {
+    notes.push("no keepsake was added; the film closes on the group photograph");
+  } else {
+    visual.push({
+      id: "v_keepsake",
+      kind: "photo",
+      durationMs: 4600,
+      transitionIn: XFADE,
+      assetId: keepsake.assetId,
+      slotId: keepsake.slotId,
+      focalPoint: { x: 0.5, y: 0.5 },
+      motion: "still",
+      intensity: 0,
+      entry: "insetExpand",
+    });
+  }
   visual.push({
     id: "v_group_still",
     kind: "photo",
