@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { guardProject } from "../../../src/server/auth.js";
+import { guardProject, sessionIdentity } from "../../../src/server/auth.js";
+import { SetPasswordOffer } from "../../SetPasswordOffer.js";
 import { loadWalkthroughView } from "../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
 import { DeliveryPanel } from "./DeliveryPanel.js";
@@ -52,11 +53,39 @@ export default async function ProjectPage({
 
   const delivery = (await loadDelivery(id)) ?? { kind: "unapproved" as const };
 
+  /**
+   * "Keep this" has an obvious meaning here and nowhere earlier, so the second
+   * and last offer of a password sits beside the finished film.
+   *
+   * Only for somebody who has no address on their identity yet, and none
+   * pending: for everyone else it would be either meaningless or a second
+   * email chasing a confirmation they already have.
+   */
+  const identity = await sessionIdentity();
+  const owed = walkthrough.steps.find(
+    (step) => step.kind === "detail" && step.field?.target === "owner",
+  );
+  const offer =
+    delivery.kind === "ready" &&
+    identity !== null &&
+    identity.email === null &&
+    identity.pendingEmail === null ? (
+      <SetPasswordOffer
+        defaultEmail={typeof owed?.value === "string" ? owed.value : ""}
+        prompt="Set a password, so this film is easy to come back to"
+      />
+    ) : null;
+
   return (
     <PreviewClient
       summary={loaded.summary}
       props={loaded.props}
-      delivery={<DeliveryPanel projectId={id} initial={delivery} />}
+      delivery={
+        <>
+          <DeliveryPanel projectId={id} initial={delivery} />
+          {offer}
+        </>
+      }
     />
   );
 }

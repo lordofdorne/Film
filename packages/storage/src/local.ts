@@ -1,7 +1,9 @@
 import { createHash } from "node:crypto";
+import { createWriteStream } from "node:fs";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { Readable } from "node:stream";
+import { pipeline } from "node:stream/promises";
 import type {
   ObjectStore,
   PutOptions,
@@ -54,20 +56,47 @@ export class LocalObjectStore implements ObjectStore {
     const path = this.#resolve(key);
     await mkdir(dirname(path), { recursive: true });
 
-    const bytes =
-      body instanceof Uint8Array
-        ? body
-        : new Uint8Array(
-            Buffer.concat(await Readable.from(body).toArray().then((c) => c.map(Buffer.from))),
-          );
+    const digest = createHash("md5");
 
-    await writeFile(path, bytes);
+    if (body instanceof Uint8Array) {
+      digest.update(body);
+      await writeFile(path, body);
+      return {
+        key,
+        byteSize: body.byteLength,
+        // Same shape as an S3 ETag so callers cannot come to depend on the
+        // difference between the two implementations.
+        etag: digest.digest("hex"),
+        contentType: options.contentType ?? null,
+      };
+    }
+
+    /**
+     * Straight to disk, hashing on the way past.
+     *
+     * This used to read the whole stream into memory first, which for a
+     * finished film is 120 MB held for no reason — and it made local
+     * development the one place a streaming caller was silently not streaming.
+     * The two implementations should be wrong in the same ways or in none.
+     */
+    let byteSize = 0;
+    await pipeline(
+      Readable.from(body),
+      async function* (source: AsyncIterable<Buffer | string>) {
+        for await (const chunk of source) {
+          const buffer = typeof chunk === "string" ? Buffer.from(chunk) : chunk;
+          byteSize += buffer.byteLength;
+          digest.update(buffer);
+          yield buffer;
+        }
+      },
+      createWriteStream(path),
+    );
+
     return {
       key,
-      byteSize: bytes.byteLength,
-      // Same shape as an S3 ETag so callers cannot come to depend on the
-      // difference between the two implementations.
-      etag: createHash("md5").update(bytes).digest("hex"),
+      byteSize,
+      etag: digest.digest("hex"),
       contentType: options.contentType ?? null,
     };
   }

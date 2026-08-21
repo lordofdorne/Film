@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
 
-import { authConfigured, currentUser } from "../../src/server/auth.js";
+import { authConfigured, sessionIdentity } from "../../src/server/auth.js";
+import { safeNext } from "../../src/server/origin.js";
+import { LinkTrouble } from "./LinkTrouble.js";
 import { SignInForm } from "./SignInForm.js";
 
 const MESSAGES: Readonly<Record<string, string>> = {
@@ -29,19 +31,28 @@ export default async function SignInPage({
     );
   }
 
-  // Already signed in: nothing to do here.
-  if ((await currentUser()) !== null) redirect(next ?? "/");
+  /**
+   * Already signed in, meaning an address has actually been proved.
+   *
+   * Not `currentUser() !== null`, which is also true of somebody who pressed
+   * Start five minutes ago: an anonymous session is a real identity, and
+   * bouncing it away from here would mean the one person most likely to want
+   * to sign in — someone holding a film and no account — could never reach
+   * the form.
+   */
+  const identity = await sessionIdentity();
+  if (identity !== null && identity.email !== null) redirect(safeNext(next) ?? "/");
 
   return (
     <main style={styles.page}>
       <h1 style={styles.title}>Sign in</h1>
       <p style={styles.blurb}>
-        No password. Give us the address you used, and we will email you a link that
-        signs you in.
+        Use your password if you set one. If you did not — most people have not — we
+        will email you a link instead, and it works just as well.
       </p>
-      {error !== undefined && MESSAGES[error] !== undefined && (
-        <p style={styles.notice}>{MESSAGES[error]}</p>
-      )}
+      {/* Supabase leaves the real reason in the URL fragment, which never
+          reaches here — so the server's message is only the fallback. */}
+      <LinkTrouble {...(error !== undefined && MESSAGES[error] !== undefined ? { fallback: MESSAGES[error] } : {})} />
       <SignInForm {...(next === undefined ? {} : { next })} />
     </main>
   );
@@ -57,14 +68,4 @@ const styles = {
   },
   title: { fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: -0.4 },
   blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "14px 0 0" },
-  notice: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    color: "#5c4a33",
-    background: "#fdf6ec",
-    border: "1px solid #f0dcc0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    margin: "16px 0 0",
-  },
 } as const;

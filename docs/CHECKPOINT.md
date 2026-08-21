@@ -402,6 +402,46 @@ What exists now:
 Requires `enable_anonymous_sign_ins = true` on the Supabase project. Without
 it, pressing Start says so on the page rather than doing nothing.
 
+### There are two ways in now, and they were built not to collide
+
+`docs/proposal/phase-4-storage-and-accounts.md` Part B is built. The magic
+link stays and stays first; a password sits beside it for anyone who would
+rather type one.
+
+- **Setting a password never creates a second identity.**
+  `updateUser({ email, password })` on the session already here keeps its auth
+  id, so the films made anonymously need no adoption at all. `signUp()` would
+  make a second identity and orphan every one of them.
+- **An address is not ours until the mailbox is proved.** With
+  `enable_confirmations = true`, Supabase holds it in `new_email` and the
+  application row still says null — correctly, because that column decides who
+  owns a film. The password is stored at once but cannot be used until the
+  confirmation is clicked, and the copy says so.
+- **`linkIdentity` now learns.** It matched on `authId` and returned the row
+  without looking at the address, so a row that gained one kept `email = NULL`
+  for ever. Fixed with tests; a null never erases a proved address, and a
+  collision refuses rather than reaching across to the other row.
+- **Where the two doors collided.** A confirmation in flight is invisible to
+  `signInWithOtp`, which would happily make a SECOND identity for the same
+  address — leaving a password on an account the person can no longer reach.
+  `sendMagicLink` refuses to send while a confirmation for that address is
+  pending, and says which link to open.
+- **`/auth/recovery` is a separate door** from `/auth/callback`, because every
+  proving link comes back as `?code=` with nothing to say which kind it was,
+  and the route that adopts an anonymous browser's films must not grow a
+  second mode.
+- **`secure_password_change` is off, deliberately.** GoTrue applies it to
+  setting a first password too and refuses any session older than a day —
+  which is exactly the person being offered one. The reasoning is in
+  `supabase/config.toml`; do not turn it on without walking the flow.
+- **Supabase errors are read by code, never by status.** Every one of them is
+  a 422, and mapping the status told people their own unused address already
+  had an account.
+
+Still to do before a real person can use it: **custom SMTP**. Confirmations,
+resets and links all go through it, and the built-in sender allows about two
+an hour.
+
 ### What it still cannot do
 
 **It cannot yet produce a film.** A project finished in the browser ingests
@@ -413,8 +453,10 @@ decision on 2026-08-17.**
 
 Also still true of a browser-made project:
 
-- **No multipart upload.** `upload_sessions` remains unused. One PUT per take,
-  and a failure costs one step rather than the project.
+- **No resumable upload from the browser.** `upload_sessions` remains unused.
+  One PUT per take, and a failure costs one step rather than the project. The
+  worker's own uploads to R2 *are* multipart now — that is `@aws-sdk/lib-storage`
+  in `R2ObjectStore.put`, and it is a different thing.
 - **MediaRecorder is proven on Chrome only.** It reports `video/mp4` support and
   produced h264/opus. iOS Safari is still unproven on a real device, and the
   fallback — the native camera through a file input — is already wired.

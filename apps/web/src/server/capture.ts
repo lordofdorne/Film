@@ -155,6 +155,19 @@ export type Mint = {
   readonly assetId: string;
   readonly key: string;
   readonly uploadUrl: string;
+  /**
+   * The content type the URL was signed for, which the browser must send back
+   * verbatim.
+   *
+   * R2 covers ContentType in the signature, and MediaRecorder's own type
+   * carries a codecs parameter — `video/webm;codecs=vp9,opus` — while
+   * prepareUpload deliberately stores the base type. Sending one and signing
+   * the other is a 403 from R2 that local development can never reproduce,
+   * because the local upload route does not check. So the mint says what was
+   * signed and the client repeats it: one authority, not two that agree by
+   * coincidence.
+   */
+  readonly contentType: string;
 };
 
 /**
@@ -182,14 +195,22 @@ export const mintUpload = async (
       exp: String(expiresAt),
       sig: signLocalUpload(key, expiresAt),
     });
-    return { ok: true, mint: { assetId, key, uploadUrl: `/api/upload?${query.toString()}` } };
+    return {
+      ok: true,
+      mint: {
+        assetId,
+        key,
+        uploadUrl: `/api/upload?${query.toString()}`,
+        contentType: prepared.contentType,
+      },
+    };
   }
 
   const uploadUrl = await storeFromEnv().signedPutUrl(key, {
     contentType: prepared.contentType,
     expiresInSeconds: 900,
   });
-  return { ok: true, mint: { assetId, key, uploadUrl } };
+  return { ok: true, mint: { assetId, key, uploadUrl, contentType: prepared.contentType } };
 };
 
 export const completeUpload = async (
