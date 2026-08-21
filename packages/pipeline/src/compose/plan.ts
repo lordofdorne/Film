@@ -44,6 +44,17 @@ const GRID = 100;
 const PROMPT_MS = 1800;
 const MIN_PROMPT_MS = 900;
 const grid = (ms: number): number => Math.round(ms / GRID) * GRID;
+
+/**
+ * Down to the grid, never up — for anything bounded by real media.
+ *
+ * `grid` rounds to the NEAREST 100ms, which is right for timeline positions
+ * and wrong for the end of a source range: a take that is 16079ms long became
+ * a request for 16100ms of it, and the EDL failed validation by 21
+ * milliseconds. Recordings do not end on round numbers; fixtures do, which is
+ * why every test passed for months.
+ */
+const gridDown = (ms: number): number => Math.floor(ms / GRID) * GRID;
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi);
 
 const normalise = (word: string): string => word.toLowerCase().replace(/[^a-z0-9']/g, "");
@@ -242,6 +253,44 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     return found;
   };
 
+  /**
+   * A source window that the clip actually contains.
+   *
+   * Compose used to cut b-roll as though every clip were long enough for the
+   * beat it was filling — the opening asked for 1000–5000ms, the inserts for
+   * 1500–5500ms. The template asks for ten seconds and the fixtures oblige,
+   * so nothing caught it; the first person to film their own ten seconds
+   * filmed one and a half, and the EDL failed validation with
+   * SOURCE_RANGE_OUTSIDE_ASSET — which names the segment and not the clip.
+   *
+   * Backing the start off toward zero before shortening is deliberate: a short
+   * clip is usually short because somebody stopped recording early, not
+   * because it starts late, so the interesting part is at the front.
+   *
+   * Returns nothing when even the floor cannot be met, and the caller decides
+   * what a film does without that shot.
+   */
+  const sourceWindow = (
+    assetId: string,
+    wantInMs: number,
+    wantDurationMs: number,
+    floorMs: number,
+  ): { readonly inMs: number; readonly durationMs: number } | undefined => {
+    const available = input.assetDurationMs[assetId];
+    // Unknown duration: ingest records one for every video, so this is a
+    // fixture or a bug. Behave as before rather than silently dropping a shot.
+    if (available === undefined || available <= 0) {
+      return { inMs: wantInMs, durationMs: wantDurationMs };
+    }
+
+    // gridDown, never grid: a 2667ms clip rounded to 2700 overran its own end
+    // by 33ms — the very failure this function exists to prevent, put back by
+    // the rounding inside the fix. Caught by testing a real clip length.
+    const inMs = gridDown(Math.max(0, Math.min(wantInMs, available - wantDurationMs)));
+    const durationMs = gridDown(Math.min(wantDurationMs, available - inMs));
+    return durationMs < floorMs ? undefined : { inMs, durationMs };
+  };
+
   const visual = new VisualTimeline();
   const speech: SpeechSegment[] = [];
   const prompts: QuestionPromptSegment[] = [];
@@ -252,18 +301,93 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   const XFADE = { type: "crossfade", durationMs: editing.crossfadeMs } as const;
   const FADE = { type: "fade", durationMs: editing.fadeMs } as const;
 
+  /**
+   * The slots the template says a film is wrong without.
+   *
+   * Read here so the beat planner can tell a preference from a requirement:
+   * a shot that is merely shorter than we would like still has to appear.
+   */
+  const conformance = template.conformance as {
+    requiredPhotoSlotIds: readonly string[];
+    requiredVideoSlotIds: readonly string[];
+  };
+  const requiredSlotIds = new Set([
+    ...conformance.requiredPhotoSlotIds,
+    ...conformance.requiredVideoSlotIds,
+  ]);
+
+  /**
+   * Put a required shot on screen on its own, when it could not be woven into
+   * an answer. Returns false only when there is genuinely nothing to show,
+   * which is a missing REQUIRED slot and rightly fails validation later.
+   */
+  const placeRequiredSlot = (
+    insert: { readonly kind: "photo" | "broll"; readonly slotId: string },
+    id: string,
+  ): boolean => {
+    if (insert.kind === "photo") {
+      const s = input.stills.find((x) => x.slotId === insert.slotId);
+      if (s === undefined) return false;
+      visual.push({
+        id,
+        kind: "photo",
+        durationMs: grid(editing.photoHoldMs.min),
+        transitionIn: XFADE,
+        assetId: s.assetId,
+        slotId: s.slotId,
+        focalPoint: { x: 0.5, y: 0.45 },
+        motion: "in",
+        intensity: 0.2,
+        entry: "cut",
+      });
+      return true;
+    }
+
+    const assetId = input.brollAssetIds[insert.slotId];
+    if (assetId === undefined) return false;
+    // A second is the floor below which a cut is a flinch rather than a shot.
+    const shot = sourceWindow(assetId, 0, editing.brollMs.min, 1000);
+    if (shot === undefined) return false;
+    visual.push({
+      id,
+      kind: "broll",
+      durationMs: shot.durationMs,
+      transitionIn: XFADE,
+      assetId,
+      slotId: insert.slotId,
+      sourceInMs: shot.inMs,
+      sourceOutMs: shot.inMs + shot.durationMs,
+    });
+    return true;
+  };
+
   /* ── 1. opening context: b-roll under the opening line ─────────────── */
-  const OPENING_MS = 4000;
+  const WANTED_OPENING_MS = 4000;
+  const openAsset = broll("video_personality");
+  /**
+   * As much of the opening as the clip can carry, down to a second. A short
+   * opening is a small compromise; a film that will not compose is not.
+   */
+  const open =
+    sourceWindow(openAsset, 1000, WANTED_OPENING_MS, 1000) ??
+    sourceWindow(openAsset, 0, WANTED_OPENING_MS, 0) ??
+    { inMs: 0, durationMs: WANTED_OPENING_MS };
+  const OPENING_MS = open.durationMs;
+  if (OPENING_MS < WANTED_OPENING_MS) {
+    notes.push(
+      `the opening clip is only ${String(OPENING_MS)}ms; the film opens on what there is`,
+    );
+  }
   visual.push({
     id: "v_open",
     kind: "broll",
     durationMs: OPENING_MS,
     transitionIn: CUT,
     overlayTextKey: "opening",
-    assetId: broll("video_personality"),
+    assetId: openAsset,
     slotId: "video_personality",
-    sourceInMs: 1000,
-    sourceOutMs: 1000 + OPENING_MS,
+    sourceInMs: open.inMs,
+    sourceOutMs: open.inMs + OPENING_MS,
   });
 
   /* ── 2. cold open ──────────────────────────────────────────────────── */
@@ -364,7 +488,16 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     const speechStart = first.startMs;
     const speechEnd = last.endMs;
     const sourceIn = grid(Math.max(0, speechStart - PRE));
-    const sourceOut = grid(Math.min(a.durationMs, speechEnd + POST));
+    /**
+     * Never past the end of the take. The `Math.min` was already here and
+     * already correct; `grid` then rounded the capped value back UP past the
+     * duration it had just been capped to.
+     *
+     * Only bites when the grid would overshoot the real end — a take that
+     * comfortably outlasts its speech is cut exactly as before, so no film
+     * that already composed changes.
+     */
+    const sourceOut = Math.min(grid(speechEnd + POST), gridDown(a.durationMs));
     const totalDur = sourceOut - sourceIn;
     if (totalDur < 1000) {
       notes.push(`skipped "${questionId}": usable range too short`);
@@ -420,7 +553,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
 
     // Decide whether the answer is long enough to carry an insert without
     // breaking the "2s on the subject first, back to them before the end" rule.
-    const insertDur =
+    const wantedInsertDur =
       options.insert === undefined
         ? 0
         : grid(
@@ -428,6 +561,32 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
               ? editing.photoHoldMs.min + 1000
               : editing.brollMs.min + 2000,
           );
+
+    /**
+     * How much of the b-roll clip there actually is, decided BEFORE the beat
+     * is planned.
+     *
+     * It has to be up here because the insert's length is what splits the
+     * answer into its two halves — discovering the clip was short at push
+     * time would leave arithmetic that no longer adds up. A clip that cannot
+     * fill `brollMs.min` is not used at all: the template says an insert is
+     * two to six seconds, and a one-second cutaway is not a shorter version
+     * of that shot, it is a flinch.
+     */
+    const brollShot =
+      options.insert === undefined || options.insert.kind === "photo"
+        ? undefined
+        : (() => {
+            const assetId = input.brollAssetIds[options.insert.slotId];
+            if (assetId === undefined) return undefined;
+            return sourceWindow(assetId, 1500, wantedInsertDur, editing.brollMs.min);
+          })();
+
+    const insertDur =
+      options.insert !== undefined && options.insert.kind === "broll"
+        ? (brollShot?.durationMs ?? wantedInsertDur)
+        : wantedInsertDur;
+
     const before = editing.minSubjectVisibleBeforeInsertMs;
     const after = editing.returnToSubjectBeforeAnswerEndsMs;
     /**
@@ -445,15 +604,18 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
         ? false
         : options.insert.kind === "photo"
           ? input.stills.some((s) => s.slotId === options.insert?.slotId)
-          : input.brollAssetIds[options.insert.slotId] !== undefined;
+          : brollShot !== undefined;
 
     const canInsert =
       options.insert !== undefined && haveMedia && totalDur >= before + insertDur + after + 2000;
 
     if (!canInsert) {
       if (options.insert !== undefined && !haveMedia) {
+        const slotId = options.insert.slotId;
         notes.push(
-          `nothing in slot "${options.insert.slotId}"; "${questionId}" stays on the subject`,
+          input.brollAssetIds[slotId] === undefined && !input.stills.some((s) => s.slotId === slotId)
+            ? `nothing in slot "${slotId}"; "${questionId}" stays on the subject`
+            : `the clip in "${slotId}" is too short to cut to; "${questionId}" stays on the subject`,
         );
       } else if (options.insert !== undefined) {
         notes.push(
@@ -470,6 +632,28 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
         sourceOutMs: sourceIn + totalDur,
         scale,
       });
+
+      /**
+       * A slot the template REQUIRES gets its own beat rather than being lost.
+       *
+       * The editorial minimums — `photoHoldMs.min`, `brollMs.min`, the
+       * headroom an answer needs to carry an insert — are preferences.
+       * `conformance.requiredPhotoSlotIds` is not: it says the film is wrong
+       * without this shot. So when a preference would drop a required slot,
+       * the preference yields and the shot is placed on its own, right where
+       * it would have been cut in.
+       *
+       * Here rather than appended at the end, deliberately: an answer plays
+       * before it and another after, so a recovered photograph cannot stack up
+       * against the closing stills and break `maxConsecutivePhotos`.
+       */
+      const rescue = options.insert;
+      if (rescue !== undefined && requiredSlotIds.has(rescue.slotId)) {
+        const placed = placeRequiredSlot(rescue, `v_${questionId}${suffix}_required`);
+        if (placed) {
+          notes.push(`"${rescue.slotId}" is required, so it gets a beat of its own`);
+        }
+      }
     } else {
       const insert = options.insert;
       if (insert === undefined) throw new Error("unreachable");
@@ -502,6 +686,8 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
           entry: insert.entry,
         });
       } else {
+        // Guaranteed by canInsert: haveMedia is brollShot !== undefined.
+        const shot = brollShot ?? { inMs: 1500, durationMs: insertDur };
         visual.push({
           id: `v_${questionId}${suffix}_insert`,
           kind: "broll",
@@ -509,8 +695,8 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
           transitionIn: CUT,
           assetId: broll(insert.slotId),
           slotId: insert.slotId,
-          sourceInMs: 1500,
-          sourceOutMs: 1500 + insertDur,
+          sourceInMs: shot.inMs,
+          sourceOutMs: shot.inMs + insertDur,
         });
       }
 
