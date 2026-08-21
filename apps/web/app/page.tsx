@@ -82,7 +82,7 @@ export default async function Home() {
               <Link href={`/projects/${p.id}`} style={styles.name}>
                 {p.subjectName}
               </Link>
-              <span style={styles.status}>{p.status}</span>
+              <span style={styles.status}>{worded(p.status)}</span>
             </li>
           ))}
         </ul>
@@ -96,6 +96,27 @@ export default async function Home() {
     </main>
   );
 }
+
+/**
+ * The state of a film, in words rather than in the enum's.
+ *
+ * `awaiting_approval` and `processing` are the pipeline's vocabulary, printed
+ * straight onto the one page a customer sees most. They also read as more
+ * final than they are — "failed" beside somebody's grandmother's name, with no
+ * hint that every recording is safe, is a worse sentence than anything the
+ * project page says about the same row.
+ */
+const worded = (status: string): string =>
+  ({
+    draft: "not started",
+    capturing: "still adding to it",
+    processing: "being put together",
+    awaiting_approval: "ready for you to watch",
+    approved: "being made",
+    rendering: "being made",
+    delivered: "ready",
+    failed: "needs another go",
+  })[status] ?? status;
 
 const styles = {
   page: { maxWidth: 720, margin: "0 auto", padding: "48px 24px", fontFamily: "system-ui, sans-serif", color: "#1a1a1a" },

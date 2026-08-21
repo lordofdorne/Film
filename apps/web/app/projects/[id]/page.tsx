@@ -4,6 +4,7 @@ import { SetPasswordOffer } from "../../SetPasswordOffer.js";
 import { loadWalkthroughView } from "../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
 import { DeliveryPanel } from "./DeliveryPanel.js";
+import { FailedNote } from "./FailedNote.js";
 import { Hub } from "./Hub.js";
 import { PreviewClient } from "./PreviewClient.js";
 import { WorkingNote } from "./WorkingNote.js";
@@ -43,6 +44,17 @@ export default async function ProjectPage({
   if (walkthrough.status === "capturing") {
     return <Hub walkthrough={walkthrough} />;
   }
+
+  /**
+   * A film that failed says so, before anything reassuring is rendered.
+   *
+   * This check used to be only "is there a cut yet", and a project that dies
+   * before compose has no cut and never will — so it fell through to
+   * "Putting your film together" and refreshed itself for ever, while the
+   * home page listed the same film as failed. Of two screens disagreeing
+   * about one row, the comforting one was the lie.
+   */
+  if (walkthrough.status === "failed") return <FailedNote projectId={id} />;
 
   const loaded = await loadProjectForPreview(id);
   if (loaded === null) {

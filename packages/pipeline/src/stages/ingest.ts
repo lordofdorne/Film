@@ -31,6 +31,20 @@ import { loadProject } from "./context.js";
  */
 export const INGEST_RECIPE = 1;
 
+/**
+ * The photograph recipe, versioned apart from the rest.
+ *
+ * Because they change apart. Adding `-frames:v 1` to the still command has
+ * nothing to say about how an interview is transcoded, and a single global
+ * number would have re-run ffmpeg over every take in every unfinished film to
+ * fix a bug in photographs — minutes of a worker's time per project, and on a
+ * busy day a queue full of work nobody needed.
+ *
+ * 2: `-frames:v 1 -update 1`, so a multi-picture JPEG from a phone stops
+ * failing.
+ */
+export const PHOTO_RECIPE = 2;
+
 /** A take, a photograph or a bed is at most this big before it is a problem. */
 const SCRATCH_HEADROOM_BYTES = 4 * 1024 * 1024 * 1024;
 
@@ -47,6 +61,8 @@ export const ingestIdentity = (row: AssetRow, format: Format): StageIdentity => 
     formatId: format.id,
     fps: format.fps,
     recipe: INGEST_RECIPE,
+    // Only stills carry it, so bumping it re-runs stills and nothing else.
+    ...(row.kind === "photo" ? { photoRecipe: PHOTO_RECIPE } : {}),
   }),
 });
 
@@ -185,6 +201,40 @@ const ingestFootage = async (
   };
 };
 
+/**
+ * How a photograph is normalised, as an argument list.
+ *
+ * Exported so the test can run exactly what the stage runs. A test that
+ * rebuilds the arguments is a test of the test.
+ *
+ * `-frames:v 1 -update 1` is the part that is not a formality. A photograph
+ * off a modern phone is very often a MULTI-PICTURE JPEG: the picture, plus a
+ * second embedded image — an HDR gain map, or a thumbnail. ffmpeg decodes
+ * both, and the image2 muxer then refuses to write two frames to one
+ * filename:
+ *
+ *   The specified filename 'normalised.jpg' does not contain an image
+ *   sequence pattern... Cannot write more than one file with the same name.
+ *
+ * Which surfaces as `Command failed: ffmpeg ...` with no hint that the problem
+ * is the photograph having two pictures inside it. Every fixture in this
+ * repository is a single-frame JPEG, so this passed every test and then failed
+ * on the first real photograph somebody took with their own phone — and took
+ * the whole film down with it, because one bad still fails ingest, which
+ * blocks compose.
+ *
+ * `-frames:v 1` stops after the first, which is the actual photograph;
+ * `-update 1` tells the muxer that one filename is the intent.
+ */
+export const photoNormaliseArgs = (source: string, output: string): string[] => [
+  "-i", source,
+  "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2",
+  "-frames:v", "1",
+  "-update", "1",
+  "-q:v", "2",
+  output,
+];
+
 /** EXIF orientation applied physically and the tag dropped, so nothing
  *  downstream has to remember to honour it. */
 const ingestPhoto = async (
@@ -194,7 +244,7 @@ const ingestPhoto = async (
   format: Format,
 ): Promise<IngestResult> => {
   await ffmpeg(
-    ["-i", source, "-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2", "-q:v", "2", output],
+    photoNormaliseArgs(source, output),
     { signal: ctx.signal },
   );
   const info = await probe(output, { signal: ctx.signal });

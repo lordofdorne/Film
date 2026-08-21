@@ -47,7 +47,15 @@ export const StepClient = ({
   /** What the browser is holding right now, before or instead of a round trip. */
   const [localUrl, setLocalUrl] = useState<string | null>(null);
   const [localIsPhoto, setLocalIsPhoto] = useState(false);
-  const [recording, setRecording] = useState(false);
+  /**
+   * Whether the camera is on, and what for.
+   *
+   * One state rather than two booleans because the live `<video>` is one
+   * element serving both — a step that takes a photograph frames it exactly
+   * the way a step that takes a take does.
+   */
+  const [live, setLive] = useState<null | "video" | "photo">(null);
+  const recording = live === "video";
   const [seconds, setSeconds] = useState(0);
   const [saving, setSaving] = useState<Saving>({ state: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -69,6 +77,27 @@ export const StepClient = ({
   }, []);
 
   useEffect(() => stopStream, [stopStream]);
+
+  /**
+   * Show the person what the camera can see.
+   *
+   * This has to be an effect, and that is the whole bug it fixes. The live
+   * `<video>` is only mounted while the camera is on, so the old code —
+   * which assigned `srcObject` inside startRecording, before flipping the
+   * state that mounts the element — was always assigning to a ref that was
+   * still null. The recording worked and the preview was a black rectangle,
+   * which is a horrible thing to hand somebody who is about to interview
+   * their grandmother.
+   *
+   * Running after the element exists is what makes it appear at all.
+   */
+  useEffect(() => {
+    const video = liveRef.current;
+    const stream = streamRef.current;
+    if (live === null || video === null || stream === null) return;
+    video.srcObject = stream;
+    void video.play().catch(() => undefined);
+  }, [live]);
 
   useEffect(() => {
     if (!recording) return;
@@ -129,10 +158,6 @@ export const StepClient = ({
         audio: true,
       });
       streamRef.current = stream;
-      if (liveRef.current !== null) {
-        liveRef.current.srcObject = stream;
-        await liveRef.current.play().catch(() => undefined);
-      }
 
       const recorder = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
@@ -152,7 +177,7 @@ export const StepClient = ({
 
       recorderRef.current = recorder;
       setSeconds(0);
-      setRecording(true);
+      setLive("video");
       recorder.start();
     } catch {
       // Almost always a refused permission, and there is a way round it.
@@ -164,10 +189,86 @@ export const StepClient = ({
   }, [stopStream, upload]);
 
   const stopRecording = useCallback(() => {
-    setRecording(false);
+    setLive(null);
     recorderRef.current?.stop();
     recorderRef.current = null;
   }, []);
+
+  /**
+   * A photograph, taken here.
+   *
+   * "Choose a photo" was the only way to give us one, which assumes the
+   * picture already exists — and half of them do not. Somebody sitting with a
+   * shoebox of prints wants to point a camera at one now, and a phone is a
+   * better scanner than anything else in the house. No audio: a still needs
+   * no microphone, and asking for one is a permission prompt that frightens
+   * people for nothing.
+   */
+  const startPhoto = useCallback(async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 2560 },
+          height: { ideal: 1920 },
+          // The back camera on a phone, where there is one. A soft constraint,
+          // so a laptop with one camera gets that instead of an error.
+          facingMode: { ideal: "environment" },
+        },
+        audio: false,
+      });
+      streamRef.current = stream;
+      setLive("photo");
+    } catch {
+      setCameraError("No camera available — check the permission, or use “Choose a photo”.");
+      stopStream();
+    }
+  }, [stopStream]);
+
+  /** Freeze the frame that is on screen, and send that. */
+  const takePhoto = useCallback(() => {
+    const video = liveRef.current;
+    if (video === null) return;
+
+    // Zero until the first frame has arrived. Pressing the button that fast is
+    // rare and the fix is to wait a moment, so say so rather than storing a
+    // black rectangle.
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      setCameraError("The camera is still waking up — try that again in a second.");
+      return;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (context === null) return;
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob(
+      (blob) => {
+        if (blob === null) return;
+        stopStream();
+        setLive(null);
+        setLocalUrl((old) => {
+          if (old !== null) URL.revokeObjectURL(old);
+          return URL.createObjectURL(blob);
+        });
+        setLocalIsPhoto(true);
+        void upload(blob, "image/jpeg");
+      },
+      "image/jpeg",
+      // Ingest re-encodes anyway; this only has to survive that without
+      // adding artefacts of its own.
+      0.92,
+    );
+  }, [stopStream, upload]);
+
+  /** Changed their mind with the camera open. */
+  const cancelCamera = useCallback(() => {
+    stopStream();
+    setLive(null);
+  }, [stopStream]);
 
   const chooseFile = useCallback(
     (file: File | undefined) => {
@@ -221,14 +322,29 @@ export const StepClient = ({
       {step.qcNote !== undefined && <p style={styles.qcNote}>{step.qcNote}</p>}
 
       <section style={styles.stage}>
-        {recording ? (
+        {live !== null ? (
           <>
-            <video ref={liveRef} muted playsInline style={styles.media} />
+            {/* autoPlay as well as the effect: whichever wins, the person
+                sees themselves rather than a black rectangle. */}
+            <video ref={liveRef} autoPlay muted playsInline style={styles.media} />
             <div style={styles.row}>
-              <button type="button" onClick={stopRecording} style={styles.stop}>
-                Stop recording
-              </button>
-              <span style={styles.timer}>{formatSeconds(seconds)}</span>
+              {live === "video" ? (
+                <>
+                  <button type="button" onClick={stopRecording} style={styles.stop}>
+                    Stop recording
+                  </button>
+                  <span style={styles.timer}>{formatSeconds(seconds)}</span>
+                </>
+              ) : (
+                <>
+                  <button type="button" onClick={takePhoto} style={styles.record}>
+                    Take the photo
+                  </button>
+                  <button type="button" onClick={cancelCamera} style={styles.secondary}>
+                    Cancel
+                  </button>
+                </>
+              )}
             </div>
           </>
         ) : shownUrl !== null ? (
@@ -246,6 +362,15 @@ export const StepClient = ({
                   style={styles.secondary}
                 >
                   Record again
+                </button>
+              )}
+              {takesPhoto && (
+                <button
+                  type="button"
+                  onClick={() => { void startPhoto(); }}
+                  style={styles.secondary}
+                >
+                  {takesVideo ? "Take a photo" : "Take another photo"}
                 </button>
               )}
               <label style={styles.secondary}>
@@ -278,6 +403,15 @@ export const StepClient = ({
               {takesVideo && (
                 <button type="button" onClick={() => { void startRecording(); }} style={styles.record}>
                   Record
+                </button>
+              )}
+              {takesPhoto && (
+                <button
+                  type="button"
+                  onClick={() => { void startPhoto(); }}
+                  style={takesVideo ? styles.secondary : styles.record}
+                >
+                  Take a photo
                 </button>
               )}
               <label style={styles.secondary}>
