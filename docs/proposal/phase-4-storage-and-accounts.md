@@ -62,7 +62,27 @@ mostly one new page plus a bug that has to be fixed first.
 
 # Part A — R2
 
-## A0. The bug to know about before starting
+## A0. Measured against a real bucket on 2026-08-20
+
+The warning below was half right, and the wrong half was the loud one.
+
+- **Content type is not signed at all.** `X-Amz-SignedHeaders=host`, and
+  nothing else — the presigner treats `content-type` as unsignable for a
+  presigned URL. Signing `video/webm` and sending
+  `video/webm;codecs=vp9,opus` returns **200**, not the 403 predicted here.
+  Making the client echo the signed type is still worth having, because it is
+  what decides the content type R2 stores and it now matches the row, but it
+  was never the thing that would break every recording.
+- **CORS is exactly as load-bearing as claimed.** An unconfigured bucket
+  answers the preflight with **403 and no `access-control-allow-*` headers at
+  all**, so the browser refuses the PUT before it is sent. The symptom is
+  uploads failing while `curl` works — and *not* broken thumbnails, since an
+  `<img>` or `<video>` src is not a CORS request.
+- **An Object Read & Write token cannot read or write the CORS policy**
+  (`GetBucketCors` → AccessDenied). It is a dashboard job, or a job for an
+  Admin token, and no amount of code in this repository can do it.
+
+## A0b. The bug to know about before starting
 
 **The browser PUTs directly to R2.** `mintUpload` in
 `apps/web/src/server/capture.ts` returns a signed PUT URL and `StepClient.tsx`
