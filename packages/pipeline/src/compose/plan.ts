@@ -58,6 +58,30 @@ const normalise = (word: string): string => word.toLowerCase().replace(/[^a-z0-9
  * to runs in proportion to each run's length keeps captions honest across
  * pauses, even though word placement inside a run is still an estimate.
  */
+/**
+ * The words that belong to the first speech run of an answer.
+ *
+ * The share of the answer's words that `distributeWords` would put in run
+ * zero, taken from the front. Not a guess at where the sentence ends — this
+ * is a proportion, the same one the caption layout uses everywhere else, so
+ * the two cannot drift apart and put a word on screen after the picture has
+ * cut away from it.
+ */
+export const openingWords = (
+  spoken: string,
+  runs: readonly SpeechRun[],
+): string[] => {
+  const words = spoken.split(/\s+/).filter((w) => w.length > 0);
+  const first = runs[0];
+  if (first === undefined || words.length === 0) return words;
+
+  const speaking = runs.reduce((total, r) => total + (r.endMs - r.startMs), 0);
+  if (speaking <= 0) return words;
+
+  const share = Math.round((words.length * (first.endMs - first.startMs)) / speaking);
+  return words.slice(0, Math.min(words.length, Math.max(1, share)));
+};
+
 const distributeWords = (
   words: readonly string[],
   runs: readonly SpeechRun[],
@@ -268,7 +292,27 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
 
   const coldSpeechStart = grid(coldStart + (coldRun.startMs - coldSourceIn));
   const coldSpeechDur = grid(coldRun.endMs - coldRun.startMs);
-  const coldWords = (lesson.coldOpen ?? "").split(/\s+/).filter((w) => w.length > 0);
+  /**
+   * The cold open's words, and a fallback that is not optional.
+   *
+   * `coldOpen` is a human choice — the phrase somebody picked to open the film
+   * with — and intake types it in. Nothing in the browser does, and neither
+   * does transcription: it produces what was said, not which part of it is the
+   * hook. So for every film a customer makes themselves, this was empty, and
+   * an empty caption list fails the EDL schema at `speechSegments.0.captions`
+   * — a permanent compose failure with no hint that a missing OPTIONAL field
+   * caused it.
+   *
+   * The fallback is the opening of the answer itself, which is what the
+   * picture is showing anyway: this segment plays the first speech run of
+   * "the greatest lesson", so the words on screen should be the words spoken
+   * in that run. Sized by the same proportion `distributeWords` would use, so
+   * the captions do not run past the end of the run.
+   */
+  const coldWords =
+    lesson.coldOpen === undefined
+      ? openingWords(lesson.spoken, lesson.runs)
+      : lesson.coldOpen.split(/\s+/).filter((w) => w.length > 0);
   speech.push({
     id: "s_cold_open",
     questionId: lesson.questionId,

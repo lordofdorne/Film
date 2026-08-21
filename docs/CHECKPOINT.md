@@ -196,6 +196,21 @@ progress.
 
 ## Hard-won details
 
+- **An optional field that every caller happened to supply is not optional.**
+  `coldOpen` — the phrase the film opens on — was typed by intake for every
+  project that had ever reached compose. The first film made from transcripts
+  had none, and compose failed permanently with `SCHEMA_INVALID at
+  speechSegments.0.captions`: the schema names the empty array, never the
+  missing field that emptied it. Compose now falls back to the opening of the
+  answer itself. Look for this shape wherever `?? ""` feeds something with a
+  `.min(1)` behind it.
+- **A code fix does not re-plan a stage.** The input hash is the only thing the
+  dispatcher compares, so fixing a permanently-failed stage requires bumping
+  its recipe constant — and the project itself has to be moved out of `failed`
+  by hand, because that status is not ACTIVE.
+- **Env is read at boot.** A worker started before `.env` was corrected goes on
+  failing with errors that describe the code rather than the process. Restart
+  the worker after touching `.env`.
 - **`delayRender` at module scope leaks.** A handle created outside a React
   render pass is never reconciled; the watchdog kills the render at the timeout
   boundary after a thousand good frames.
@@ -444,12 +459,29 @@ an hour.
 
 ### What it still cannot do
 
-**It cannot yet produce a film.** A project finished in the browser ingests
-cleanly, reaches compose and dies for want of the words of every answer. The
-`transcribe` stage is the missing piece; its queue, enum value and
-`assets.transcript_key` column already exist, and the worker deliberately does
-not register it. **Block 8 of the 3b plan, and the owner deferred the provider
-decision on 2026-08-17.**
+**It produces a film.** Block 8 landed on 2026-08-20 and the pipeline runs end
+to end: a project with no typed words reaches compose, renders, delivers, and
+downloads from the browser.
+
+`transcribe` is whisper.cpp, spawned like ffmpeg. Two things about it are worth
+knowing before touching it:
+
+- **It needs a binary and a model.** `brew install whisper-cpp`, and
+  `WHISPER_MODEL` pointing at a ggml file (`models/` is gitignored; small.en is
+  the chosen size). Nothing transcribes without both, and the error says so.
+- **It does not use word timings**, though whisper can produce them.
+  `distributeWords` lays captions out against the speech runs INGEST measured
+  from the waveform, which are better than a model's guesses. The stage only
+  ever wanted the words.
+- **It runs per take, during capture**, so by the time somebody presses "Make
+  my film" the words are already in the database.
+- **A typed selection always wins.** Intake still types words in, and transcribe
+  leaves any take that already has them alone.
+
+Local was the point, not a compromise: the licence question that stalled this
+decision — does the provider train on customer audio — has one answer that
+cannot be got wrong, which is that the audio never leaves the machine. It also
+costs nothing per film.
 
 Also still true of a browser-made project:
 
@@ -468,9 +500,15 @@ Also still true of a browser-made project:
 
 ### Open questions for the owner
 
-- Which speech-to-text provider, and on what terms — it is customer voice, so
-  the licence must forbid training on it. **Asked 2026-08-17; the owner deferred
-  it and took blocks 1–7 without it.** Nothing delivers a finished film until
-  this is decided.
+- ~~Which speech-to-text provider~~ — **answered 2026-08-20 by not choosing
+  one.** whisper.cpp runs on the worker; there is no provider, no per-film
+  cost, and no terms to read, because the audio never leaves the machine. If
+  that is ever revisited for speed, the licence must forbid training on
+  customer audio, and the interface to replace is `media/whisper.ts`.
+- **Whether a failed project can be retried.** A permanent stage failure marks
+  the project `failed`, which is not an ACTIVE status, so fixing the code
+  re-plans nothing — the row has to be moved back to `processing` by hand.
+  That is right for a customer-facing state machine and wrong as the only
+  tool; found while fixing the cold-open bug below.
 - Whether the walk-through's sixteen pieces of coaching copy read the way the
   owner would say them. They are the highest-leverage strings in the product.
