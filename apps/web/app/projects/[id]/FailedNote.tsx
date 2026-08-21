@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import { TryAgainButton } from "./TryAgainButton.js";
+
 /**
  * The film could not be made, and saying so is the whole job.
  *
@@ -28,14 +30,15 @@ export const FailedNote = ({ projectId }: { readonly projectId: string }) => (
       us is exactly where it was — the fault is in the making, not the material, and
       the film can be made again once it is fixed.
     </p>
+    <div style={styles.action}>
+      <TryAgainButton projectId={projectId} />
+    </div>
     <p style={styles.blurb}>
-      We can see that this happened. If it is holding you up, reply to the email we
-      sent you and we will look at it.
+      Sometimes that is all it takes. If it stops in the same place, the fault is
+      one we have to fix at our end — we can see that this happened, and you can
+      reply to the email we sent you to hurry us along.
     </p>
     <nav style={styles.nav}>
-      <Link href={`/projects/${projectId}`} style={styles.secondary}>
-        Look again
-      </Link>
       <Link href="/" style={styles.secondary}>
         Your films
       </Link>
@@ -63,6 +66,7 @@ const styles = {
     padding: "14px 16px",
     margin: "18px 0 0",
   },
+  action: { marginTop: 26 },
   nav: { display: "flex", gap: 12, marginTop: 30, flexWrap: "wrap" as const },
   secondary: {
     border: "1px solid #ccc",

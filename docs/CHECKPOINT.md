@@ -211,6 +211,11 @@ progress.
 - **Env is read at boot.** A worker started before `.env` was corrected goes on
   failing with errors that describe the code rather than the process. Restart
   the worker after touching `.env`.
+- **The web app must import `@film/pipeline` by subpath, never the root.** The
+  root re-exports every stage, which drags Remotion's bundler and renderer into
+  the Next server graph; the symptom is `Module parse failed: Unexpected
+  character` on a binary webpack was never meant to see. That is what
+  `@film/pipeline/model`, `/capture` and `/retry` are for.
 - **`delayRender` at module scope leaks.** A handle created outside a React
   render pass is never reconciled; the watchdog kills the render at the timeout
   boundary after a thousand good frames.
@@ -515,10 +520,13 @@ Also still true of a browser-made project:
   cost, and no terms to read, because the audio never leaves the machine. If
   that is ever revisited for speed, the licence must forbid training on
   customer audio, and the interface to replace is `media/whisper.ts`.
-- **Whether a failed project can be retried.** A permanent stage failure marks
-  the project `failed`, which is not an ACTIVE status, so fixing the code
-  re-plans nothing — the row has to be moved back to `processing` by hand.
-  That is right for a customer-facing state machine and wrong as the only
-  tool; found while fixing the cold-open bug below.
+- ~~Whether a failed project can be retried~~ — **answered 2026-08-21.** The
+  failure screen has a "Try making it again" button. `retryProject` reopens the
+  dead-end stage executions (attempt 0, failure class cleared, error text kept)
+  and moves the project back to `processing`. Both halves are needed: a status
+  change alone spins once and re-fails, because the dispatcher refuses a stage
+  that used up its attempts.
+  **A code fix still needs its recipe constant bumped** — the input hash is all
+  the dispatcher compares, and no button changes that.
 - Whether the walk-through's sixteen pieces of coaching copy read the way the
   owner would say them. They are the highest-leverage strings in the product.

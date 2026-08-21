@@ -19,6 +19,7 @@ export * from "./runtime/log.js";
 export * from "./runtime/runStage.js";
 export * from "./runtime/workdir.js";
 export * from "./model.js";
+export * from "./retry.js";
 export * from "./stages/context.js";
 export * from "./stages/ingest.js";
 export * from "./stages/transcribe.js";
