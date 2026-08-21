@@ -170,7 +170,28 @@ export const runRender = async (ctx: StageContext, renderId: string): Promise<st
     composition,
     inputProps: props,
     codec: "h264",
-    crf: render.quality === "preview" ? 26 : 18,
+    /**
+     * Where the delivered file's size is actually decided.
+     *
+     * The loudness pass afterwards is `-c:v copy`, so this encode IS the
+     * delivery — there is no second chance to make it smaller, and no lever
+     * downstream.
+     *
+     * crf 18 was chosen for "as good as it gets" and it shows: it is well past
+     * the point where anybody can see a difference on this material — a person
+     * talking to camera, cut with stills — and it was producing files around
+     * 120 MB. 21 is still visually transparent here and roughly halves that.
+     * The gain is not the disk, it is the customer on a phone waiting to watch
+     * a film about their grandmother.
+     *
+     * `slow` buys the rest for free at the customer's end: x264 spends more
+     * CPU on our worker looking for a cheaper way to encode the same picture,
+     * about 15% smaller again at the same crf. The render is minutes of a
+     * machine's time and it happens once; the download happens whenever
+     * somebody wants to watch.
+     */
+    crf: render.quality === "preview" ? 28 : 21,
+    x264Preset: render.quality === "preview" ? "veryfast" : "slow",
     outputLocation: mezzanine,
     concurrency: 1,
     chromiumOptions: { gl: "swiftshader" },

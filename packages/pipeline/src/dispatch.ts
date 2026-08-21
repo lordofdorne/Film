@@ -21,6 +21,8 @@ import { loadAssets, loadProject } from "./stages/context.js";
 import { ingestIdentity } from "./stages/ingest.js";
 import { renderIdentity } from "./stages/render.js";
 import { deliverIdentity } from "./stages/deliver.js";
+import { hasSelection, transcribeIdentity } from "./stages/transcribe.js";
+import type { AssetRow } from "./model.js";
 
 /**
  * How many times a stage may be attempted before the project is stuck.
@@ -122,19 +124,44 @@ export const planProject = async (
   /* ── 1. ingest, per asset ─────────────────────────────────────────── */
   const ingestHashes = new Map<string, string>();
   let allIngested = true;
+  const ingested: AssetRow[] = [];
 
   for (const row of rows) {
     const identity = ingestIdentity(row, format);
     ingestHashes.set(row.id, identity.inputHash);
     const verdict = consider(identity, `ingest ${row.slotId ?? row.questionId ?? row.id}`);
     if (verdict === "dispatch") jobs.push(payload(identity));
-    if (verdict !== "done") allIngested = false;
+    if (verdict === "done") ingested.push(row);
+    else allIngested = false;
   }
 
-  /* ── 2. compose, once every asset is in AND the customer has finished ── */
+  /* ── 2. transcribe, per answer, as soon as that answer is ingested ── */
+  /**
+   * Deliberately not held until capture ends.
+   *
+   * Transcription is the slowest thing in the pipeline that does not need the
+   * whole film, and every take is independent of every other. Running it while
+   * the customer is recording the next answer means that by the time they
+   * press "Make my film" the words are already in the database and the only
+   * thing left to wait for is the render. It is the same reasoning that put
+   * ingest inside capture.
+   *
+   * Answers only, and only ones without words already: intake types them in by
+   * hand, and a typed selection is a better source than a model.
+   */
+  let allTranscribed = true;
+  for (const row of ingested) {
+    if (row.kind !== "interview" || hasSelection(row)) continue;
+    const identity = transcribeIdentity(row);
+    const verdict = consider(identity, `transcribe ${row.questionId ?? row.id}`);
+    if (verdict === "dispatch") jobs.push(payload(identity));
+    if (verdict !== "done") allTranscribed = false;
+  }
+
+  /* ── 3. compose, once every asset is in AND the customer has finished ── */
   // Never while capturing: the set of assets is still changing under it, and
   // a film must only ever be cut from what the customer decided was complete.
-  if (allIngested && project.status !== "capturing") {
+  if (allIngested && allTranscribed && project.status !== "capturing") {
     const identity = composeIdentity(project, rows, ingestHashes);
     if (consider(identity, "compose") === "dispatch") jobs.push(payload(identity));
   }

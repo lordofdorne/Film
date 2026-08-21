@@ -17,6 +17,7 @@ import { composeIdentity } from "../src/stages/compose.js";
 import { deliverIdentity } from "../src/stages/deliver.js";
 import { ingestIdentity as ingest } from "../src/stages/ingest.js";
 import { renderIdentity } from "../src/stages/render.js";
+import { transcribeIdentity } from "../src/stages/transcribe.js";
 import { MUSIC_BED_SLOT, type AssetRow } from "../src/model.js";
 import { loadAssets } from "../src/stages/context.js";
 
@@ -141,6 +142,35 @@ const markIngested = async (): Promise<void> => {
   for (const row of await rows()) await record(ingest(row, FORMAT));
 };
 
+/**
+ * Pretend every answer has its words, as the transcribe stage would.
+ *
+ * Separate from markIngested on purpose: compose now waits for both, and a
+ * helper that did the two together would hide the gate this file is here to
+ * check.
+ */
+const markTranscribed = async (): Promise<void> => {
+  for (const row of await rows()) {
+    if (row.kind !== "interview") continue;
+    await db
+      .update(assets)
+      .set({
+        selection: { spoken: "the words that were said in this take" },
+        transcriptKey: `projects/${projectId}/transcript/${row.id}/transcript.json`,
+      })
+      .where(eq(assets.id, row.id));
+  }
+  for (const row of await rows()) {
+    if (row.kind === "interview") await record(transcribeIdentity(row));
+  }
+};
+
+/** Ingested and transcribed: everything compose waits for. */
+const markReady = async (): Promise<void> => {
+  await markIngested();
+  await markTranscribed();
+};
+
 describe("planProject", () => {
   it("plans an ingest for every asset that has not been ingested", async () => {
     needsDb();
@@ -161,19 +191,33 @@ describe("planProject", () => {
     await record(ingest(first, FORMAT));
 
     const { jobs } = await planProject(db, projectId);
-    expect(jobs.map((j) => j.stage)).toEqual(["ingest"]);
+    expect(jobs.map((j) => j.stage)).not.toContain("compose");
+    expect(jobs.filter((j) => j.stage === "ingest")).toHaveLength(1);
   });
 
-  it("plans compose once every asset is in", async () => {
+  it("plans compose once every asset is in and every answer has words", async () => {
     needsDb();
-    await markIngested();
+    await markReady();
     const { jobs } = await planProject(db, projectId);
     expect(jobs.map((j) => j.stage)).toEqual(["compose"]);
   });
 
-  it("plans nothing for a stage that already succeeded", async () => {
+  /**
+   * The gate that Block 8 added. Compose permanently rejects an answer with no
+   * words, so dispatching it before transcription is a film that fails for a
+   * reason the customer cannot see and cannot fix.
+   */
+  it("waits for the words before cutting anything", async () => {
     needsDb();
     await markIngested();
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).toEqual(["transcribe"]);
+    expect(jobs[0]?.assetId).toBe(takeId);
+  });
+
+  it("plans nothing for a stage that already succeeded", async () => {
+    needsDb();
+    await markReady();
     const project = (await db.select().from(projects).where(eq(projects.id, projectId)))[0];
     if (project === undefined) throw new Error("no project");
     const hashes = new Map((await rows()).map((r) => [r.id, ingest(r, FORMAT).inputHash]));
@@ -260,7 +304,7 @@ describe("planProject — render and deliver", () => {
     renderId: string;
     edlVersionId: string;
   }> => {
-    await markIngested();
+    await markReady();
     const project = (await db.select().from(projects).where(eq(projects.id, projectId)))[0];
     if (project === undefined) throw new Error("no project");
     const hashes = new Map((await rows()).map((r) => [r.id, ingest(r, FORMAT).inputHash]));
@@ -425,9 +469,7 @@ describe("ingest during capture", () => {
   it("never plans compose while the customer is still capturing", async () => {
     needsDb();
     await capturing();
-    for (const row of await rows()) {
-      await record(ingest(row, FORMAT), { status: "succeeded" });
-    }
+    await markReady();
     const { jobs } = await planProject(db, projectId);
     expect(jobs.map((j) => j.stage)).not.toContain("compose");
 
