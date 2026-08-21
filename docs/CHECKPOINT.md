@@ -460,8 +460,18 @@ an hour.
 ### What it still cannot do
 
 **It produces a film.** Block 8 landed on 2026-08-20 and the pipeline runs end
-to end: a project with no typed words reaches compose, renders, delivers, and
-downloads from the browser.
+to end. Proved on 2026-08-21 with a real project whose typed answers were
+deleted first, so transcription was the only possible source of the words: 10
+takes transcribed, cut to 3:03, approved in the browser, rendered, delivered,
+and downloaded — 302 to R2, 206 on a range request, `ftypisom` in the first
+bytes, and the customer's filename in the content-disposition.
+
+**The delivered film is 76 MB where it used to be 110 MB** for the same
+footage at the same length (182.7s vs 182.8s). crf 21 and the `slow` x264
+preset, both set in `renderMedia` — the loudness pass is `-c:v copy`, so that
+encode IS the delivery and there is no lever downstream. The render costs 389s
+of one machine's time, once; the download happens every time somebody wants to
+watch.
 
 `transcribe` is whisper.cpp, spawned like ffmpeg. Two things about it are worth
 knowing before touching it:
