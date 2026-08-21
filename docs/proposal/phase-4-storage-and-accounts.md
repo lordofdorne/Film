@@ -62,6 +62,32 @@ mostly one new page plus a bug that has to be fixed first.
 
 # Part A — R2
 
+## A4 was run on 2026-08-20, against the bucket `films`
+
+The whole loop, in a browser, on real R2:
+
+- A photograph uploaded from the step sheet PUTs to
+  `films.<account>.r2.cloudflarestorage.com` — the bytes never touch the app
+  server — and the asset row lands only after them.
+- `/api/media` appears **zero** times in the hub's DOM. Thumbnails render from
+  signed URLs.
+- The worker ingests from R2, writes the normalised object back, and the QC
+  note reaches the hub card in the customer's words: *"This looks a little soft
+  on a big screen."*
+- A signed download returns 200 with
+  `content-disposition: attachment; filename="Ada Lovelace — Life Advice v1.mp4"`.
+- `deletePrefix` removed 3 of 3 and left none.
+
+Not proved, and it cannot be until Block 8: **a finished film downloaded
+through the UI**. Nothing reaches render without transcription.
+
+One thing to know, because it wasted half an hour: a worker started **before**
+the R2 variables were corrected went on failing ingest with a nonsense error
+(`ENOENT: open 'source.jpg'`) long after `.env` was right. Env is read at boot.
+**Restart the worker after touching `.env`** — the same class of mistake as the
+stale `next-server` in the checkpoint, and it looks like a bug in the code
+rather than in the process table.
+
 ## A0. Measured against a real bucket on 2026-08-20
 
 The warning below was half right, and the wrong half was the loud one.
