@@ -59,3 +59,6 @@ next-env.d.ts
 
 # Local object store — customer media, never committed.
 .storage/
+
+# Whisper models. Hundreds of megabytes of weights, downloaded not authored.
+models/

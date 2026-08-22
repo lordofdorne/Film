@@ -20,8 +20,15 @@ import {
 } from "../model.js";
 import { loadAssets, loadProject } from "./context.js";
 
-/** Bump when the layout compose produces changes for the same inputs. */
-export const COMPOSE_RECIPE = 1;
+/**
+ * Bump when the layout compose produces changes for the same inputs.
+ *
+ * 2: the cold open falls back to the opening of the answer when nobody typed
+ * one. Without the bump, every film that already failed compose for want of
+ * those words would keep its failed execution row and never be re-planned —
+ * a fix in the code that changes nothing in the world.
+ */
+export const COMPOSE_RECIPE = 2;
 
 /**
  * Unlicensed music is refused unless someone has explicitly said otherwise.

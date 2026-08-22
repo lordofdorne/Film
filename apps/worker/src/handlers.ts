@@ -10,6 +10,8 @@ import {
   runIngest,
   runRender,
   runStage,
+  runTranscribe,
+  transcribeRequiresFreeBytes,
   type StageOutcome,
 } from "@film/pipeline";
 
@@ -23,13 +25,18 @@ export type HandlerDeps = {
 /**
  * Stages this worker will actually run.
  *
- * qc, transcribe and select have queues and database enum values but no
- * implementation, and they are deliberately absent here rather than present as
- * no-ops. A stage that succeeds without doing anything is indistinguishable
- * from a stage that works, which is precisely the wrong thing to be unsure
- * about later.
+ * qc and select have queues and database enum values but no implementation,
+ * and they are deliberately absent here rather than present as no-ops. A stage
+ * that succeeds without doing anything is indistinguishable from a stage that
+ * works, which is precisely the wrong thing to be unsure about later.
  */
-export const IMPLEMENTED: readonly QueueName[] = ["ingest", "compose", "render", "deliver"];
+export const IMPLEMENTED: readonly QueueName[] = [
+  "ingest",
+  "transcribe",
+  "compose",
+  "render",
+  "deliver",
+];
 
 /**
  * Run one job.
@@ -57,6 +64,14 @@ export const handleJob = async (deps: HandlerDeps, raw: unknown): Promise<StageO
         runIngest,
       );
 
+    case "transcribe":
+      return runStage(
+        deps,
+        identity,
+        { ...common, requiresFreeBytes: transcribeRequiresFreeBytes() },
+        runTranscribe,
+      );
+
     case "compose":
       return runStage(deps, identity, common, runCompose);
 
@@ -82,7 +97,6 @@ export const handleJob = async (deps: HandlerDeps, raw: unknown): Promise<StageO
     }
 
     case "qc":
-    case "transcribe":
     case "select":
       return runStage(deps, identity, common, async () => {
         throw permanent(`the ${job.stage} stage is not implemented yet`);

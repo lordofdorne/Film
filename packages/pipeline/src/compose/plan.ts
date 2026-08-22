@@ -44,6 +44,17 @@ const GRID = 100;
 const PROMPT_MS = 1800;
 const MIN_PROMPT_MS = 900;
 const grid = (ms: number): number => Math.round(ms / GRID) * GRID;
+
+/**
+ * Down to the grid, never up — for anything bounded by real media.
+ *
+ * `grid` rounds to the NEAREST 100ms, which is right for timeline positions
+ * and wrong for the end of a source range: a take that is 16079ms long became
+ * a request for 16100ms of it, and the EDL failed validation by 21
+ * milliseconds. Recordings do not end on round numbers; fixtures do, which is
+ * why every test passed for months.
+ */
+const gridDown = (ms: number): number => Math.floor(ms / GRID) * GRID;
 const clamp = (v: number, lo: number, hi: number): number => Math.min(Math.max(v, lo), hi);
 
 const normalise = (word: string): string => word.toLowerCase().replace(/[^a-z0-9']/g, "");
@@ -58,6 +69,30 @@ const normalise = (word: string): string => word.toLowerCase().replace(/[^a-z0-9
  * to runs in proportion to each run's length keeps captions honest across
  * pauses, even though word placement inside a run is still an estimate.
  */
+/**
+ * The words that belong to the first speech run of an answer.
+ *
+ * The share of the answer's words that `distributeWords` would put in run
+ * zero, taken from the front. Not a guess at where the sentence ends — this
+ * is a proportion, the same one the caption layout uses everywhere else, so
+ * the two cannot drift apart and put a word on screen after the picture has
+ * cut away from it.
+ */
+export const openingWords = (
+  spoken: string,
+  runs: readonly SpeechRun[],
+): string[] => {
+  const words = spoken.split(/\s+/).filter((w) => w.length > 0);
+  const first = runs[0];
+  if (first === undefined || words.length === 0) return words;
+
+  const speaking = runs.reduce((total, r) => total + (r.endMs - r.startMs), 0);
+  if (speaking <= 0) return words;
+
+  const share = Math.round((words.length * (first.endMs - first.startMs)) / speaking);
+  return words.slice(0, Math.min(words.length, Math.max(1, share)));
+};
+
 const distributeWords = (
   words: readonly string[],
   runs: readonly SpeechRun[],
@@ -218,6 +253,44 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     return found;
   };
 
+  /**
+   * A source window that the clip actually contains.
+   *
+   * Compose used to cut b-roll as though every clip were long enough for the
+   * beat it was filling — the opening asked for 1000–5000ms, the inserts for
+   * 1500–5500ms. The template asks for ten seconds and the fixtures oblige,
+   * so nothing caught it; the first person to film their own ten seconds
+   * filmed one and a half, and the EDL failed validation with
+   * SOURCE_RANGE_OUTSIDE_ASSET — which names the segment and not the clip.
+   *
+   * Backing the start off toward zero before shortening is deliberate: a short
+   * clip is usually short because somebody stopped recording early, not
+   * because it starts late, so the interesting part is at the front.
+   *
+   * Returns nothing when even the floor cannot be met, and the caller decides
+   * what a film does without that shot.
+   */
+  const sourceWindow = (
+    assetId: string,
+    wantInMs: number,
+    wantDurationMs: number,
+    floorMs: number,
+  ): { readonly inMs: number; readonly durationMs: number } | undefined => {
+    const available = input.assetDurationMs[assetId];
+    // Unknown duration: ingest records one for every video, so this is a
+    // fixture or a bug. Behave as before rather than silently dropping a shot.
+    if (available === undefined || available <= 0) {
+      return { inMs: wantInMs, durationMs: wantDurationMs };
+    }
+
+    // gridDown, never grid: a 2667ms clip rounded to 2700 overran its own end
+    // by 33ms — the very failure this function exists to prevent, put back by
+    // the rounding inside the fix. Caught by testing a real clip length.
+    const inMs = gridDown(Math.max(0, Math.min(wantInMs, available - wantDurationMs)));
+    const durationMs = gridDown(Math.min(wantDurationMs, available - inMs));
+    return durationMs < floorMs ? undefined : { inMs, durationMs };
+  };
+
   const visual = new VisualTimeline();
   const speech: SpeechSegment[] = [];
   const prompts: QuestionPromptSegment[] = [];
@@ -228,18 +301,93 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   const XFADE = { type: "crossfade", durationMs: editing.crossfadeMs } as const;
   const FADE = { type: "fade", durationMs: editing.fadeMs } as const;
 
+  /**
+   * The slots the template says a film is wrong without.
+   *
+   * Read here so the beat planner can tell a preference from a requirement:
+   * a shot that is merely shorter than we would like still has to appear.
+   */
+  const conformance = template.conformance as {
+    requiredPhotoSlotIds: readonly string[];
+    requiredVideoSlotIds: readonly string[];
+  };
+  const requiredSlotIds = new Set([
+    ...conformance.requiredPhotoSlotIds,
+    ...conformance.requiredVideoSlotIds,
+  ]);
+
+  /**
+   * Put a required shot on screen on its own, when it could not be woven into
+   * an answer. Returns false only when there is genuinely nothing to show,
+   * which is a missing REQUIRED slot and rightly fails validation later.
+   */
+  const placeRequiredSlot = (
+    insert: { readonly kind: "photo" | "broll"; readonly slotId: string },
+    id: string,
+  ): boolean => {
+    if (insert.kind === "photo") {
+      const s = input.stills.find((x) => x.slotId === insert.slotId);
+      if (s === undefined) return false;
+      visual.push({
+        id,
+        kind: "photo",
+        durationMs: grid(editing.photoHoldMs.min),
+        transitionIn: XFADE,
+        assetId: s.assetId,
+        slotId: s.slotId,
+        focalPoint: { x: 0.5, y: 0.45 },
+        motion: "in",
+        intensity: 0.2,
+        entry: "cut",
+      });
+      return true;
+    }
+
+    const assetId = input.brollAssetIds[insert.slotId];
+    if (assetId === undefined) return false;
+    // A second is the floor below which a cut is a flinch rather than a shot.
+    const shot = sourceWindow(assetId, 0, editing.brollMs.min, 1000);
+    if (shot === undefined) return false;
+    visual.push({
+      id,
+      kind: "broll",
+      durationMs: shot.durationMs,
+      transitionIn: XFADE,
+      assetId,
+      slotId: insert.slotId,
+      sourceInMs: shot.inMs,
+      sourceOutMs: shot.inMs + shot.durationMs,
+    });
+    return true;
+  };
+
   /* ── 1. opening context: b-roll under the opening line ─────────────── */
-  const OPENING_MS = 4000;
+  const WANTED_OPENING_MS = 4000;
+  const openAsset = broll("video_personality");
+  /**
+   * As much of the opening as the clip can carry, down to a second. A short
+   * opening is a small compromise; a film that will not compose is not.
+   */
+  const open =
+    sourceWindow(openAsset, 1000, WANTED_OPENING_MS, 1000) ??
+    sourceWindow(openAsset, 0, WANTED_OPENING_MS, 0) ??
+    { inMs: 0, durationMs: WANTED_OPENING_MS };
+  const OPENING_MS = open.durationMs;
+  if (OPENING_MS < WANTED_OPENING_MS) {
+    notes.push(
+      `the opening clip is only ${String(OPENING_MS)}ms; the film opens on what there is`,
+    );
+  }
   visual.push({
     id: "v_open",
     kind: "broll",
     durationMs: OPENING_MS,
     transitionIn: CUT,
     overlayTextKey: "opening",
-    assetId: broll("video_personality"),
+    assetId: openAsset,
     slotId: "video_personality",
-    sourceInMs: 1000,
-    sourceOutMs: 1000 + OPENING_MS,
+    sourceInMs: open.inMs,
+    sourceOutMs: open.inMs + OPENING_MS,
   });
 
   /* ── 2. cold open ──────────────────────────────────────────────────── */
@@ -268,7 +416,27 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
 
   const coldSpeechStart = grid(coldStart + (coldRun.startMs - coldSourceIn));
   const coldSpeechDur = grid(coldRun.endMs - coldRun.startMs);
-  const coldWords = (lesson.coldOpen ?? "").split(/\s+/).filter((w) => w.length > 0);
+  /**
+   * The cold open's words, and a fallback that is not optional.
+   *
+   * `coldOpen` is a human choice — the phrase somebody picked to open the film
+   * with — and intake types it in. Nothing in the browser does, and neither
+   * does transcription: it produces what was said, not which part of it is the
+   * hook. So for every film a customer makes themselves, this was empty, and
+   * an empty caption list fails the EDL schema at `speechSegments.0.captions`
+   * — a permanent compose failure with no hint that a missing OPTIONAL field
+   * caused it.
+   *
+   * The fallback is the opening of the answer itself, which is what the
+   * picture is showing anyway: this segment plays the first speech run of
+   * "the greatest lesson", so the words on screen should be the words spoken
+   * in that run. Sized by the same proportion `distributeWords` would use, so
+   * the captions do not run past the end of the run.
+   */
+  const coldWords =
+    lesson.coldOpen === undefined
+      ? openingWords(lesson.spoken, lesson.runs)
+      : lesson.coldOpen.split(/\s+/).filter((w) => w.length > 0);
   speech.push({
     id: "s_cold_open",
     questionId: lesson.questionId,
@@ -320,7 +488,16 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     const speechStart = first.startMs;
     const speechEnd = last.endMs;
     const sourceIn = grid(Math.max(0, speechStart - PRE));
-    const sourceOut = grid(Math.min(a.durationMs, speechEnd + POST));
+    /**
+     * Never past the end of the take. The `Math.min` was already here and
+     * already correct; `grid` then rounded the capped value back UP past the
+     * duration it had just been capped to.
+     *
+     * Only bites when the grid would overshoot the real end — a take that
+     * comfortably outlasts its speech is cut exactly as before, so no film
+     * that already composed changes.
+     */
+    const sourceOut = Math.min(grid(speechEnd + POST), gridDown(a.durationMs));
     const totalDur = sourceOut - sourceIn;
     if (totalDur < 1000) {
       notes.push(`skipped "${questionId}": usable range too short`);
@@ -376,7 +553,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
 
     // Decide whether the answer is long enough to carry an insert without
     // breaking the "2s on the subject first, back to them before the end" rule.
-    const insertDur =
+    const wantedInsertDur =
       options.insert === undefined
         ? 0
         : grid(
@@ -384,12 +561,63 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
               ? editing.photoHoldMs.min + 1000
               : editing.brollMs.min + 2000,
           );
+
+    /**
+     * How much of the b-roll clip there actually is, decided BEFORE the beat
+     * is planned.
+     *
+     * It has to be up here because the insert's length is what splits the
+     * answer into its two halves — discovering the clip was short at push
+     * time would leave arithmetic that no longer adds up. A clip that cannot
+     * fill `brollMs.min` is not used at all: the template says an insert is
+     * two to six seconds, and a one-second cutaway is not a shorter version
+     * of that shot, it is a flinch.
+     */
+    const brollShot =
+      options.insert === undefined || options.insert.kind === "photo"
+        ? undefined
+        : (() => {
+            const assetId = input.brollAssetIds[options.insert.slotId];
+            if (assetId === undefined) return undefined;
+            return sourceWindow(assetId, 1500, wantedInsertDur, editing.brollMs.min);
+          })();
+
+    const insertDur =
+      options.insert !== undefined && options.insert.kind === "broll"
+        ? (brollShot?.durationMs ?? wantedInsertDur)
+        : wantedInsertDur;
+
     const before = editing.minSubjectVisibleBeforeInsertMs;
     const after = editing.returnToSubjectBeforeAnswerEndsMs;
-    const canInsert = options.insert !== undefined && totalDur >= before + insertDur + after + 2000;
+    /**
+     * An insert whose slot is empty is not an error.
+     *
+     * `video_environment` and `keepsake` are `required: false` in the
+     * template, so the hub lets somebody finish a film without them — and
+     * then compose demanded them anyway and failed permanently, which is a
+     * film killed by a step the customer was told was optional. The two
+     * halves have to agree about what a film needs, and the template is the
+     * one holding the answer.
+     */
+    const haveMedia =
+      options.insert === undefined
+        ? false
+        : options.insert.kind === "photo"
+          ? input.stills.some((s) => s.slotId === options.insert?.slotId)
+          : brollShot !== undefined;
+
+    const canInsert =
+      options.insert !== undefined && haveMedia && totalDur >= before + insertDur + after + 2000;
 
     if (!canInsert) {
-      if (options.insert !== undefined) {
+      if (options.insert !== undefined && !haveMedia) {
+        const slotId = options.insert.slotId;
+        notes.push(
+          input.brollAssetIds[slotId] === undefined && !input.stills.some((s) => s.slotId === slotId)
+            ? `nothing in slot "${slotId}"; "${questionId}" stays on the subject`
+            : `the clip in "${slotId}" is too short to cut to; "${questionId}" stays on the subject`,
+        );
+      } else if (options.insert !== undefined) {
         notes.push(
           `"${questionId}" too short (${String(totalDur)}ms) for an insert; kept on the subject`,
         );
@@ -404,6 +632,28 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
         sourceOutMs: sourceIn + totalDur,
         scale,
       });
+
+      /**
+       * A slot the template REQUIRES gets its own beat rather than being lost.
+       *
+       * The editorial minimums — `photoHoldMs.min`, `brollMs.min`, the
+       * headroom an answer needs to carry an insert — are preferences.
+       * `conformance.requiredPhotoSlotIds` is not: it says the film is wrong
+       * without this shot. So when a preference would drop a required slot,
+       * the preference yields and the shot is placed on its own, right where
+       * it would have been cut in.
+       *
+       * Here rather than appended at the end, deliberately: an answer plays
+       * before it and another after, so a recovered photograph cannot stack up
+       * against the closing stills and break `maxConsecutivePhotos`.
+       */
+      const rescue = options.insert;
+      if (rescue !== undefined && requiredSlotIds.has(rescue.slotId)) {
+        const placed = placeRequiredSlot(rescue, `v_${questionId}${suffix}_required`);
+        if (placed) {
+          notes.push(`"${rescue.slotId}" is required, so it gets a beat of its own`);
+        }
+      }
     } else {
       const insert = options.insert;
       if (insert === undefined) throw new Error("unreachable");
@@ -436,6 +686,8 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
           entry: insert.entry,
         });
       } else {
+        // Guaranteed by canInsert: haveMedia is brollShot !== undefined.
+        const shot = brollShot ?? { inMs: 1500, durationMs: insertDur };
         visual.push({
           id: `v_${questionId}${suffix}_insert`,
           kind: "broll",
@@ -443,8 +695,8 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
           transitionIn: CUT,
           assetId: broll(insert.slotId),
           slotId: insert.slotId,
-          sourceInMs: 1500,
-          sourceOutMs: 1500 + insertDur,
+          sourceInMs: shot.inMs,
+          sourceOutMs: shot.inMs + insertDur,
         });
       }
 
@@ -517,20 +769,33 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   addAnswerBeat("closing_message");
 
   /* ── 11. keepsake, then the group photo ────────────────────────────── */
-  const keepsake = still("keepsake");
+  /**
+   * The keepsake is optional, and the closing sequence has to survive without
+   * it. This called `still("keepsake")` and threw — so a customer who skipped
+   * the card the hub had marked "optional" got a film that failed to compose,
+   * hours later, with no way to connect the two.
+   *
+   * Skipped rather than substituted: the group photo that follows is the real
+   * ending, and an object nobody chose would be worse than no object.
+   */
+  const keepsake = input.stills.find((s) => s.slotId === "keepsake");
   const group = still("photo_group");
-  visual.push({
-    id: "v_keepsake",
-    kind: "photo",
-    durationMs: 4600,
-    transitionIn: XFADE,
-    assetId: keepsake.assetId,
-    slotId: keepsake.slotId,
-    focalPoint: { x: 0.5, y: 0.5 },
-    motion: "still",
-    intensity: 0,
-    entry: "insetExpand",
-  });
+  if (keepsake === undefined) {
+    notes.push("no keepsake was added; the film closes on the group photograph");
+  } else {
+    visual.push({
+      id: "v_keepsake",
+      kind: "photo",
+      durationMs: 4600,
+      transitionIn: XFADE,
+      assetId: keepsake.assetId,
+      slotId: keepsake.slotId,
+      focalPoint: { x: 0.5, y: 0.5 },
+      motion: "still",
+      intensity: 0,
+      entry: "insetExpand",
+    });
+  }
   visual.push({
     id: "v_group_still",
     kind: "photo",

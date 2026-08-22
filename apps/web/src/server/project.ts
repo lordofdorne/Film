@@ -15,6 +15,16 @@ import {
   type Db,
 } from "@film/db";
 import { EdlSchema, type EDL } from "@film/edl";
+/**
+ * The narrow subpath, never the package root.
+ *
+ * `@film/pipeline` re-exports every stage, which drags Remotion's bundler and
+ * renderer — and the binaries they carry — into the Next server graph. The
+ * symptom is not a slow build but a flat refusal:
+ * `Module parse failed: Unexpected character` on a file webpack was never
+ * meant to see. This is what the subpath exports are for.
+ */
+import { retryProject } from "@film/pipeline/retry";
 import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
 import { storeFromEnv, usingLocalStore, type ObjectStore } from "@film/storage";
 import type { SubjectData } from "@film/templates";
@@ -50,6 +60,13 @@ const db = (): Db => {
  * anywhere, which is a genuinely hard afternoon.
  */
 export const store = (): ObjectStore => storeFromEnv();
+
+/** Another go at a film that could not be made. The rule is in @film/pipeline,
+ *  where it is tested against a real database. */
+export const retryFilm = async (
+  projectId: string,
+): Promise<{ readonly ok: true; readonly reopened: number } | { readonly ok: false; readonly error: string }> =>
+  retryProject(db(), projectId);
 
 export type AssetWarning = {
   readonly assetId: string;

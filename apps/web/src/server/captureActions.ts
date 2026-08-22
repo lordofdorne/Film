@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 
 import { accessToProject, currentUser, ensureUser } from "./auth.js";
 import { sendMagicLink } from "./authActions.js";
+import { retryFilm } from "./project.js";
 import {
   completeUpload,
   createProjectFor,
@@ -158,6 +159,28 @@ export const startTheFilm = async (
   const result = await startTheFilmFor(projectId);
   if (result.ok) revalidatePath(`/projects/${projectId}`);
   return result;
+};
+
+/**
+ * "Try again", from the screen that says the film could not be made.
+ *
+ * The one action a person had no way to take: the film was stuck, the page
+ * said so, and the only thing that could move it was somebody with a database
+ * client. Guarded like every other action here — knowing a project id is not
+ * the same as owning the film.
+ */
+export const tryAgain = async (
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
+  const result = await retryFilm(projectId);
+  if (!result.ok) return result;
+
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/");
+  return { ok: true };
 };
 
 export const discardStep = async (

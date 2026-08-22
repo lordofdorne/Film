@@ -124,6 +124,32 @@ export const claimStage = async (db: Db, identity: StageIdentity): Promise<Claim
     : { claimed: true, executionId: claimedRow.id, attempt: claimedRow.attempt };
 };
 
+/**
+ * Give every dead end in one project another go.
+ *
+ * The dispatcher refuses to hand out a stage that failed permanently or has
+ * used up its attempts — rightly, or it and the runner would argue for ever
+ * and the loop would read like progress. But that leaves a customer looking at
+ * a film that cannot move, with nothing to press.
+ *
+ * So: reset the counter and clear the verdict, and leave everything else
+ * exactly as it is. The error text stays on the row, because the next person
+ * to look at this project wants to know what happened the first time. The
+ * claim protocol already knows how to re-claim a failed row and count the
+ * attempt, so nothing here has to understand claiming.
+ *
+ * What it deliberately does NOT do is delete anything. A retry that erased the
+ * evidence would make the second failure look like the first.
+ */
+export const reopenFailedStages = async (db: Db, projectId: string): Promise<number> => {
+  const reopened = await db
+    .update(stageExecutions)
+    .set({ attempt: 0, failureClass: null, updatedAt: new Date() })
+    .where(and(eq(stageExecutions.projectId, projectId), eq(stageExecutions.status, "failed")))
+    .returning({ id: stageExecutions.id });
+  return reopened.length;
+};
+
 export const completeStage = async (
   db: Db,
   executionId: string,

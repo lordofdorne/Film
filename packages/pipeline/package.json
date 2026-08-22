@@ -15,6 +15,10 @@
     "./capture": {
       "types": "./dist/capture.d.ts",
       "default": "./dist/capture.js"
+    },
+    "./retry": {
+      "types": "./dist/retry.d.ts",
+      "default": "./dist/retry.js"
     }
   },
   "scripts": {

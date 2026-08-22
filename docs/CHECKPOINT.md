@@ -196,6 +196,34 @@ progress.
 
 ## Hard-won details
 
+- **An optional field that every caller happened to supply is not optional.**
+  `coldOpen` — the phrase the film opens on — was typed by intake for every
+  project that had ever reached compose. The first film made from transcripts
+  had none, and compose failed permanently with `SCHEMA_INVALID at
+  speechSegments.0.captions`: the schema names the empty array, never the
+  missing field that emptied it. Compose now falls back to the opening of the
+  answer itself. Look for this shape wherever `?? ""` feeds something with a
+  `.min(1)` behind it.
+- **A code fix does not re-plan a stage.** The input hash is the only thing the
+  dispatcher compares, so fixing a permanently-failed stage requires bumping
+  its recipe constant — and the project itself has to be moved out of `failed`
+  by hand, because that status is not ACTIVE.
+- **Env is read at boot.** A worker started before `.env` was corrected goes on
+  failing with errors that describe the code rather than the process. Restart
+  the worker after touching `.env`.
+- **The database-backed tests share one development Postgres and run in
+  parallel.** Seen flaking once on 2026-08-21 — `dispatch.test.ts` failed in a
+  full run and passed alone, immediately after two more DB-backed files were
+  added. Not reproduced since, and not diagnosed. If it recurs, the one-line
+  answer is `vitest run --no-file-parallelism`, which was measured at 31s
+  against 18s; that 13s was judged too much to pay on every run for a single
+  unreproduced failure. Scoped project ids are evidently not sufficient
+  isolation on their own.
+- **The web app must import `@film/pipeline` by subpath, never the root.** The
+  root re-exports every stage, which drags Remotion's bundler and renderer into
+  the Next server graph; the symptom is `Module parse failed: Unexpected
+  character` on a binary webpack was never meant to see. That is what
+  `@film/pipeline/model`, `/capture` and `/retry` are for.
 - **`delayRender` at module scope leaks.** A handle created outside a React
   render pass is never reconciled; the watchdog kills the render at the timeout
   boundary after a thousand good frames.
@@ -444,12 +472,39 @@ an hour.
 
 ### What it still cannot do
 
-**It cannot yet produce a film.** A project finished in the browser ingests
-cleanly, reaches compose and dies for want of the words of every answer. The
-`transcribe` stage is the missing piece; its queue, enum value and
-`assets.transcript_key` column already exist, and the worker deliberately does
-not register it. **Block 8 of the 3b plan, and the owner deferred the provider
-decision on 2026-08-17.**
+**It produces a film.** Block 8 landed on 2026-08-20 and the pipeline runs end
+to end. Proved on 2026-08-21 with a real project whose typed answers were
+deleted first, so transcription was the only possible source of the words: 10
+takes transcribed, cut to 3:03, approved in the browser, rendered, delivered,
+and downloaded — 302 to R2, 206 on a range request, `ftypisom` in the first
+bytes, and the customer's filename in the content-disposition.
+
+**The delivered film is 76 MB where it used to be 110 MB** for the same
+footage at the same length (182.7s vs 182.8s). crf 21 and the `slow` x264
+preset, both set in `renderMedia` — the loudness pass is `-c:v copy`, so that
+encode IS the delivery and there is no lever downstream. The render costs 389s
+of one machine's time, once; the download happens every time somebody wants to
+watch.
+
+`transcribe` is whisper.cpp, spawned like ffmpeg. Two things about it are worth
+knowing before touching it:
+
+- **It needs a binary and a model.** `brew install whisper-cpp`, and
+  `WHISPER_MODEL` pointing at a ggml file (`models/` is gitignored; small.en is
+  the chosen size). Nothing transcribes without both, and the error says so.
+- **It does not use word timings**, though whisper can produce them.
+  `distributeWords` lays captions out against the speech runs INGEST measured
+  from the waveform, which are better than a model's guesses. The stage only
+  ever wanted the words.
+- **It runs per take, during capture**, so by the time somebody presses "Make
+  my film" the words are already in the database.
+- **A typed selection always wins.** Intake still types words in, and transcribe
+  leaves any take that already has them alone.
+
+Local was the point, not a compromise: the licence question that stalled this
+decision — does the provider train on customer audio — has one answer that
+cannot be got wrong, which is that the audio never leaves the machine. It also
+costs nothing per film.
 
 Also still true of a browser-made project:
 
@@ -468,9 +523,18 @@ Also still true of a browser-made project:
 
 ### Open questions for the owner
 
-- Which speech-to-text provider, and on what terms — it is customer voice, so
-  the licence must forbid training on it. **Asked 2026-08-17; the owner deferred
-  it and took blocks 1–7 without it.** Nothing delivers a finished film until
-  this is decided.
+- ~~Which speech-to-text provider~~ — **answered 2026-08-20 by not choosing
+  one.** whisper.cpp runs on the worker; there is no provider, no per-film
+  cost, and no terms to read, because the audio never leaves the machine. If
+  that is ever revisited for speed, the licence must forbid training on
+  customer audio, and the interface to replace is `media/whisper.ts`.
+- ~~Whether a failed project can be retried~~ — **answered 2026-08-21.** The
+  failure screen has a "Try making it again" button. `retryProject` reopens the
+  dead-end stage executions (attempt 0, failure class cleared, error text kept)
+  and moves the project back to `processing`. Both halves are needed: a status
+  change alone spins once and re-fails, because the dispatcher refuses a stage
+  that used up its attempts.
+  **A code fix still needs its recipe constant bumped** — the input hash is all
+  the dispatcher compares, and no button changes that.
 - Whether the walk-through's sixteen pieces of coaching copy read the way the
   owner would say them. They are the highest-leverage strings in the product.

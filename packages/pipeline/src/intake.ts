@@ -27,8 +27,11 @@ export type IntakeAsset = {
   /**
    * The words spoken in this take.
    *
-   * Supplied by the caller today because there is no transcription step. Phase
-   * 4 replaces the source, not the shape.
+   * Optional since Block 8. When it is absent the transcribe stage supplies
+   * it, which is how a film made in a browser works at all — nobody types
+   * their grandmother's answers in. When it is present it WINS: a human who
+   * has written the words down, or corrected them, is a better source than a
+   * model, and transcribe leaves such a take alone.
    */
   readonly selection?: AssetSelection;
 };
@@ -68,9 +71,14 @@ const validate = (input: IntakeInput): void => {
       continue;
     }
     seen.set(`${asset.kind}:${binding}`, (seen.get(`${asset.kind}:${binding}`) ?? 0) + 1);
-    if (asset.kind === "interview" && asset.selection === undefined) {
-      problems.push(`take "${binding}" has no spoken text`);
-    }
+    /**
+     * A take with no words used to be refused here, because nothing else could
+     * ever supply them. The transcribe stage can, so this is now the same
+     * question the browser flow answers: the words arrive later, from the
+     * audio. What is still refused is a MALFORMED selection — a caller who
+     * meant to supply words and got the shape wrong should hear about it now,
+     * not at compose.
+     */
     if (asset.selection !== undefined) AssetSelectionSchema.parse(asset.selection);
   }
   for (const [binding, count] of seen) {
