@@ -211,6 +211,15 @@ progress.
 - **Env is read at boot.** A worker started before `.env` was corrected goes on
   failing with errors that describe the code rather than the process. Restart
   the worker after touching `.env`.
+- **Never run a production build while `pnpm web` is running.** `next build`
+  writes `apps/web/.next`, which the dev server is serving out of — so the site
+  starts answering `Cannot find module './vendor-chunks/…'` or a bare Internal
+  Server Error, and nothing in the message points at the build that caused it.
+  `pnpm worker` and `pnpm bed:upload` do this too, because both run `pnpm build`
+  first. It has broken a running server three times now. The recovery is
+  `rm -rf apps/web/.next` and restart; the avoidance is to stop the dev server
+  first, or run the worker with
+  `npx tsx --env-file-if-exists=.env apps/worker/src/main.ts`.
 - **The database-backed tests share one development Postgres and run in
   parallel.** Seen flaking once on 2026-08-21 — `dispatch.test.ts` failed in a
   full run and passed alone, immediately after two more DB-backed files were
