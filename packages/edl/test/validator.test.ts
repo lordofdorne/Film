@@ -603,14 +603,40 @@ describe("template conformance", () => {
     if (!result.ok) expect(codesOf(result.errors)).toContain("UNKNOWN_QUESTION_ID");
   });
 
-  it("warns when the film falls outside the target duration", () => {
-    const result = validateEdl(VALID_EDL, baseContext({
-      conformance: {
-        ...baseContext().conformance,
-        targetDurationMs: { min: 300_000, max: 400_000 },
-      },
+  const withTarget = (min: number, max: number) =>
+    validateEdl(VALID_EDL, baseContext({
+      conformance: { ...baseContext().conformance, targetDurationMs: { min, max } },
     }));
+
+  /* The sample film: 214_000ms long, of which 168_300ms is speech. */
+
+  it("warns when the film runs longer than the target", () => {
+    // The material was there and the edit did not shape it.
+    const result = withTarget(100_000, 200_000);
     expect(result.ok).toBe(true);
     expect(codesOf(result.warnings)).toContain("DURATION_OUTSIDE_TARGET");
+  });
+
+  /**
+   * Short because the EDIT lost material that was there — a real defect, and
+   * the only short film this rule can honestly blame on the edit.
+   *
+   * 230_000 target: the film is short of it, and 168_300ms of speech is well
+   * past the 70% (161_000ms) that says there was enough to build from.
+   */
+  it("warns when the film runs short despite plenty of answers", () => {
+    expect(codesOf(withTarget(230_000, 240_000).warnings)).toContain("DURATION_OUTSIDE_TARGET");
+  });
+
+  /**
+   * The case that used to fire on almost every real customer. A film is as
+   * long as somebody talked for; one built from brief answers is a shorter
+   * film, not a broken one, and telling an editor otherwise is noise they
+   * cannot act on.
+   */
+  it("stays quiet when the film is short because the answers were", () => {
+    const result = withTarget(300_000, 400_000);
+    expect(result.ok).toBe(true);
+    expect(codesOf(result.warnings)).not.toContain("DURATION_OUTSIDE_TARGET");
   });
 });

@@ -1,6 +1,52 @@
-# Phase 5 — Saying it while they can still say more
+# Phase 5 — Films the length of what people said
 
-**Status:** Proposal · 2026-08-24 · awaiting the owner
+**Status:** 2026-08-24 · **the adaptive cut is built.** The capture-time
+coaching below is still a proposal and needs the owner's numbers.
+
+## Built: the film adapts to its material
+
+The owner's answer to the problem below was the better one — *"we can't expect
+users to have the same length"* — so the fix is that the system stops assuming
+one.
+
+Every range in `editing` (`photoHoldMs` 3–5s, `brollMs` 2–6s,
+`openingContextMs` 2–5s) was read as its minimum and nothing else. The
+template declared elasticity that compose never used, so a film built from
+twenty minutes of wonderful answers was cut exactly as tightly as one built
+from ninety seconds.
+
+`editing.adaptiveSpeechMs: { lean, rich }` now turns "how much did they
+actually say" into how much room the pictures get. One factor, measured before
+any beat is laid out, applied to every declared range — so the film is
+proportionate to itself rather than to a target somebody else's footage
+suggested.
+
+Measured, same template, same slots, only the answers changing:
+
+| answers | film | speech | structure |
+|---|---|---|---|
+| 10s each | 2:06 | 85s | 41s |
+| 20s each | 3:44 | 185s | 39s |
+| 35s each | 6:03 | 335s | 29s |
+
+**It does not stretch a short film to look like a long one.** Padding thin
+material with slow photographs makes it feel thin *and* slow. A two-minute
+film should be a good two-minute film.
+
+`DURATION_OUTSIDE_TARGET` was also rewritten, because it was blaming customers
+for being brief. It now warns when a film runs LONG — the material was there
+and the edit did not shape it — and when a film runs short *despite* there
+having been enough speech to reach the target, which is the only short film
+the edit can honestly be blamed for. A film that is short because the answers
+were short is a shorter film, not a defect.
+
+The owner's own film: **1:58, valid, no warning.**
+
+---
+
+## Still proposed: saying it while they can still say more
+
+**Status:** awaiting the owner's numbers (§1)
 
 ## The problem, in the owner's own footage
 

@@ -111,14 +111,45 @@ export const checkConformance = (
     }
   });
 
-  // A warning: a film slightly outside the target is a note to the editor,
-  // not a reason to refuse to render it.
+  /**
+   * A warning, and only about things the EDIT can be blamed for.
+   *
+   * A film is as long as somebody talked for. The target range describes a
+   * film built from the material this template expects — so a film that runs
+   * short because the answers were short is not outside anything, it is a
+   * shorter film, and saying otherwise would have this rule firing on most
+   * real customers while telling nobody anything actionable.
+   *
+   * Too LONG is always worth saying: the material was there and the edit did
+   * not shape it. Too SHORT is worth saying only when there was enough speech
+   * to have reached the target, which means the edit lost it — that is a
+   * defect, and the one this rule can genuinely detect.
+   */
   const { min, max } = t.targetDurationMs;
-  if (edl.totalDurationMs < min || edl.totalDurationMs > max) {
+  const speechMs = edl.speechSegments.reduce((total, s) => total + s.durationMs, 0);
+
+  if (edl.totalDurationMs > max) {
     c.warn(
       "DURATION_OUTSIDE_TARGET",
       "totalDurationMs",
-      `${edl.totalDurationMs}ms is outside the template's target range ${min}–${max}ms`,
+      `${edl.totalDurationMs}ms is longer than the template's target of ${min}–${max}ms`,
+    );
+  } else if (edl.totalDurationMs < min && speechMs >= min * SPEECH_ENOUGH_FOR_TARGET) {
+    c.warn(
+      "DURATION_OUTSIDE_TARGET",
+      "totalDurationMs",
+      `${edl.totalDurationMs}ms is short of the template's target of ${min}–${max}ms, ` +
+        `and there were ${speechMs}ms of answers to build from`,
     );
   }
 };
+
+/**
+ * The share of the target that has to be speech before a short film counts as
+ * the edit's fault rather than the material's.
+ *
+ * Structure — opening, title, photographs, end card — is the rest. Below this
+ * there was simply not enough said to make a film of that length, however it
+ * were cut.
+ */
+const SPEECH_ENOUGH_FOR_TARGET = 0.7;

@@ -231,11 +231,47 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     fadeMs: number;
     photoHoldMs: { min: number; max: number };
     brollMs: { min: number; max: number };
+    openingContextMs: { min: number; max: number };
+    adaptiveSpeechMs: { lean: number; rich: number };
     minSubjectVisibleBeforeInsertMs: number;
     returnToSubjectBeforeAnswerEndsMs: number;
   };
 
   const notes: string[] = [];
+
+  /**
+   * How much the person actually said, and how much room the pictures get
+   * because of it.
+   *
+   * Every range in `editing` — photo holds, b-roll, the opening — used to be
+   * read as its minimum and nothing else, so a film built from twenty minutes
+   * of answers was cut exactly as tightly as one built from ninety seconds.
+   * The template declared elasticity that compose never used.
+   *
+   * `fit` is that elasticity, driven by the one thing we cannot control and
+   * must not assume: how long people talk for. Near 0 the film is brisk and
+   * every hold is its shortest; near 1 it breathes. It is measured before any
+   * beat is laid out, so every duration below is decided by the same number
+   * and the film is proportionate to itself rather than to a target somebody
+   * else's footage suggested.
+   *
+   * It does NOT stretch a short film to look like a long one. Padding thin
+   * material with slow photographs makes it feel thin AND slow; a two-minute
+   * film should be a good two-minute film.
+   */
+  const speechMs = input.answers.reduce((total, a) => {
+    const first = a.runs[0];
+    const last = a.runs[a.runs.length - 1];
+    return first === undefined || last === undefined ? total : total + (last.endMs - first.startMs);
+  }, 0);
+
+  const { lean, rich } = editing.adaptiveSpeechMs;
+  const fit = rich <= lean ? 0 : clamp((speechMs - lean) / (rich - lean), 0, 1);
+
+  /** A duration from one of the template's declared ranges, at this film's fit. */
+  const flex = (range: { min: number; max: number }): number =>
+    grid(range.min + (range.max - range.min) * fit);
+
   const byQuestion = new Map(input.answers.map((a) => [a.questionId, a]));
   const answer = (id: string): IngestedAnswer => {
     const found = byQuestion.get(id);
@@ -331,7 +367,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
       visual.push({
         id,
         kind: "photo",
-        durationMs: grid(editing.photoHoldMs.min),
+        durationMs: flex(editing.photoHoldMs),
         transitionIn: XFADE,
         assetId: s.assetId,
         slotId: s.slotId,
@@ -346,7 +382,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     const assetId = input.brollAssetIds[insert.slotId];
     if (assetId === undefined) return false;
     // A second is the floor below which a cut is a flinch rather than a shot.
-    const shot = sourceWindow(assetId, 0, editing.brollMs.min, 1000);
+    const shot = sourceWindow(assetId, 0, flex(editing.brollMs), 1000);
     if (shot === undefined) return false;
     visual.push({
       id,
@@ -362,7 +398,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   };
 
   /* ── 1. opening context: b-roll under the opening line ─────────────── */
-  const WANTED_OPENING_MS = 4000;
+  const WANTED_OPENING_MS = flex(editing.openingContextMs);
   const openAsset = broll("video_personality");
   /**
    * As much of the opening as the clip can carry, down to a second. A short
@@ -558,8 +594,8 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
         ? 0
         : grid(
             options.insert.kind === "photo"
-              ? editing.photoHoldMs.min + 1000
-              : editing.brollMs.min + 2000,
+              ? flex(editing.photoHoldMs) + 1000
+              : flex(editing.brollMs) + 2000,
           );
 
     /**
@@ -786,7 +822,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     visual.push({
       id: "v_keepsake",
       kind: "photo",
-      durationMs: 4600,
+      durationMs: flex(editing.photoHoldMs) + 600,
       transitionIn: XFADE,
       assetId: keepsake.assetId,
       slotId: keepsake.slotId,
@@ -799,7 +835,7 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
   visual.push({
     id: "v_group_still",
     kind: "photo",
-    durationMs: 4600,
+    durationMs: flex(editing.photoHoldMs) + 600,
     transitionIn: XFADE,
     assetId: group.assetId,
     slotId: group.slotId,
