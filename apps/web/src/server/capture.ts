@@ -10,7 +10,9 @@ import {
   finishCapture,
   loadWalkthrough,
   prepareUpload,
+  medianSeconds,
   saveDetail,
+  spokenVerdict,
   startCapture,
   type CaptureDeps,
   type StepState as CaptureStepState,
@@ -55,6 +57,14 @@ export type WalkthroughView = {
   readonly status: string;
   readonly steps: readonly StepView[];
   readonly missing: readonly string[];
+  /**
+   * Seconds of speech recorded so far, across every answer ingest has seen.
+   *
+   * Deliberately "of answers", not a predicted film length: guessing the
+   * finished duration means modelling the edit, and a number that turns out
+   * wrong on the preview screen is worse than no number at all.
+   */
+  readonly spokenSecondsSoFar: number;
 };
 
 const mediaUrl = async (key: string): Promise<string> =>
@@ -73,27 +83,70 @@ const WORDED: Readonly<Record<string, string>> = {
   LOW_RESOLUTION: "This looks a little soft on a big screen — a phone recording would be sharper.",
 };
 
-const qcNoteOf = (asset: NonNullable<CaptureStepState["asset"]>): string | undefined => {
+const qcNoteOf = (
+  asset: NonNullable<CaptureStepState["asset"]>,
+  theirMedianSeconds: number,
+): string | undefined => {
+  if (!asset.ingested) return undefined;
+
+  /**
+   * Length outranks the picture, and only for the takes where it matters.
+   *
+   * There is room for one sentence on a card, so the order decides what
+   * somebody hears. A four-second answer told "this looks a little soft on a
+   * big screen" has been given the less useful of two true things: soft still
+   * makes a film, and four seconds is what leaves them with a two-minute one.
+   * Found by watching a real card show the wrong note.
+   *
+   * Only for the short and the inaudible. A take that is fine on length falls
+   * through to the picture warnings, which is where they belong.
+   */
+  const verdict =
+    asset.kind === "interview" && asset.speechSeconds !== null
+      ? spokenVerdict(asset.speechSeconds, theirMedianSeconds)
+      : "clear";
+
+  if (verdict === "inaudible") return "We could barely hear anything in this one — try it again?";
+  if (verdict === "short") {
+    return (
+      `That was about ${String(Math.round(asset.speechSeconds ?? 0))} seconds. ` +
+      "If there is more to say, another go gives the film more to work with."
+    );
+  }
+
   const warning = asset.warnings[0];
   if (warning !== undefined) return WORDED[warning.code] ?? warning.message;
-  if (!asset.ingested) return undefined;
-  if (asset.kind === "interview" && asset.speechSeconds !== null) {
-    // The reassurance that it is going well, from a measurement, not a vibe.
-    return asset.speechSeconds < 2
-      ? "We could barely hear anything in this one — try it again?"
-      : "We could hear this clearly.";
-  }
-  return undefined;
+  if (asset.kind !== "interview" || asset.speechSeconds === null) return undefined;
+
+  // Fine on length and nothing wrong with the picture: say so. The
+  // reassurance that it is going well, from a measurement rather than a vibe.
+  return "We could hear this clearly.";
 };
 
 export const loadWalkthroughView = async (projectId: string): Promise<WalkthroughView | null> => {
   const walkthrough = await loadWalkthrough(deps(), projectId);
   if (walkthrough === null) return null;
 
+  /**
+   * How much has been said so far, and the middle of it.
+   *
+   * Both are measured from what ingest already recorded, across the whole
+   * film rather than one card, because one short answer is nothing and five
+   * is a two-minute film. The hub shows the total; each card is judged
+   * against the median.
+   */
+  const spoken = walkthrough.steps
+    .map((s) => s.asset)
+    .filter((a) => a !== null && a.kind === "interview" && a.speechSeconds !== null)
+    .map((a) => a?.speechSeconds ?? 0);
+
+  const spokenSecondsSoFar = Math.round(spoken.reduce((total, s) => total + s, 0));
+  const theirMedian = medianSeconds(spoken);
+
   const steps: StepView[] = [];
   for (const step of walkthrough.steps) {
     const { asset, ...rest } = step;
-    const note = asset === null ? undefined : qcNoteOf(asset);
+    const note = asset === null ? undefined : qcNoteOf(asset, theirMedian);
     steps.push({
       ...rest,
       asset:
@@ -103,7 +156,7 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
       ...(note === undefined ? {} : { qcNote: note }),
     });
   }
-  return { ...walkthrough, steps };
+  return { ...walkthrough, steps, spokenSecondsSoFar };
 };
 
 /**

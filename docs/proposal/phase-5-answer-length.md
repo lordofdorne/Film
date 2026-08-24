@@ -1,7 +1,8 @@
 # Phase 5 — Films the length of what people said
 
-**Status:** 2026-08-24 · **the adaptive cut is built.** The capture-time
-coaching below is still a proposal and needs the owner's numbers.
+**Status:** 2026-08-24 · **both halves are built.** The film adapts to its
+material, and the hub says how much has been said while there is still time to
+say more.
 
 ## Built: the film adapts to its material
 
@@ -44,9 +45,39 @@ The owner's own film: **1:58, valid, no warning.**
 
 ---
 
-## Still proposed: saying it while they can still say more
+## Built: saying it while they can still say more
 
-**Status:** awaiting the owner's numbers (§1)
+Two signals, neither needing a number anybody invented.
+
+**Per card**, an answer is judged against THIS PERSON's other answers, not
+against a target. Somebody whose every answer is eight seconds is having a
+short-answer conversation and is left alone; somebody who has been giving
+thirty-second answers and then gives four has probably been interrupted, and
+would want to know. Below three seconds it always speaks, because that is not
+an answer.
+
+The rule lives in `@film/pipeline` (`spokenVerdict`) where it is tested; only
+the wording is in the web app.
+
+**On the hub**, "37 seconds of answers recorded" — the total, growing as takes
+land. One short answer is nothing; five is a two-minute film, and this is what
+makes that visible while it can still be changed.
+
+**Length outranks the picture**, for short and inaudible takes only. There is
+room for one sentence on a card: a four-second answer told "this looks a little
+soft on a big screen" has been given the less useful of two true things. Found
+by watching a real card show the wrong note.
+
+### What was rejected
+
+The obvious design was a per-question `spokenSeconds: { short, good }` in the
+template. Deriving those from `estimatedSeconds` gives `identity_name` a
+thirteen-second expectation — that field is CAPTURE time, including setup and
+a retake, not answer length — and nagging somebody about a perfectly good
+four-second answer to "What is your name?" would be worse than a short film.
+Relative-to-the-person needs no such numbers and cannot make that mistake.
+
+### The original proposal, for the record
 
 ## The problem, in the owner's own footage
 

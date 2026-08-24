@@ -41,6 +41,20 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
           {done.length} of {steps.length} done
           {secondsLeft > 0 && ` · about ${minutesLeft(secondsLeft)} left`}
         </p>
+        {/*
+          What has been said so far, which is what the film is made of.
+
+          "of answers" rather than a predicted film length: the finished
+          duration depends on the edit, and a number that turns out wrong on
+          the preview screen is worse than no number. One short answer is
+          nothing; this is what makes five of them visible while there is
+          still time to add to it.
+        */}
+        {walkthrough.spokenSecondsSoFar > 0 && (
+          <p style={styles.spoken}>
+            {spokenSoFar(walkthrough.spokenSecondsSoFar)} of answers recorded
+          </p>
+        )}
         <div style={styles.track}>
           <div
             style={{
@@ -81,6 +95,19 @@ const isDone = (step: StepView): boolean =>
 const minutesLeft = (seconds: number): string => {
   const minutes = Math.max(1, Math.round(seconds / 60));
   return minutes === 1 ? "a minute" : `${String(minutes)} minutes`;
+};
+
+/**
+ * Seconds until it is worth speaking in minutes.
+ *
+ * Rounding forty seconds up to "a minute" would overstate what is there on
+ * the one screen whose job is to be honest about how the film is going.
+ */
+const spokenSoFar = (seconds: number): string => {
+  if (seconds < 90) return `${String(Math.round(seconds))} seconds`;
+  const minutes = seconds / 60;
+  const rounded = Math.round(minutes * 2) / 2;
+  return `${rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1)} minutes`;
 };
 
 const StepCard = ({
@@ -132,6 +159,7 @@ const styles = {
   head: { marginBottom: 8 },
   title: { fontSize: 28, fontWeight: 600, letterSpacing: -0.5, margin: 0 },
   progress: { fontSize: 14, color: "#666", margin: "8px 0 0" },
+  spoken: { fontSize: 13, color: "#8a8a8a", margin: "4px 0 0" },
   track: { height: 4, background: "#eee", borderRadius: 2, margin: "12px 0 0", overflow: "hidden" },
   trackFill: { height: "100%", background: "#12603a", transition: "width 240ms ease" },
   chapter: { marginTop: 36 },
