@@ -33,6 +33,15 @@ export type CapturedAsset = {
   readonly id: string;
   readonly kind: "photo" | "video" | "interview";
   readonly storageKey: string;
+  /**
+   * A small picture of this asset, once something has made one. Null before
+   * that.
+   *
+   * Null rather than "fall back to the original": a list that falls back
+   * downloads the whole film to draw its cards, which is measurably what the
+   * hub used to do.
+   */
+  readonly thumbnailKey: string | null;
   readonly contentType: string | null;
   /** Whether ingest has looked at this yet. False right after an upload. */
   readonly ingested: boolean;
@@ -257,6 +266,7 @@ export const loadWalkthrough = async (
               // not be a normalised file yet, and what somebody wants to check
               // is the take they just recorded.
               storageKey: row.storageKey,
+              thumbnailKey: row.thumbnailKey,
               contentType: row.contentType,
               ingested: row.normalisedKey !== null,
               warnings: (row.warnings ?? []) as { code: string; message: string }[],

@@ -17,6 +17,7 @@ export const QUEUES = [
   "compose",
   "render",
   "deliver",
+  "thumbnail",
 ] as const;
 
 export type QueueName = (typeof QUEUES)[number];
@@ -70,6 +71,9 @@ export const STAGE_POLICY: Readonly<Record<QueueName, StagePolicy>> = {
   // OOM kill two thirds of the way through.
   render: { retryLimit: 2, retryDelaySeconds: 120, expireInSeconds: 3600, concurrency: 1 },
   deliver: { retryLimit: 5, retryDelaySeconds: 60, expireInSeconds: 300, concurrency: 4 },
+  // One frame and a downscale. The only slow part is fetching the media it
+  // reads from, which is why several run at once.
+  thumbnail: { retryLimit: 3, retryDelaySeconds: 30, expireInSeconds: 300, concurrency: 4 },
 };
 
 /**

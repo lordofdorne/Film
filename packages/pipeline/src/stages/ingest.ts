@@ -10,6 +10,8 @@ import { objectKey } from "@film/storage";
 
 import { detectSpeechRuns, probe, ffmpeg, type MediaInfo } from "../media/ffmpeg.js";
 import { buildLoopedBed, describeTempTrack } from "../media/musicBed.js";
+import { makeThumbnail } from "../media/thumbnail.js";
+import { writeThumbnail } from "./thumbnail.js";
 import { permanent } from "../runtime/errors.js";
 import type { StageContext } from "../runtime/runStage.js";
 import {
@@ -134,6 +136,32 @@ export const runIngest = async (ctx: StageContext): Promise<string | null> => {
 
   for (const warning of warnings) await ctx.log.warn(`${warning.code}: ${warning.message}`);
   await ctx.log.info(`wrote ${key} (${(stored.byteSize / 1e6).toFixed(1)} MB)`);
+
+  /**
+   * The card's picture, made here because the file is already on this disk.
+   *
+   * The thumbnail stage can make one from scratch and does, for every asset
+   * ingested before thumbnails existed. But it has to download the media to do
+   * it — two hundred megabytes fetched to produce thirty kilobytes — and ingest
+   * is holding that exact file, decoded, seconds before the stage would ask for
+   * it again. So ingest makes it and the stage finds it already there.
+   *
+   * Never fatal. A film whose ingest succeeded must not be failed over a
+   * picture for a list; the stage will try again on its own, and until it does
+   * the hub draws a placeholder.
+   */
+  if (row.kind === "photo" || row.kind === "video" || row.kind === "interview") {
+    try {
+      const thumb = join(dir, "thumb.jpg");
+      await makeThumbnail(output, thumb, row.kind, { signal: ctx.signal });
+      const small = await writeThumbnail(ctx, row.id, thumb);
+      await ctx.log.info(`thumbnail ${(small.byteSize / 1e3).toFixed(0)} KB`);
+    } catch (cause: unknown) {
+      await ctx.log.warn(
+        `could not make a thumbnail: ${cause instanceof Error ? cause.message : String(cause)}`,
+      );
+    }
+  }
 
   return stored.etag;
 };

@@ -9,6 +9,8 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
+    "//build:packages": "Everything a script needs, and NOT the web app. `pnpm build` runs `next build`, which writes apps/web/.next — the directory a running `pnpm web` is serving out of. It has taken the dev server down three times, always from a command whose name said nothing about Next: worker, bed:upload, intake. None of them needs the web app built.",
+    "build:packages": "pnpm -r --filter=!@film/web run build",
     "typecheck": "tsc -b --pretty && tsc -p tsconfig.test.json --pretty",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,9 +28,10 @@
     "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
     "db:generate": "pnpm --filter @film/db exec drizzle-kit generate",
     "web": "pnpm --filter @film/web dev",
-    "intake": "pnpm build && tsx --env-file-if-exists=.env scripts/intake.ts",
-    "bed:upload": "pnpm build && tsx --env-file-if-exists=.env scripts/upload-bed.ts",
-    "worker": "pnpm build && tsx --env-file-if-exists=.env apps/worker/src/main.ts"
+    "intake": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/intake.ts",
+    "bed:upload": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/upload-bed.ts",
+    "worker": "pnpm build:packages && tsx --env-file-if-exists=.env apps/worker/src/main.ts",
+    "thumbs:backfill": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/backfill-thumbnails.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

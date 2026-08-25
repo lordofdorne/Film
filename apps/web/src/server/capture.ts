@@ -45,7 +45,19 @@ export type StepView = Omit<CaptureStepState, "asset"> & {
   readonly asset: {
     readonly id: string;
     readonly kind: "photo" | "video" | "interview";
+    /** The real thing, for playing back on a step sheet. */
     readonly url: string;
+    /**
+     * A small picture of it, for a card in a list. Absent until something has
+     * made one.
+     *
+     * Absent rather than falling back to `url`, and that is the point of the
+     * field. A card that falls back draws the customer's original — a 7 MB
+     * photograph at 56 pixels wide — which is exactly the thing this exists to
+     * stop. A card with no thumbnail yet draws a placeholder for the few
+     * seconds until ingest has been.
+     */
+    readonly thumbUrl?: string;
   } | null;
   /** Ingest's verdict in the customer's language, once ingest has run. */
   readonly qcNote?: string;
@@ -152,7 +164,14 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
       asset:
         asset === null
           ? null
-          : { id: asset.id, kind: asset.kind, url: await mediaUrl(asset.storageKey) },
+          : {
+              id: asset.id,
+              kind: asset.kind,
+              url: await mediaUrl(asset.storageKey),
+              ...(asset.thumbnailKey === null
+                ? {}
+                : { thumbUrl: await mediaUrl(asset.thumbnailKey) }),
+            },
       ...(note === undefined ? {} : { qcNote: note }),
     });
   }

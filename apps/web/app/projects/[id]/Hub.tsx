@@ -33,7 +33,9 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
 
   return (
     <main style={styles.page}>
-      {/* Thumbnails here are signed URLs with a fifteen-minute life. */}
+      {/* Thumbnails here are signed URLs with a fifteen-minute life, pointing
+          at the small stills the thumbnail stage makes — never at the
+          customer's originals. */}
       <FreshenOnReturn />
       <header style={styles.head}>
         <h1 style={styles.title}>{name === undefined ? "Your film" : `${name}’s film`}</h1>
@@ -134,12 +136,27 @@ const StepCard = ({
         </span>
         {step.asset !== null && (
           <span style={styles.thumbHolder}>
-            {step.asset.kind === "photo" ? (
+            {/*
+              The thumbnail, or nothing. Never the original.
+
+              This card used to draw `step.asset.url` — the customer's own file
+              — as an <img> for a photograph and a <video preload="metadata">
+              for a take. Measured on one real film: the hub referenced 105 MB
+              across 18 assets to draw eighteen 56-pixel squares, and fetched
+              it again on every visit and every window focus, because a fresh
+              signature each render means the browser cache can never hit.
+
+              A grey square for the few seconds before ingest has been is the
+              price, and it is the right way round: a card that falls back to
+              the original is a card that is slow forever on exactly the films
+              whose ingest is already cached.
+            */}
+            {step.asset.thumbUrl === undefined ? (
+              <span style={{ ...styles.thumb, ...styles.thumbWaiting }} aria-hidden />
+            ) : (
               // eslint-disable-next-line @next/next/no-img-element -- signed
               // URLs are short-lived and remote patterns would have to be open.
-              <img src={step.asset.url} alt="" style={styles.thumb} loading="lazy" />
-            ) : (
-              <video src={step.asset.url} style={styles.thumb} preload="metadata" muted />
+              <img src={step.asset.thumbUrl} alt="" style={styles.thumb} loading="lazy" />
             )}
           </span>
         )}
@@ -206,6 +223,8 @@ const styles = {
     background: "#000",
     display: "block",
   },
+  /* Recorded, not yet looked at. Quiet enough not to read as a broken image. */
+  thumbWaiting: { background: "#ececec" },
   footer: {
     position: "sticky" as const,
     bottom: 0,

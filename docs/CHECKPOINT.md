@@ -215,11 +215,10 @@ progress.
   writes `apps/web/.next`, which the dev server is serving out of — so the site
   starts answering `Cannot find module './vendor-chunks/…'` or a bare Internal
   Server Error, and nothing in the message points at the build that caused it.
-  `pnpm worker` and `pnpm bed:upload` do this too, because both run `pnpm build`
-  first. It has broken a running server three times now. The recovery is
-  `rm -rf apps/web/.next` and restart; the avoidance is to stop the dev server
-  first, or run the worker with
-  `npx tsx --env-file-if-exists=.env apps/worker/src/main.ts`.
+  It broke a running server three times. The recovery is `rm -rf apps/web/.next`
+  and restart. The scripts that used to cause it — `worker`, `intake`,
+  `bed:upload` — now run `pnpm build:packages` instead, which filters out
+  `@film/web`; `pnpm build` itself is still unsafe beside a dev server.
 - **The database-backed tests share one development Postgres and run in
   parallel.** Seen flaking once on 2026-08-21 — `dispatch.test.ts` failed in a
   full run and passed alone, immediately after two more DB-backed files were
@@ -281,9 +280,12 @@ progress.
 - **`storeFromEnv()` used to build a client per call**, and the hub asks once
   per card — twenty pieces of media was twenty S3 clients and twenty cold TLS
   handshakes. It memoises on the resolved config now.
-- **`pnpm worker` runs `pnpm build` first**, which runs `next build` and
-  overwrites the dev server's `.next`. Running the worker beside a dev server
-  means `tsx apps/worker/src/main.ts` directly, or a dead preview.
+- **`pnpm worker` used to run `pnpm build` first**, which runs `next build` and
+  overwrites the dev server's `.next`. `worker`, `intake`, `bed:upload` and
+  `thumbs:backfill` now run `pnpm build:packages`, which is the same build with
+  `@film/web` filtered out — none of them ever needed the web app compiled, and
+  the command that broke a running preview three times was never named after
+  Next.
 - **An unordered `LIMIT` over active projects starves live work.** Capturing
   projects are planned now and most are abandoned, so the dispatcher orders by
   `updated_at` — otherwise half-made films nobody returns to would fill the

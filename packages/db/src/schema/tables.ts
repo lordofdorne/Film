@@ -46,6 +46,7 @@ export const stageName = pgEnum("stage_name", [
   "compose",
   "render",
   "deliver",
+  "thumbnail",
 ]);
 
 export const stageStatus = pgEnum("stage_status", [
@@ -165,6 +166,15 @@ export const assets = pgTable(
     storageKey: text("storage_key").notNull(),
     /** What ingest produced from it. Null until ingest has run. */
     normalisedKey: text("normalised_key"),
+    /**
+     * A small picture OF this asset, for a card in a list. Null until one has
+     * been made.
+     *
+     * Null is load-bearing: it means "no thumbnail yet", and the hub draws a
+     * placeholder rather than falling back to the original — which is the
+     * whole thing this column exists to stop it doing.
+     */
+    thumbnailKey: text("thumbnail_key"),
     contentType: text("content_type"),
     byteSize: bigint("byte_size", { mode: "number" }),
     etag: text("etag"),
