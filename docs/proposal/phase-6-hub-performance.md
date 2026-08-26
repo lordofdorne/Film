@@ -1,12 +1,17 @@
 # Phase 6 — The hub downloads the whole film to draw its thumbnails
 
-**Status:** Steps 1 and 2 built and measured · 2026-08-25 · step 3 outstanding
+**Status:** Done · 2026-08-25
 
-> **Steps 1 and 2 are done.** Measured on the same film: **105.2 MB → 157 KB**
-> across seventeen cards, 671× smaller, and a second render of the same page
-> now produces **byte-identical URLs**, so every card is a cache hit. What
-> follows is the original diagnosis, unchanged, with the outcome written under
-> each step.
+> **All three steps are built and measured on the owner's own film.**
+>
+> - **105.2 MB → 157 KB** across seventeen cards, 671× smaller.
+> - A second render now produces **byte-identical URLs**, so every card is a
+>   cache hit rather than a fresh download on every window focus.
+> - The hub mints **0** signed URLs for originals, down from 18; a step sheet
+>   carries **2** rather than 35.
+>
+> What follows is the original diagnosis, unchanged, with the outcome written
+> under each step.
 
 ## What is actually happening
 
@@ -144,11 +149,36 @@ calls `loadWalkthroughView`, which resolves all twenty-two steps and signs every
 asset to display one. Only ~30 ms, so it is third — but it is also why a step
 sheet costs the same as the hub.
 
-> **Still outstanding.** Worth noting one thing found while doing (1): the hub's
-> HTML carries a signed URL for every original as well as every thumbnail, and
-> only the thumbnails are ever fetched. Signed URLs are bearer credentials, so
-> the unused ones should not be minted at all. That is this step's job — the
-> loader needs to know whether it is serving a hub or one step.
+> **Built, and it turned out to be about credentials rather than time.**
+> Counted on the owner's film, by replaying what each loader does:
+>
+> | | before | now |
+> |---|---|---|
+> | hub — credentials for originals | **18** (110 MB of takes and photographs) | **0** |
+> | hub — credentials for thumbnails | 17 | 17 |
+> | step sheet — credentials on the page | **35**, one of them drawn | **2** |
+>
+> Loading and signing are two acts now, and the TYPES are what keep them
+> apart. `loadWalkthroughView` signs nothing and returns storage keys, which
+> never leave the server; `withThumbnails` and `stepWithMedia` mint exactly
+> what their page draws. A component cannot be handed the unsigned shape by
+> mistake, because it has no `url` on it to render. The project page mints
+> after it knows the status, so the preview-and-approval branch — which reads
+> the walk-through only to find a typed-in address — mints nothing at all.
+>
+> **The read was left alone, deliberately.** The step sheet still loads the
+> whole walk-through: one query measured at 11 ms warm, template work on top of
+> it in microseconds, and it needs the project's status plus this step's QC
+> note — which is judged against the median of every OTHER answer and so cannot
+> be computed from one row. Splitting it would add a second query path to save
+> nothing measurable. What was worth removing was never the read; it was the
+> seventeen credentials minted beside it.
+>
+> Found on the way: **`apps/web` was not in the root typecheck at all.**
+> `tsc -b` walks project references and Next owns its own tsconfig, so every
+> web change since the app was built had been checked only by whatever
+> `next dev` happened to compile. `pnpm typecheck` now checks it explicitly —
+> which matters more than usual here, because the boundary above is a type.
 
 ## What not to do
 

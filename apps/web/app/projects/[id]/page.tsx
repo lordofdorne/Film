@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { guardProject, sessionIdentity } from "../../../src/server/auth.js";
 import { SetPasswordOffer } from "../../SetPasswordOffer.js";
-import { loadWalkthroughView } from "../../../src/server/capture.js";
+import { loadWalkthroughView, withThumbnails } from "../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
 import { DeliveryPanel } from "./DeliveryPanel.js";
 import { FailedNote } from "./FailedNote.js";
@@ -41,8 +41,16 @@ export default async function ProjectPage({
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
 
+  /**
+   * The URLs are minted here, after the status is known, and only on the
+   * branch that draws them.
+   *
+   * Below this line the page is a preview and an approval, and it reads the
+   * walk-through only to find the address somebody typed. It has no pictures
+   * on it at all, so it mints nothing.
+   */
   if (walkthrough.status === "capturing") {
-    return <Hub walkthrough={walkthrough} />;
+    return <Hub walkthrough={await withThumbnails(walkthrough)} />;
   }
 
   /**

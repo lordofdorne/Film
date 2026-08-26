@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { StepView, WalkthroughView } from "../../../src/server/capture.js";
+import type { HubStep, HubView } from "../../../src/server/capture.js";
 import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
 
@@ -15,7 +15,7 @@ import { MakeFilmButton } from "./MakeFilmButton.js";
  * Server-rendered from rows. Coming back three days later on another device
  * renders the same page, because none of this lives in React state.
  */
-export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) => {
+export const Hub = ({ walkthrough }: { readonly walkthrough: HubView }) => {
   const steps = walkthrough.steps;
   const done = steps.filter(isDone);
   const secondsLeft = steps
@@ -24,7 +24,7 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
 
   const name = walkthrough.subject.displayName ?? walkthrough.subject.subjectName;
 
-  const chapters = new Map<string, StepView[]>();
+  const chapters = new Map<string, HubStep[]>();
   for (const step of steps) {
     const list = chapters.get(step.chapterId) ?? [];
     list.push(step);
@@ -91,7 +91,7 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
   );
 };
 
-const isDone = (step: StepView): boolean =>
+const isDone = (step: HubStep): boolean =>
   step.asset !== null || (step.value !== null && step.value !== "");
 
 const minutesLeft = (seconds: number): string => {
@@ -117,7 +117,7 @@ const StepCard = ({
   step,
 }: {
   readonly projectId: string;
-  readonly step: StepView;
+  readonly step: HubStep;
 }) => {
   const done = isDone(step);
   return (

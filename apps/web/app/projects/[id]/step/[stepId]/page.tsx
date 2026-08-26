@@ -1,7 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { guardProject } from "../../../../../src/server/auth.js";
-import { loadWalkthroughView } from "../../../../../src/server/capture.js";
+import { loadWalkthroughView, stepWithMedia } from "../../../../../src/server/capture.js";
 import { DetailStepClient } from "./DetailStepClient.js";
 import { StepClient } from "./StepClient.js";
 
@@ -27,8 +27,16 @@ export default async function StepPage({
   // by then the preview — is the only sensible place to be.
   if (walkthrough.status !== "capturing") redirect(`/projects/${id}`);
 
-  const step = walkthrough.steps.find((s) => s.id === stepId);
-  if (step === undefined) notFound();
+  /**
+   * URLs for this step and no other.
+   *
+   * This page shows one take. It used to be handed a signed URL for every
+   * asset in the film — eighteen bearer credentials for whole interviews, of
+   * which it drew one — because loading the walk-through and signing it were
+   * the same act. They are two acts now, and this is the one that asks.
+   */
+  const step = await stepWithMedia(walkthrough, stepId);
+  if (step === null) notFound();
 
   if (step.kind === "detail") {
     return <DetailStepClient projectId={id} step={step} />;
