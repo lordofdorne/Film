@@ -14,7 +14,7 @@ import type {
   SignedUrlOptions,
   StoredObject,
 } from "./index.js";
-import { clampTtl, contentDisposition } from "./index.js";
+import { clampTtl, contentDisposition, stableWindow } from "./index.js";
 
 export type R2Config = {
   readonly accountId: string;
@@ -79,6 +79,7 @@ export class R2ObjectStore implements ObjectStore {
         Key: key,
         Body: body as never,
         ...(options.contentType === undefined ? {} : { ContentType: options.contentType }),
+        ...(options.cacheControl === undefined ? {} : { CacheControl: options.cacheControl }),
       },
       // 8 MB × 4 in flight: about 32 MB of headroom per upload, against a
       // worker that also has ffmpeg and a browser on it.
@@ -180,6 +181,14 @@ export class R2ObjectStore implements ObjectStore {
    * bytes are moving. A download that starts inside the window finishes.
    */
   async signedGetUrl(key: string, options: SignedUrlOptions = {}): Promise<string> {
+    const expiresIn = clampTtl(options.expiresInSeconds);
+    /**
+     * Signing the current five-minute mark rather than the current instant, so
+     * a hub rendered twice hands the browser the same URL twice and the second
+     * one costs nothing. The credential stays exactly as short-lived; only the
+     * clock it is measured from is rounded.
+     */
+    const signingDate = stableWindow(options.stableForSeconds, expiresIn);
     return getSignedUrl(
       this.#client,
       new GetObjectCommand({
@@ -189,7 +198,7 @@ export class R2ObjectStore implements ObjectStore {
           ? {}
           : { ResponseContentDisposition: contentDisposition(options.downloadAs) }),
       }),
-      { expiresIn: clampTtl(options.expiresInSeconds) },
+      { expiresIn, ...(signingDate === undefined ? {} : { signingDate }) },
     );
   }
 
@@ -202,6 +211,15 @@ export class R2ObjectStore implements ObjectStore {
       new PutObjectCommand({
         Bucket: this.#bucket,
         Key: key,
+        /**
+         * ContentType and nothing else, `cacheControl` included.
+         *
+         * Anything named here is covered by the signature, so the browser has
+         * to send it back verbatim or R2 answers 403 — a failure local
+         * development cannot reproduce, because the local upload route does not
+         * check. ContentType earns that; a caching hint on somebody's raw
+         * upload does not.
+         */
         ...(options.contentType === undefined ? {} : { ContentType: options.contentType }),
       }),
       { expiresIn: clampTtl(options.expiresInSeconds) },

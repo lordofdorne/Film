@@ -1,10 +1,12 @@
 # Phase 6 — The hub downloads the whole film to draw its thumbnails
 
-**Status:** Step 1 built and measured · 2026-08-25 · steps 2 and 3 outstanding
+**Status:** Steps 1 and 2 built and measured · 2026-08-25 · step 3 outstanding
 
-> **Step 1 is done. Measured on the same film: 105.2 MB → 157 KB across
-> seventeen cards, 671× smaller.** What follows is the original diagnosis,
-> unchanged, with the outcome written under each step.
+> **Steps 1 and 2 are done.** Measured on the same film: **105.2 MB → 157 KB**
+> across seventeen cards, 671× smaller, and a second render of the same page
+> now produces **byte-identical URLs**, so every card is a cache hit. What
+> follows is the original diagnosis, unchanged, with the outcome written under
+> each step.
 
 ## What is actually happening
 
@@ -99,9 +101,43 @@ URL within that window. The browser cache then works, `FreshenOnReturn` becomes
 free, and the TTL stays short. This is a small change in `mediaUrl` and it is
 what makes (1) hold rather than merely helping once.
 
-> **Still outstanding, and now the largest remaining item.** 157 KB re-fetched
-> on every window focus is not a problem the way 105 MB was, but it is still a
-> round trip per card for bytes the browser already has.
+> **Built, and verified against real R2 rather than predicted** — an R2
+> assumption has been wrong here before. Signing the same key twice, a second
+> apart, now returns the same string; without the flag it returns two. The URL
+> fetches 200 and comes back carrying
+> `cache-control: private, max-age=900, immutable`.
+>
+> `SignedUrlOptions.stableForSeconds` rounds the SIGNING clock down to a
+> window — five minutes for thumbnails — and nothing else changes: same
+> fifteen-minute cap, same private bucket, same single key and method.
+>
+> Two things the plan had not accounted for:
+>
+> - **A stable URL alone buys nothing.** R2 returns whatever `Cache-Control`
+>   the object carries, and nothing was setting one, so a browser fell back to
+>   heuristic caching — which for an object written minutes ago is none. The
+>   header is written on the object at put time. The two halves only work
+>   together.
+> - **The window has to be capped against the TTL.** Rounding down spends life
+>   the URL already had, so the guaranteed remainder is `ttl - window`; an
+>   uncapped window could hand a browser a URL that expired before it arrived,
+>   which would look like thumbnails that intermittently fail and leave nothing
+>   in a log. `stableWindow` caps it at half the TTL.
+>
+> `Cache-Control` is deliberately NOT signed into the upload URL. Anything
+> named in a presigned PUT is covered by the signature and must be echoed back
+> verbatim or R2 answers 403 — the same trap ContentType already documents, and
+> one local development cannot reproduce.
+>
+> One thing found by looking at real rows afterwards, not by reading the code:
+> the thumbnail object is named `thumb-v{recipe}.jpg` so a recipe bump is not
+> silently skipped, and **the dispatcher was still asking "is the column
+> null?"** while the stage asked "is it THIS key?". One predicate now —
+> `needsThumbnail` — used by the dispatcher, the backfill and the stage. Worth
+> knowing alongside it: the name is what stops a re-run being skipped, and the
+> recipe number in the input hash is what lets it run at all. Change both or
+> change neither; a job whose stage row already succeeded is refused at claim
+> time and does nothing, which is exactly-once working correctly.
 
 **3. Stop loading the whole walkthrough to render one step.** The step sheet
 calls `loadWalkthroughView`, which resolves all twenty-two steps and signs every

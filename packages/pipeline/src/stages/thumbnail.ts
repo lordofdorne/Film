@@ -20,6 +20,50 @@ import { isMusicBed, type AssetRow } from "../model.js";
  */
 export const THUMBNAIL_RECIPE = 1;
 
+/**
+ * Where this recipe's thumbnail lives, recipe number and all.
+ *
+ * The version is IN THE NAME, and that is what makes bumping the recipe
+ * actually do something. The stage skips an asset that already has a
+ * thumbnail — otherwise every ingest would be followed by a pointless download
+ * — so a bump that changed only the hash would re-dispatch the work and then
+ * skip it, leaving the old picture in place and a row claiming success. With
+ * the version in the key, "already has one" becomes "already has THIS one",
+ * and the check answers correctly on its own.
+ *
+ * The name alone is not a trigger, and it is worth being exact about that.
+ * `THUMBNAIL_RECIPE` is in the input hash as well, and the hash is what a
+ * succeeded `stage_executions` row is keyed by — so it is the bump that lets
+ * the work run at all, and the name that stops it being skipped once it does.
+ * Editing the name without the number gets neither: verified against real rows,
+ * where a re-enqueued job was refused at claim time and did nothing, which is
+ * exactly-once behaving correctly. Change both, or change neither.
+ *
+ * The superseded object is left behind. It is tens of kilobytes, it is inside
+ * the project's prefix, and a deletion request takes the whole prefix.
+ */
+export const thumbnailKeyOf = (projectId: string, assetId: string): string =>
+  objectKey({
+    projectId,
+    kind: "still",
+    assetId,
+    name: `thumb-v${String(THUMBNAIL_RECIPE)}.jpg`,
+  });
+
+/**
+ * How long a browser may keep one.
+ *
+ * Fifteen minutes, matching the longest a signed URL can live. Longer would be
+ * pointless rather than wrong: the URL rotates at every window boundary, and a
+ * new URL is a new cache entry however patient the old one was.
+ *
+ * `private` because this is a frame of somebody's grandmother. It may sit in
+ * that person's browser and nowhere else — not in a proxy, not in a CDN.
+ * `immutable` because the bytes under a given key never change; the version in
+ * the name is what changes.
+ */
+export const THUMBNAIL_CACHE_CONTROL = "private, max-age=900, immutable";
+
 /** A frame and a downscale. Room for the media it reads and nothing more. */
 const SCRATCH_HEADROOM_BYTES = 2 * 1024 * 1024 * 1024;
 
@@ -34,6 +78,19 @@ export const thumbnailRequiresFreeBytes = (): number => SCRATCH_HEADROOM_BYTES;
  */
 export const hasPicture = (row: AssetRow): boolean =>
   !isMusicBed(row) && (row.kind === "photo" || row.kind === "video" || row.kind === "interview");
+
+/**
+ * Whether this asset is missing THIS RECIPE'S thumbnail.
+ *
+ * One predicate, used by the dispatcher, the backfill and the stage itself,
+ * because a "do I need to do this?" answered two ways is a mechanism that only
+ * appears to work. Found exactly that way: the stage compared keys, so it was
+ * willing to replace an older recipe's picture, while the dispatcher only
+ * checked the column for null — so it never asked, and a recipe bump would
+ * have quietly changed nothing at all.
+ */
+export const needsThumbnail = (row: AssetRow): boolean =>
+  hasPicture(row) && row.thumbnailKey !== thumbnailKeyOf(row.projectId, row.id);
 
 export const thumbnailIdentity = (row: AssetRow): StageIdentity => ({
   projectId: row.projectId,
@@ -77,8 +134,8 @@ export const runThumbnail = async (ctx: StageContext): Promise<string | null> =>
     throw permanent(`asset ${row.id} is a ${row.kind}, which has no picture to show`);
   }
 
-  if (row.thumbnailKey !== null) {
-    await ctx.log.info("ingest already made one while it had the file — left alone");
+  if (!needsThumbnail(row as AssetRow)) {
+    await ctx.log.info("ingest already made this one while it had the file — left alone");
     return null;
   }
 
@@ -127,17 +184,16 @@ export const writeThumbnail = async (
   assetId: string,
   localPath: string,
 ): Promise<{ byteSize: number; etag: string | null }> => {
-  const key = objectKey({
-    projectId: ctx.projectId,
-    kind: "still",
-    assetId,
-    name: "thumb.jpg",
-  });
+  const key = thumbnailKeyOf(ctx.projectId, assetId);
 
   const { size } = await stat(localPath);
   const stored = await ctx.store.put(key, createReadStream(localPath), {
     contentType: "image/jpeg",
     contentLength: size,
+    // Without this the browser applies heuristic caching, which for an object
+    // written minutes ago is none at all — and a stable URL with nothing
+    // allowed to keep it is a round trip saved on paper and nowhere else.
+    cacheControl: THUMBNAIL_CACHE_CONTROL,
   });
 
   await ctx.db.update(assets).set({ thumbnailKey: key }).where(eq(assets.id, assetId));

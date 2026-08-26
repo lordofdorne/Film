@@ -17,11 +17,18 @@
  * The work itself is the ordinary thumbnail stage: this only enqueues. Nothing
  * in the pipeline is done twice, because claim-then-work refuses a duplicate
  * and the stage skips an asset that already has one.
+ *
+ * Which is also this script's one limit, and it is not a bug. A job whose
+ * stage row already SUCCEEDED for the same input hash is refused at claim time
+ * and does nothing, however much this asks. That is exactly-once working. If
+ * the intent is a different picture rather than a missing one, bump
+ * `THUMBNAIL_RECIPE` — that is what moves the hash — and then this reaches the
+ * projects the dispatcher will not.
  */
-import { isNull, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 import { assets, createDb } from "@film/db";
-import { hasPicture, thumbnailIdentity } from "@film/pipeline";
+import { needsThumbnail, thumbnailIdentity } from "@film/pipeline";
 import { createQueue, ensureQueues, enqueueStage } from "@film/queue";
 
 const log = (message: string): void => {
@@ -33,19 +40,18 @@ const main = async (): Promise<void> => {
   const { db, pool } = createDb("web");
 
   try {
-    const rows = await db
-      .select()
-      .from(assets)
-      .where(isNull(assets.thumbnailKey))
-      .orderBy(sql`${assets.createdAt} desc`);
+    /**
+     * Every asset, filtered in code rather than in SQL.
+     *
+     * "Wants a thumbnail" is not "thumbnail_key is null" — it is "does not have
+     * THIS recipe's thumbnail", which only `needsThumbnail` knows. A WHERE
+     * clause here would be a second opinion on the same question, and would
+     * silently miss every asset holding a superseded picture.
+     */
+    const rows = await db.select().from(assets).orderBy(sql`${assets.createdAt} desc`);
+    const wanted = rows.filter((row) => needsThumbnail(row));
 
-    const wanted = rows.filter((row) => hasPicture(row));
-    const skipped = rows.length - wanted.length;
-
-    log(
-      `${String(wanted.length)} asset(s) want a thumbnail` +
-        (skipped > 0 ? ` (${String(skipped)} skipped — sound has no frame in it)` : ""),
-    );
+    log(`${String(wanted.length)} asset(s) want a thumbnail, out of ${String(rows.length)}`);
     if (wanted.length === 0) return;
 
     const byProject = new Map<string, number>();

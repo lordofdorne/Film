@@ -85,6 +85,35 @@ const mediaUrl = async (key: string): Promise<string> =>
     : storeFromEnv().signedGetUrl(key, { expiresInSeconds: 900 });
 
 /**
+ * How long the same thumbnail keeps the same URL.
+ *
+ * Five minutes. A signature normally carries the instant it was made, so the
+ * hub handed the browser seventeen brand-new URLs on every render — and it
+ * re-renders on every window focus, because `FreshenOnReturn` keeps the signed
+ * URLs from expiring under a page left open. Nothing was ever a cache hit, so
+ * refreshing the page to keep its URLs alive downloaded every picture on it.
+ *
+ * Rounding the signing clock to the current five-minute mark makes those
+ * renders produce identical URLs, so the second one is free. The credential is
+ * unchanged in every other way: still fifteen minutes at most, still scoped to
+ * one key and one method, still a private bucket. The rejected alternatives —
+ * a public bucket, or a URL signed for a day — would also have got a cache,
+ * for recordings of somebody's grandmother.
+ *
+ * Only thumbnails. A take's URL is minted when somebody opens that one step,
+ * where there is nothing to repeat and no reason to spend any of its life.
+ */
+const THUMBNAIL_URL_STABLE_SECONDS = 300;
+
+const thumbnailUrl = async (key: string): Promise<string> =>
+  usingLocalStore()
+    ? `/api/media/${key}`
+    : storeFromEnv().signedGetUrl(key, {
+        expiresInSeconds: 900,
+        stableForSeconds: THUMBNAIL_URL_STABLE_SECONDS,
+      });
+
+/**
  * Ingest's verdict, in the customer's language rather than the QC code's.
  *
  * These strings are generic to any film type — they talk about light, sound
@@ -170,7 +199,7 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
               url: await mediaUrl(asset.storageKey),
               ...(asset.thumbnailKey === null
                 ? {}
-                : { thumbUrl: await mediaUrl(asset.thumbnailKey) }),
+                : { thumbUrl: await thumbnailUrl(asset.thumbnailKey) }),
             },
       ...(note === undefined ? {} : { qcNote: note }),
     });

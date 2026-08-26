@@ -22,7 +22,7 @@ import { ingestIdentity } from "./stages/ingest.js";
 import { renderIdentity } from "./stages/render.js";
 import { deliverIdentity } from "./stages/deliver.js";
 import { hasSelection, transcribeIdentity } from "./stages/transcribe.js";
-import { hasPicture, thumbnailIdentity } from "./stages/thumbnail.js";
+import { needsThumbnail, thumbnailIdentity } from "./stages/thumbnail.js";
 import type { AssetRow } from "./model.js";
 
 /**
@@ -188,7 +188,7 @@ export const planProject = async (
    * end up in the same place.
    */
   for (const row of ingested) {
-    if (!hasPicture(row) || row.thumbnailKey !== null) continue;
+    if (!needsThumbnail(row)) continue;
     const identity = thumbnailIdentity(row);
     const label = `thumbnail ${row.slotId ?? row.questionId ?? row.id}`;
     if (consider(identity, label, false) === "dispatch") jobs.push(payload(identity));

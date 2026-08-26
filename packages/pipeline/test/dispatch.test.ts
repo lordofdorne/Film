@@ -18,7 +18,7 @@ import { deliverIdentity } from "../src/stages/deliver.js";
 import { ingestIdentity as ingest } from "../src/stages/ingest.js";
 import { renderIdentity } from "../src/stages/render.js";
 import { transcribeIdentity } from "../src/stages/transcribe.js";
-import { thumbnailIdentity } from "../src/stages/thumbnail.js";
+import { thumbnailIdentity, thumbnailKeyOf } from "../src/stages/thumbnail.js";
 import { MUSIC_BED_SLOT, type AssetRow } from "../src/model.js";
 import { loadAssets } from "../src/stages/context.js";
 
@@ -139,9 +139,7 @@ const markIngested = async (): Promise<void> => {
       .update(assets)
       .set({
         normalisedKey: `projects/${projectId}/normalised/${row.id}/n`,
-        ...(row.kind === "audio"
-          ? {}
-          : { thumbnailKey: `projects/${projectId}/still/${row.id}/thumb.jpg` }),
+        ...(row.kind === "audio" ? {} : { thumbnailKey: thumbnailKeyOf(projectId, row.id) }),
         qcMetrics:
           row.kind === "audio"
             ? { durationMs: 200_000 }
@@ -324,6 +322,17 @@ describe("planProject — thumbnails", () => {
     await db.update(assets).set({ thumbnailKey: null }).where(eq(assets.projectId, projectId));
   };
 
+  /**
+   * Ingested when an older recipe was current, so the row points at a picture
+   * that exists and is no longer the one this code makes.
+   */
+  const supersedeThumbnails = async (): Promise<void> => {
+    await db
+      .update(assets)
+      .set({ thumbnailKey: `projects/${projectId}/still/${takeId}/thumb-v0.jpg` })
+      .where(eq(assets.id, takeId));
+  };
+
   it("plans one for an asset that was ingested before thumbnails existed", async () => {
     needsDb();
     await markReady();
@@ -340,6 +349,22 @@ describe("planProject — thumbnails", () => {
     await markReady();
     const { jobs } = await planProject(db, projectId);
     expect(jobs.map((j) => j.stage)).not.toContain("thumbnail");
+  });
+
+  /**
+   * The half-wired mechanism. The stage compares keys, so it will replace an
+   * older recipe's picture — but the dispatcher used to check only for null, so
+   * it never asked, and bumping the recipe would have changed nothing while
+   * every row said it had succeeded.
+   */
+  it("plans a new one when the recipe has moved past the stored picture", async () => {
+    needsDb();
+    await markReady();
+    await supersedeThumbnails();
+
+    const { jobs } = await planProject(db, projectId);
+    const thumbs = jobs.filter((j) => j.stage === "thumbnail");
+    expect(thumbs.map((j) => j.assetId)).toEqual([takeId]);
   });
 
   /**

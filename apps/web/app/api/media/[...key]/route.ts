@@ -58,6 +58,7 @@ export async function GET(
         "content-type": contentType,
         "content-length": String(head.byteSize),
         "accept-ranges": "bytes",
+        ...cacheHeader(storageKey),
       },
     });
   }
@@ -96,6 +97,19 @@ export async function GET(
     },
   });
 }
+
+/**
+ * The offline mirror of the Cache-Control R2 keeps on the object itself.
+ *
+ * Only for stills. This URL carries no signature, so it never rotates, and
+ * telling a browser it may keep somebody's whole interview take under a URL
+ * that never changes is a different and worse promise than the one production
+ * makes. `private` either way: these are recordings of somebody's family, and
+ * the access check above runs per request — a shared cache would answer for
+ * someone it was never checked against.
+ */
+const cacheHeader = (key: string): Record<string, string> =>
+  key.includes("/still/") ? { "cache-control": "private, max-age=900, immutable" } : {};
 
 const guessType = (key: string): string => {
   if (key.endsWith(".mp4")) return "video/mp4";

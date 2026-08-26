@@ -11,7 +11,7 @@ import {
   thumbnailArgs,
   THUMBNAIL_LONG_EDGE,
 } from "../src/media/thumbnail.js";
-import { hasPicture } from "../src/stages/thumbnail.js";
+import { hasPicture, needsThumbnail, thumbnailKeyOf } from "../src/stages/thumbnail.js";
 import type { AssetRow } from "../src/model.js";
 
 const run = promisify(execFile);
@@ -117,6 +117,48 @@ describe("hasPicture", () => {
   it("is false for the music bed and for recorded questions", () => {
     expect(hasPicture(asset({ kind: "audio", slotId: "music_bed" }))).toBe(false);
     expect(hasPicture(asset({ kind: "audio", slotId: null }))).toBe(false);
+  });
+});
+
+/**
+ * The predicate the dispatcher, the backfill and the stage all have to agree
+ * on.
+ *
+ * They did not. The stage compared keys — so it was willing to replace an
+ * older recipe's picture — while the dispatcher only checked the column for
+ * null, and so never asked. Bumping the recipe would have re-dispatched the
+ * work, skipped it, and left the old picture in place under a row saying it
+ * succeeded. Found by looking at real rows after a re-run, not by reading it.
+ */
+describe("needsThumbnail", () => {
+  const PROJECT = "44444444-4444-4444-4444-444444444444";
+  const ASSET = "55555555-5555-5555-5555-555555555555";
+  const asset = (thumbnailKey: string | null): AssetRow =>
+    ({
+      id: ASSET,
+      projectId: PROJECT,
+      kind: "interview",
+      slotId: null,
+      thumbnailKey,
+    }) as AssetRow;
+
+  it("wants one when there is none", () => {
+    expect(needsThumbnail(asset(null))).toBe(true);
+  });
+
+  it("is satisfied by this recipe's own thumbnail", () => {
+    expect(needsThumbnail(asset(thumbnailKeyOf(PROJECT, ASSET)))).toBe(false);
+  });
+
+  /** The whole point of putting the version in the name. */
+  it("wants a new one when the recipe has moved on", () => {
+    const superseded = thumbnailKeyOf(PROJECT, ASSET).replace(/thumb-v\d+/, "thumb-v0");
+    expect(needsThumbnail(asset(superseded))).toBe(true);
+  });
+
+  it("never wants one for something with no picture in it", () => {
+    const bed = { ...asset(null), kind: "audio", slotId: "music_bed" } as AssetRow;
+    expect(needsThumbnail(bed)).toBe(false);
   });
 });
 
