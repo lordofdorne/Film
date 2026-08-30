@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import type { StepView, WalkthroughView } from "../../../src/server/capture.js";
+import type { HubStep, HubView } from "../../../src/server/capture.js";
 import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
 
@@ -15,7 +15,7 @@ import { MakeFilmButton } from "./MakeFilmButton.js";
  * Server-rendered from rows. Coming back three days later on another device
  * renders the same page, because none of this lives in React state.
  */
-export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) => {
+export const Hub = ({ walkthrough }: { readonly walkthrough: HubView }) => {
   const steps = walkthrough.steps;
   const done = steps.filter(isDone);
   const secondsLeft = steps
@@ -24,7 +24,7 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
 
   const name = walkthrough.subject.displayName ?? walkthrough.subject.subjectName;
 
-  const chapters = new Map<string, StepView[]>();
+  const chapters = new Map<string, HubStep[]>();
   for (const step of steps) {
     const list = chapters.get(step.chapterId) ?? [];
     list.push(step);
@@ -33,7 +33,9 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
 
   return (
     <main style={styles.page}>
-      {/* Thumbnails here are signed URLs with a fifteen-minute life. */}
+      {/* Thumbnails here are signed URLs with a fifteen-minute life, pointing
+          at the small stills the thumbnail stage makes — never at the
+          customer's originals. */}
       <FreshenOnReturn />
       <header style={styles.head}>
         <h1 style={styles.title}>{name === undefined ? "Your film" : `${name}’s film`}</h1>
@@ -41,6 +43,20 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
           {done.length} of {steps.length} done
           {secondsLeft > 0 && ` · about ${minutesLeft(secondsLeft)} left`}
         </p>
+        {/*
+          What has been said so far, which is what the film is made of.
+
+          "of answers" rather than a predicted film length: the finished
+          duration depends on the edit, and a number that turns out wrong on
+          the preview screen is worse than no number. One short answer is
+          nothing; this is what makes five of them visible while there is
+          still time to add to it.
+        */}
+        {walkthrough.spokenSecondsSoFar > 0 && (
+          <p style={styles.spoken}>
+            {spokenSoFar(walkthrough.spokenSecondsSoFar)} of answers recorded
+          </p>
+        )}
         <div style={styles.track}>
           <div
             style={{
@@ -75,7 +91,7 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: WalkthroughView }) 
   );
 };
 
-const isDone = (step: StepView): boolean =>
+const isDone = (step: HubStep): boolean =>
   step.asset !== null || (step.value !== null && step.value !== "");
 
 const minutesLeft = (seconds: number): string => {
@@ -83,12 +99,25 @@ const minutesLeft = (seconds: number): string => {
   return minutes === 1 ? "a minute" : `${String(minutes)} minutes`;
 };
 
+/**
+ * Seconds until it is worth speaking in minutes.
+ *
+ * Rounding forty seconds up to "a minute" would overstate what is there on
+ * the one screen whose job is to be honest about how the film is going.
+ */
+const spokenSoFar = (seconds: number): string => {
+  if (seconds < 90) return `${String(Math.round(seconds))} seconds`;
+  const minutes = seconds / 60;
+  const rounded = Math.round(minutes * 2) / 2;
+  return `${rounded % 1 === 0 ? String(rounded) : rounded.toFixed(1)} minutes`;
+};
+
 const StepCard = ({
   projectId,
   step,
 }: {
   readonly projectId: string;
-  readonly step: StepView;
+  readonly step: HubStep;
 }) => {
   const done = isDone(step);
   return (
@@ -107,12 +136,27 @@ const StepCard = ({
         </span>
         {step.asset !== null && (
           <span style={styles.thumbHolder}>
-            {step.asset.kind === "photo" ? (
+            {/*
+              The thumbnail, or nothing. Never the original.
+
+              This card used to draw `step.asset.url` — the customer's own file
+              — as an <img> for a photograph and a <video preload="metadata">
+              for a take. Measured on one real film: the hub referenced 105 MB
+              across 18 assets to draw eighteen 56-pixel squares, and fetched
+              it again on every visit and every window focus, because a fresh
+              signature each render means the browser cache can never hit.
+
+              A grey square for the few seconds before ingest has been is the
+              price, and it is the right way round: a card that falls back to
+              the original is a card that is slow forever on exactly the films
+              whose ingest is already cached.
+            */}
+            {step.asset.thumbUrl === undefined ? (
+              <span style={{ ...styles.thumb, ...styles.thumbWaiting }} aria-hidden />
+            ) : (
               // eslint-disable-next-line @next/next/no-img-element -- signed
               // URLs are short-lived and remote patterns would have to be open.
-              <img src={step.asset.url} alt="" style={styles.thumb} loading="lazy" />
-            ) : (
-              <video src={step.asset.url} style={styles.thumb} preload="metadata" muted />
+              <img src={step.asset.thumbUrl} alt="" style={styles.thumb} loading="lazy" />
             )}
           </span>
         )}
@@ -132,6 +176,7 @@ const styles = {
   head: { marginBottom: 8 },
   title: { fontSize: 28, fontWeight: 600, letterSpacing: -0.5, margin: 0 },
   progress: { fontSize: 14, color: "#666", margin: "8px 0 0" },
+  spoken: { fontSize: 13, color: "#8a8a8a", margin: "4px 0 0" },
   track: { height: 4, background: "#eee", borderRadius: 2, margin: "12px 0 0", overflow: "hidden" },
   trackFill: { height: "100%", background: "#12603a", transition: "width 240ms ease" },
   chapter: { marginTop: 36 },
@@ -178,6 +223,8 @@ const styles = {
     background: "#000",
     display: "block",
   },
+  /* Recorded, not yet looked at. Quiet enough not to read as a broken image. */
+  thumbWaiting: { background: "#ececec" },
   footer: {
     position: "sticky" as const,
     bottom: 0,

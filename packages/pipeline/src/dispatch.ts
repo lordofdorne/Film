@@ -22,6 +22,7 @@ import { ingestIdentity } from "./stages/ingest.js";
 import { renderIdentity } from "./stages/render.js";
 import { deliverIdentity } from "./stages/deliver.js";
 import { hasSelection, transcribeIdentity } from "./stages/transcribe.js";
+import { needsThumbnail, thumbnailIdentity } from "./stages/thumbnail.js";
 import type { AssetRow } from "./model.js";
 
 /**
@@ -98,13 +99,25 @@ export const planProject = async (
    * not change, must not be handed out again — otherwise the dispatcher and
    * the runner argue forever and the loop reads like progress.
    */
-  const consider = (identity: StageIdentity, label: string): "dispatch" | "done" | "blocked" | "busy" => {
+  const consider = (
+    identity: StageIdentity,
+    label: string,
+    /**
+     * Whether giving up on this stage is giving up on the film.
+     *
+     * `blocked` is what marks a project failed, so anything listed here is a
+     * dead end a customer has to be told about. A stage the film does not need
+     * — a thumbnail for a card in a list — must be able to fail permanently
+     * without taking a finished film down with it.
+     */
+    critical = true,
+  ): "dispatch" | "done" | "blocked" | "busy" => {
     const row = byKey.get(identityKey(identity));
     if (row === undefined) return "dispatch";
     if (row.status === "succeeded") return "done";
     if (row.status === "running" || row.status === "claimed") return "busy";
     if (row.failureClass === "permanent" || row.attempt >= MAX_ATTEMPTS) {
-      blocked.push(`${label}: ${row.error ?? "failed"}`);
+      if (critical) blocked.push(`${label}: ${row.error ?? "failed"}`);
       return "blocked";
     }
     return "dispatch";
@@ -158,7 +171,30 @@ export const planProject = async (
     if (verdict !== "done") allTranscribed = false;
   }
 
-  /* ── 3. compose, once every asset is in AND the customer has finished ── */
+  /* ── 3. thumbnails, so a hub can draw a card without downloading a film ── */
+  /**
+   * Never blocks anything, and never fails a project.
+   *
+   * Ingest already makes one for every asset it handles, while it has the file
+   * open — so in the normal case this finds a thumbnail already there and
+   * records that in one cheap row. What it is really for is the assets that
+   * were ingested before thumbnails existed, whose hubs are otherwise slow
+   * forever: their ingest is cached and will never run again, and this stage
+   * has a hash of its own, so it reaches them without re-transcoding a thing.
+   *
+   * Only for assets that have been ingested. A thumbnail is worth having
+   * during capture, but ingest is seconds behind and makes a better one from
+   * a file it already has; racing it here would download the original twice to
+   * end up in the same place.
+   */
+  for (const row of ingested) {
+    if (!needsThumbnail(row)) continue;
+    const identity = thumbnailIdentity(row);
+    const label = `thumbnail ${row.slotId ?? row.questionId ?? row.id}`;
+    if (consider(identity, label, false) === "dispatch") jobs.push(payload(identity));
+  }
+
+  /* ── 4. compose, once every asset is in AND the customer has finished ── */
   // Never while capturing: the set of assets is still changing under it, and
   // a film must only ever be cut from what the customer decided was complete.
   if (allIngested && allTranscribed && project.status !== "capturing") {
@@ -166,7 +202,7 @@ export const planProject = async (
     if (consider(identity, "compose") === "dispatch") jobs.push(payload(identity));
   }
 
-  /* ── 3. render, for every cut the customer approved ───────────────── */
+  /* ── 5. render, for every cut the customer approved ───────────────── */
   const requested = await db
     .select({
       id: renders.id,
@@ -196,7 +232,7 @@ export const planProject = async (
     }
     if (verdict !== "done" || project.status === "delivered") continue;
 
-    /* ── 4. deliver, once the film exists and the cut was approved ──── */
+    /* ── 6. deliver, once the film exists and the cut was approved ──── */
     const approved = await db
       .select({ id: approvals.id })
       .from(approvals)

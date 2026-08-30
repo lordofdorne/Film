@@ -10,7 +10,9 @@ import {
   runIngest,
   runRender,
   runStage,
+  runThumbnail,
   runTranscribe,
+  thumbnailRequiresFreeBytes,
   transcribeRequiresFreeBytes,
   type StageOutcome,
 } from "@film/pipeline";
@@ -33,6 +35,7 @@ export type HandlerDeps = {
 export const IMPLEMENTED: readonly QueueName[] = [
   "ingest",
   "transcribe",
+  "thumbnail",
   "compose",
   "render",
   "deliver",
@@ -70,6 +73,14 @@ export const handleJob = async (deps: HandlerDeps, raw: unknown): Promise<StageO
         identity,
         { ...common, requiresFreeBytes: transcribeRequiresFreeBytes() },
         runTranscribe,
+      );
+
+    case "thumbnail":
+      return runStage(
+        deps,
+        identity,
+        { ...common, requiresFreeBytes: thumbnailRequiresFreeBytes() },
+        runThumbnail,
       );
 
     case "compose":

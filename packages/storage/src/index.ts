@@ -73,6 +73,27 @@ export type SignedUrlOptions = {
    * keep. Only meaningful on a store that can serve the object directly.
    */
   readonly downloadAs?: string;
+  /**
+   * Give the same key the same URL for this many seconds, so a browser can
+   * cache it.
+   *
+   * Every signature carries the moment it was made, so signing twice a second
+   * apart produces two different URLs for identical bytes — and a browser
+   * treats them as two different resources. The hub renders on every visit and
+   * on every window focus, so nothing it showed was EVER served from cache:
+   * measured at 105 MB re-fetched per focus before thumbnails, and seventeen
+   * pointless round trips after them.
+   *
+   * Rounding the signing time down to a window makes every render inside that
+   * window produce a byte-identical URL. The TTL is untouched — these are still
+   * short-lived bearer credentials, and this is deliberately not "make the
+   * bucket public" or "sign for a day", both of which would also get a cache.
+   *
+   * The cost is that a URL minted at the end of a window has already spent the
+   * window's length of its life, so the guaranteed remaining life is
+   * `ttl - window`. `stableWindow` below keeps that at half the TTL or better.
+   */
+  readonly stableForSeconds?: number;
 };
 
 export const MAX_SIGNED_URL_TTL_SECONDS = 900;
@@ -105,6 +126,16 @@ export const contentDisposition = (filename: string): string => {
 export type PutOptions = {
   readonly contentType?: string;
   readonly contentLength?: number;
+  /**
+   * What a browser may do with this object once it has it.
+   *
+   * Stored ON THE OBJECT rather than decided when a URL is signed, because
+   * that is where S3 keeps it: the header comes back on every GET, signed or
+   * not. Without one a browser falls back to heuristic caching, which for an
+   * object written minutes ago amounts to none — so a stable URL alone buys
+   * nothing. The two halves only work together.
+   */
+  readonly cacheControl?: string;
 };
 
 export type StoredObject = {
@@ -137,6 +168,33 @@ export interface ObjectStore {
 
 export const clampTtl = (requested: number | undefined): number =>
   Math.min(requested ?? 300, MAX_SIGNED_URL_TTL_SECONDS);
+
+/**
+ * The moment to sign for, rounded down so a URL repeats.
+ *
+ * Returns undefined when the caller did not ask for stability, which is the
+ * default: sign for now, and every URL is unique.
+ *
+ * Always rounds DOWN, never up. A signature dated in the future is rejected
+ * outright by S3, and every machine's clock is a little wrong; flooring only
+ * ever spends life that was already granted.
+ *
+ * The window is capped at half the TTL. Rounding down means a URL minted at
+ * the very end of a window has `ttl - window` left, so an uncapped window
+ * could hand a browser a URL that expired before it arrived — a bug that would
+ * show up as intermittently broken thumbnails and nothing in a log.
+ */
+export const stableWindow = (
+  stableForSeconds: number | undefined,
+  ttlSeconds: number,
+  now: number = Date.now(),
+): Date | undefined => {
+  if (stableForSeconds === undefined || stableForSeconds <= 0) return undefined;
+  const window = Math.min(stableForSeconds, Math.floor(ttlSeconds / 2));
+  if (window <= 0) return undefined;
+  const ms = window * 1000;
+  return new Date(Math.floor(now / ms) * ms);
+};
 
 
 import { createHash } from "node:crypto";

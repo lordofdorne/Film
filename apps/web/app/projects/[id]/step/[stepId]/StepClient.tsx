@@ -352,7 +352,32 @@ export const StepClient = ({
             {shownIsPhoto ? (
               <img src={shownUrl} alt="" style={styles.media} />
             ) : (
-              <video src={shownUrl} controls playsInline style={styles.media} />
+              /*
+                Nothing is fetched until somebody presses play.
+
+                A take is hundreds of megabytes, and the default preload starts
+                pulling it the moment this page renders — so opening a step to
+                re-read the question cost a download of the answer. The poster
+                is the thumbnail: one small image, and the frame it shows is
+                the frame play would have started on anyway.
+
+                `localUrl` is this session's own blob, already in memory, so it
+                needs neither.
+              */
+              <video
+                src={shownUrl}
+                controls
+                playsInline
+                style={styles.media}
+                {...(localUrl === null
+                  ? {
+                      preload: "none" as const,
+                      ...(step.asset?.thumbUrl === undefined
+                        ? {}
+                        : { poster: step.asset.thumbUrl }),
+                    }
+                  : {})}
+              />
             )}
             <div style={styles.row}>
               {takesVideo && (

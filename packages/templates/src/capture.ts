@@ -10,6 +10,29 @@ import type { CaptureChapter, DetailField, Guidance, MediaSlot, Template } from 
  * sense for one film type. That is the whole test of this boundary: a second
  * template ships its own walk-through with no React changing.
  */
+/**
+ * How much speech this kind of film is built on.
+ *
+ * A typed way in to `editing.adaptiveSpeechMs`, which the compose stage uses
+ * to decide how much room the pictures get. The capture surfaces need the same
+ * two numbers to say anything honest about how a film is shaping up, and
+ * neither should be reaching into an untyped `Record<string, unknown>` to get
+ * them.
+ *
+ * Falls back to nothing rather than to invented defaults: a template that has
+ * not said what it is built on should get silence, not a guess presented to a
+ * customer as fact.
+ */
+export const speechAppetite = (
+  template: Template,
+): { readonly leanMs: number; readonly richMs: number } | undefined => {
+  const declared = (template.editing as { adaptiveSpeechMs?: unknown }).adaptiveSpeechMs;
+  if (typeof declared !== "object" || declared === null) return undefined;
+  const { lean, rich } = declared as { lean?: unknown; rich?: unknown };
+  if (typeof lean !== "number" || typeof rich !== "number" || rich <= lean) return undefined;
+  return { leanMs: lean, richMs: rich };
+};
+
 export type ResolvedCaptureStep = {
   /** The id in the URL. A question, slot or field id; unique across the flow. */
   readonly id: string;

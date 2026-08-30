@@ -490,6 +490,22 @@ const config: Template = {
     coldOpenMs: { min: 4_000, max: 8_000 },
     photoHoldMs: { min: 3_000, max: 5_000 },
     brollMs: { min: 2_000, max: 6_000 },
+    /**
+     * How much speech this kind of film is built on, and the whole reason the
+     * ranges above are ranges.
+     *
+     * Compose used to take the minimum of every range regardless, so a film
+     * made from twenty minutes of wonderful answers was cut as tightly as one
+     * made from ninety seconds. These two numbers turn "how much did they
+     * actually say" into how much room the pictures get: at `lean` the film is
+     * brisk and every hold is its shortest, at `rich` it breathes.
+     *
+     * `rich` is set to what this template's own 210-230s target implies —
+     * roughly three minutes of speech across ten answers. `lean` is a film
+     * from somebody who answered briefly, which is a real film and not a
+     * broken one.
+     */
+    adaptiveSpeechMs: { lean: 90_000, rich: 180_000 },
     /** Handles kept around a selected word range, where source bounds permit. */
     preRollHandleMs: 150,
     postRollHandleMs: 250,

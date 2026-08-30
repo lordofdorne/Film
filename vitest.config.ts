@@ -35,5 +35,20 @@ export default defineConfig({
     /* Golden-frame tests spawn Chrome and are slow by nature. */
     testTimeout: 120_000,
     hookTimeout: 120_000,
+    /**
+     * One test file at a time, because several of them share one development
+     * Postgres.
+     *
+     * Scoped project ids are not enough on their own: with files running in
+     * parallel the suite failed twice — once in `dispatch.test.ts`, once as a
+     * 120-SECOND timeout in `runStage.test.ts` — and both passed immediately
+     * when run alone. A suite that is sometimes red for no reason is a suite
+     * people stop reading.
+     *
+     * It costs about 13 seconds (31s against 18s). That was judged too much
+     * for a single unreproduced failure and obviously worth it for a second
+     * one that wasted two minutes on a timeout.
+     */
+    fileParallelism: false,
   },
 });

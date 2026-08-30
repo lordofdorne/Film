@@ -18,6 +18,7 @@ import { deliverIdentity } from "../src/stages/deliver.js";
 import { ingestIdentity as ingest } from "../src/stages/ingest.js";
 import { renderIdentity } from "../src/stages/render.js";
 import { transcribeIdentity } from "../src/stages/transcribe.js";
+import { thumbnailIdentity, thumbnailKeyOf } from "../src/stages/thumbnail.js";
 import { MUSIC_BED_SLOT, type AssetRow } from "../src/model.js";
 import { loadAssets } from "../src/stages/context.js";
 
@@ -125,13 +126,20 @@ const record = async (
   });
 };
 
-/** Pretend every asset has been ingested, as the stage itself would. */
+/**
+ * Pretend every asset has been ingested, as the stage itself would.
+ *
+ * Including the thumbnail. Ingest writes one while it has the file open, so a
+ * helper that set only `normalisedKey` would model an ingest that never
+ * happens and leave every test in this file planning a repair job.
+ */
 const markIngested = async (): Promise<void> => {
   for (const row of await rows()) {
     await db
       .update(assets)
       .set({
         normalisedKey: `projects/${projectId}/normalised/${row.id}/n`,
+        ...(row.kind === "audio" ? {} : { thumbnailKey: thumbnailKeyOf(projectId, row.id) }),
         qcMetrics:
           row.kind === "audio"
             ? { durationMs: 200_000 }
@@ -296,6 +304,108 @@ describe("planProject", () => {
     const { jobs } = await planProject(db, projectId);
     expect(jobs.map((j) => j.stage)).toEqual(["ingest"]);
     expect(jobs[0]?.assetId).toBe(takeId);
+  });
+});
+
+/**
+ * The stage that exists so a hub can draw a card.
+ *
+ * The hub used to draw its cards from the customer's originals — 105 MB across
+ * one real film, re-fetched on every visit. Ingest now makes a small still
+ * while it has the file open, and this stage is what reaches the assets
+ * ingested before that existed: their ingest is cached and will never run
+ * again, so nothing else can.
+ */
+describe("planProject — thumbnails", () => {
+  /** Ingested, but before ingest knew to make a thumbnail. */
+  const forgetThumbnails = async (): Promise<void> => {
+    await db.update(assets).set({ thumbnailKey: null }).where(eq(assets.projectId, projectId));
+  };
+
+  /**
+   * Ingested when an older recipe was current, so the row points at a picture
+   * that exists and is no longer the one this code makes.
+   */
+  const supersedeThumbnails = async (): Promise<void> => {
+    await db
+      .update(assets)
+      .set({ thumbnailKey: `projects/${projectId}/still/${takeId}/thumb-v0.jpg` })
+      .where(eq(assets.id, takeId));
+  };
+
+  it("plans one for an asset that was ingested before thumbnails existed", async () => {
+    needsDb();
+    await markReady();
+    await forgetThumbnails();
+
+    const { jobs } = await planProject(db, projectId);
+    const thumbs = jobs.filter((j) => j.stage === "thumbnail");
+    // The take, and not the music bed: sound has no frame in it.
+    expect(thumbs.map((j) => j.assetId)).toEqual([takeId]);
+  });
+
+  it("plans none once the asset has one", async () => {
+    needsDb();
+    await markReady();
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).not.toContain("thumbnail");
+  });
+
+  /**
+   * The half-wired mechanism. The stage compares keys, so it will replace an
+   * older recipe's picture — but the dispatcher used to check only for null, so
+   * it never asked, and bumping the recipe would have changed nothing while
+   * every row said it had succeeded.
+   */
+  it("plans a new one when the recipe has moved past the stored picture", async () => {
+    needsDb();
+    await markReady();
+    await supersedeThumbnails();
+
+    const { jobs } = await planProject(db, projectId);
+    const thumbs = jobs.filter((j) => j.stage === "thumbnail");
+    expect(thumbs.map((j) => j.assetId)).toEqual([takeId]);
+  });
+
+  /**
+   * The cut must not wait on a picture for a list. A thumbnail that is slow, or
+   * broken, or queued behind twenty others, has nothing to say about whether a
+   * film can be made.
+   */
+  it("never holds up the cut", async () => {
+    needsDb();
+    await markReady();
+    await forgetThumbnails();
+
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).toContain("compose");
+  });
+
+  /**
+   * The one that would be embarrassing. A finished film, watched and
+   * downloaded, marked FAILED because ffmpeg could not get a frame out of one
+   * take for a 56-pixel square.
+   */
+  it("never fails a project, however permanently it fails itself", async () => {
+    needsDb();
+    await markReady();
+    await forgetThumbnails();
+
+    const take = (await rows()).find((r) => r.id === takeId);
+    if (take === undefined) throw new Error("no take");
+    await record(thumbnailIdentity(take), {
+      status: "failed",
+      failureClass: "permanent",
+      error: "no decodable frame",
+    });
+
+    const { jobs, blocked } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).not.toContain("thumbnail");
+    expect(blocked).toEqual([]);
+
+    await dispatchActiveProjects(db, async () => undefined);
+    const status = (await db.select().from(projects).where(eq(projects.id, projectId)))[0]?.status;
+    expect(status).not.toBe("failed");
   });
 });
 

@@ -1,16 +1,17 @@
 import { and, eq, isNull, lt, sql } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import type { Db } from "./connection.js";
-import { stageExecutions } from "./schema/tables.js";
+import { stageExecutions, stageName } from "./schema/tables.js";
 
-export type StageName =
-  | "ingest"
-  | "qc"
-  | "transcribe"
-  | "select"
-  | "compose"
-  | "render"
-  | "deliver";
+/**
+ * Read off the enum rather than written out again beside it.
+ *
+ * These were two hand-kept lists, and adding a stage moved one of them: the
+ * column accepted `thumbnail` and the type it is read into did not, so every
+ * caller of every stage failed to compile with an error about a value the
+ * schema plainly allows. One source, no drift.
+ */
+export type StageName = (typeof stageName.enumValues)[number];
 
 export type FailureClass = "permanent" | "transient" | "cancelled";
 

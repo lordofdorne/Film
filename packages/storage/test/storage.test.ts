@@ -9,6 +9,7 @@ import {
   contentDisposition,
   objectKey,
   projectPrefix,
+  stableWindow,
 } from "../src/index.js";
 
 const PROJECT_A = "11111111-1111-1111-1111-111111111111";
@@ -57,6 +58,63 @@ describe("signed URL TTLs", () => {
 
   it("leaves a short request alone", () => {
     expect(clampTtl(60)).toBe(60);
+  });
+});
+
+/**
+ * The rounding that lets a browser cache a signed URL.
+ *
+ * A signature carries the moment it was made, so the hub handed out seventeen
+ * brand-new URLs on every render — and it re-renders on every window focus.
+ * Nothing it showed was ever a cache hit. Rounding the signing clock down to a
+ * window makes renders inside that window produce identical URLs.
+ */
+describe("stableWindow", () => {
+  const at = (iso: string): number => new Date(iso).getTime();
+
+  it("is undefined when nobody asked, which is the default", () => {
+    expect(stableWindow(undefined, 900)).toBeUndefined();
+    expect(stableWindow(0, 900)).toBeUndefined();
+  });
+
+  it("gives two moments in the same window the same answer", () => {
+    const a = stableWindow(300, 900, at("2026-08-25T12:01:00Z"));
+    const b = stableWindow(300, 900, at("2026-08-25T12:04:59Z"));
+    expect(a?.toISOString()).toBe(b?.toISOString());
+    expect(a?.toISOString()).toBe("2026-08-25T12:00:00.000Z");
+  });
+
+  it("moves on at the boundary", () => {
+    const before = stableWindow(300, 900, at("2026-08-25T12:04:59Z"));
+    const after = stableWindow(300, 900, at("2026-08-25T12:05:00Z"));
+    expect(before?.toISOString()).not.toBe(after?.toISOString());
+  });
+
+  /**
+   * Never forward. A signature dated in the future is rejected outright, and
+   * every machine's clock is a little wrong — rounding up would turn a
+   * harmless skew into thumbnails that intermittently do not load.
+   */
+  it("only ever rounds into the past", () => {
+    const now = at("2026-08-25T12:04:59Z");
+    const rounded = stableWindow(300, 900, now);
+    expect(rounded?.getTime()).toBeLessThanOrEqual(now);
+  });
+
+  /**
+   * The bug this cap exists to prevent: rounding down spends life the URL had,
+   * so a window as long as the TTL could hand a browser a URL that expired
+   * before it arrived. Capped at half, the worst case still has half its life.
+   */
+  it("never lets the window eat more than half the URL's life", () => {
+    const now = at("2026-08-25T12:09:59Z");
+    const rounded = stableWindow(900, 900, now);
+    const spent = (now - (rounded?.getTime() ?? now)) / 1000;
+    expect(spent).toBeLessThanOrEqual(450);
+  });
+
+  it("refuses a window on a TTL too short to afford one", () => {
+    expect(stableWindow(300, 1)).toBeUndefined();
   });
 });
 

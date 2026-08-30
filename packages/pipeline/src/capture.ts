@@ -33,6 +33,15 @@ export type CapturedAsset = {
   readonly id: string;
   readonly kind: "photo" | "video" | "interview";
   readonly storageKey: string;
+  /**
+   * A small picture of this asset, once something has made one. Null before
+   * that.
+   *
+   * Null rather than "fall back to the original": a list that falls back
+   * downloads the whole film to draw its cards, which is measurably what the
+   * hub used to do.
+   */
+  readonly thumbnailKey: string | null;
   readonly contentType: string | null;
   /** Whether ingest has looked at this yet. False right after an upload. */
   readonly ingested: boolean;
@@ -60,6 +69,71 @@ export type Walkthrough = {
 };
 
 export type Failure = { readonly ok: false; readonly error: string };
+
+/**
+ * Under this, it is not an answer — it is somebody saying "um" and stopping.
+ *
+ * An absolute floor, deliberately low. Everything above it is judged against
+ * the person's OWN pace rather than a number invented here, because "What is
+ * your name?" really is a four-second answer and being nagged about it would
+ * be worse than a short film.
+ */
+const TOO_SHORT_SECONDS = 3;
+
+/** How far below their own middle an answer falls before it is worth saying. */
+const OUTLIER_SHARE = 0.35;
+
+/** Below this there is not enough of a pattern to call anything an outlier. */
+const ENOUGH_TO_COMPARE_SECONDS = 10;
+
+/**
+ * The middle of what this person says, so a short answer is measured against
+ * them and not against a stranger.
+ *
+ * The median rather than the mean: one long answer should not make every
+ * other answer look thin.
+ */
+export const medianSeconds = (values: readonly number[]): number => {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2
+    : (sorted[middle] ?? 0);
+};
+
+export type SpokenVerdict = "inaudible" | "short" | "clear";
+
+/**
+ * What to say about the length of one answer, while the camera is still up.
+ *
+ * A film is as long as the answers in it, and a four-second answer cannot be
+ * rescued by any amount of editing — but it can be recorded again in the
+ * thirty seconds after somebody notices. This is the only moment the problem
+ * is solvable, which is the whole reason ingest runs during capture.
+ *
+ * Relative to the person, not to a target. Somebody whose every answer is
+ * eight seconds is having a short-answer conversation and should be left
+ * alone; somebody who has been giving thirty-second answers and then gives
+ * four has probably been interrupted, and would want to know.
+ *
+ * A decision, so it lives here where it is tested, rather than in the web app
+ * where the wording lives.
+ */
+export const spokenVerdict = (
+  seconds: number,
+  theirMedianSeconds: number,
+): SpokenVerdict => {
+  if (seconds < 2) return "inaudible";
+  if (seconds < TOO_SHORT_SECONDS) return "short";
+  if (
+    theirMedianSeconds >= ENOUGH_TO_COMPARE_SECONDS &&
+    seconds < theirMedianSeconds * OUTLIER_SHARE
+  ) {
+    return "short";
+  }
+  return "clear";
+};
 
 /* ── starting ─────────────────────────────────────────────────────────── */
 
@@ -192,6 +266,7 @@ export const loadWalkthrough = async (
               // not be a normalised file yet, and what somebody wants to check
               // is the take they just recorded.
               storageKey: row.storageKey,
+              thumbnailKey: row.thumbnailKey,
               contentType: row.contentType,
               ingested: row.normalisedKey !== null,
               warnings: (row.warnings ?? []) as { code: string; message: string }[],
