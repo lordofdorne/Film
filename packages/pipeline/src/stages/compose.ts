@@ -27,8 +27,14 @@ import { loadAssets, loadProject } from "./context.js";
  * one. Without the bump, every film that already failed compose for want of
  * those words would keep its failed execution row and never be re-planned —
  * a fix in the code that changes nothing in the world.
+ *
+ * 3: a keepsake FILMED rather than photographed reaches the film. This one is
+ * not about a failure — those films composed cleanly and validated without a
+ * warning, which is why nobody noticed. Their compose rows say `succeeded`, so
+ * without the bump the object they filmed stays missing from a film that the
+ * system is quite sure it already made correctly.
  */
-export const COMPOSE_RECIPE = 2;
+export const COMPOSE_RECIPE = 3;
 
 /**
  * Unlicensed music is refused unless someone has explicitly said otherwise.

@@ -813,24 +813,59 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
    *
    * Skipped rather than substituted: the group photo that follows is the real
    * ending, and an object nobody chose would be worse than no object.
+   *
+   * It may be a PHOTOGRAPH OR A CLIP, and that is the whole of the second bug
+   * here. The template declares `accepts: ["photo", "video"]` for this slot and
+   * the step sheet duly offers "Take a video" — but compose sorts a video into
+   * `brollAssetIds` and this looked only in `stills`. So somebody who filmed
+   * the object they were asked for got a green tick, a clean ingest, a film
+   * that composed without a single warning, and no object in it. The worst
+   * shape a bug can have in this product: they did exactly what was asked and
+   * the result quietly lacked it.
+   *
+   * The clip gets the same slot in the rhythm as the photograph would, and as
+   * much of it as there is, so the ending is the same length either way.
    */
-  const keepsake = input.stills.find((s) => s.slotId === "keepsake");
+  const keepsakeStill = input.stills.find((s) => s.slotId === "keepsake");
+  const keepsakeClip = input.brollAssetIds["keepsake"];
+  const KEEPSAKE_MS = flex(editing.photoHoldMs) + 600;
   const group = still("photo_group");
-  if (keepsake === undefined) {
-    notes.push("no keepsake was added; the film closes on the group photograph");
-  } else {
+
+  if (keepsakeStill !== undefined) {
     visual.push({
       id: "v_keepsake",
       kind: "photo",
-      durationMs: flex(editing.photoHoldMs) + 600,
+      durationMs: KEEPSAKE_MS,
       transitionIn: XFADE,
-      assetId: keepsake.assetId,
-      slotId: keepsake.slotId,
+      assetId: keepsakeStill.assetId,
+      slotId: keepsakeStill.slotId,
       focalPoint: { x: 0.5, y: 0.5 },
       motion: "still",
       intensity: 0,
       entry: "insetExpand",
     });
+  } else if (keepsakeClip !== undefined) {
+    // A second is the floor below which a cut is a flinch rather than a shot,
+    // the same floor every other insert uses.
+    const shot = sourceWindow(keepsakeClip, 0, KEEPSAKE_MS, 1000);
+    if (shot === undefined) {
+      notes.push(
+        "the keepsake clip is too short to hold a beat; the film closes on the group photograph",
+      );
+    } else {
+      visual.push({
+        id: "v_keepsake",
+        kind: "broll",
+        durationMs: shot.durationMs,
+        transitionIn: XFADE,
+        assetId: keepsakeClip,
+        slotId: "keepsake",
+        sourceInMs: shot.inMs,
+        sourceOutMs: shot.inMs + shot.durationMs,
+      });
+    }
+  } else {
+    notes.push("no keepsake was added; the film closes on the group photograph");
   }
   visual.push({
     id: "v_group_still",
@@ -895,5 +930,44 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     speechSegments: speech,
   };
 
+  for (const note of unusedAssetNotes(input, edl)) notes.push(note);
   return { edl, notes };
+};
+
+/**
+ * Anything somebody supplied that did not make it into the film.
+ *
+ * This exists because of the keepsake. A clip filmed for a slot that accepts
+ * clips was sorted into `brollAssetIds`, looked for in `stills`, and therefore
+ * silently absent from the finished film — no error, no warning, no note, a
+ * green tick on the card and a valid EDL. The specific bug is fixed above; this
+ * is what stops the NEXT one being invisible.
+ *
+ * Deliberately a note rather than a failure. There are honest reasons an asset
+ * goes unused — an answer with no speech in it is already skipped and said so —
+ * and refusing to compose would turn a small disappointment into no film at
+ * all. What was missing was not enforcement. It was anybody knowing.
+ */
+const unusedAssetNotes = (input: ComposeInput, edl: EDL): string[] => {
+  const used = new Set<string>();
+  for (const segment of edl.visualSegments) {
+    if ("assetId" in segment && typeof segment.assetId === "string") used.add(segment.assetId);
+  }
+  for (const segment of edl.speechSegments) used.add(segment.assetId);
+  for (const segment of edl.promptSegments) {
+    if ("assetId" in segment && typeof segment.assetId === "string") used.add(segment.assetId);
+  }
+
+  const supplied: { readonly assetId: string; readonly what: string }[] = [
+    ...input.stills.map((s) => ({ assetId: s.assetId, what: `the "${s.slotId}" photograph` })),
+    ...Object.entries(input.brollAssetIds).map(([slotId, assetId]) => ({
+      assetId,
+      what: `the "${slotId}" clip`,
+    })),
+    ...input.answers.map((a) => ({ assetId: a.assetId, what: `the answer to "${a.questionId}"` })),
+  ];
+
+  return supplied
+    .filter((s) => !used.has(s.assetId))
+    .map((s) => `${s.what} was supplied but does not appear in the film`);
 };
