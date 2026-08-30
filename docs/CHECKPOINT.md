@@ -1,17 +1,22 @@
-# Checkpoint — 2026-08-11
+# Checkpoint — 2026-08-30
 
-State after Phase 1, the real-media proof, Blocks 1–3 of the production
-pipeline, the download surface and the capture walk-through. Written so a
-session with no conversational context can pick this up from the repository
-alone.
+State after Phase 1, the real-media proof, the production pipeline, the
+download surface, the capture walk-through, accounts, R2, transcription,
+adaptive length and the hub's performance work. Written so a session with no
+conversational context can pick this up from the repository alone.
 
-`main` is at `aed25b9`, and this branch adds the capture walk-through on top of
-it. Ten packages, two apps, 279 tests.
+`main` is at `0465f87`. Nine packages, two apps, 383 tests.
+
+**A browser-made film now goes all the way through.** Somebody presses Start,
+records, and receives a finished file — no script, no operator, nothing typed
+in by hand. That was not true at the last checkpoint and it is the single
+biggest change since.
 
 **Capture requirements are at the bottom, in "The capture flow"** — they come
-from the owner rather than from the code. `docs/proposal/phase-3-capture.md` is
-the design written against them, and the walk-through is the first part of it
-built.
+from the owner rather than from the code, and they are the part of this
+document a reader cannot reconstruct from the repository. Everything the
+proposals in `docs/proposal/` designed against them is now built; that section
+records what was asked for and, under each heading, what it became.
 
 ---
 
@@ -25,9 +30,8 @@ built.
 ## What works today
 
 **A film goes from recordings to a delivered file with nobody running a
-script, and the customer can download it.** Media can now be captured in a
-browser too, though a film cannot yet be made end to end from one — see
-"The capture flow".
+script, and the customer can download it — including a film captured entirely
+in a browser.** `pnpm intake` is now one way in rather than the only one.
 
 ```bash
 pnpm install
@@ -36,12 +40,18 @@ cp .env.example .env   # one env file; every command below reads it
 
 pnpm auth:up    # local Supabase: sign-in, and Mailpit on :54324 for the links
 pnpm bed:upload # once: puts the music bed where capture can find it
-pnpm intake     # incoming/ -> object store + Postgres, then stops
-pnpm worker     # takes it from there
+pnpm worker     # ingest, transcribe, thumbnail, compose, render, deliver
 pnpm web        # localhost:3200 — /make to start a film, /projects/<id> is its hub
+
+pnpm intake     # optional: incoming/ -> object store + Postgres, then stops.
+                # The operator path. A film no longer needs it.
 ```
 
-Three environment variables are easy to get wrong and fail quietly:
+`transcribe` needs a binary and a model or nothing gets any words:
+`brew install whisper-cpp`, and `WHISPER_MODEL` pointing at a ggml file.
+`models/` is gitignored; small.en is the chosen size.
+
+Four environment variables are easy to get wrong and fail quietly:
 
 - `STORAGE_ROOT` — the worker writes objects here and the web app reads them.
   **Use an absolute path.** Next runs with its working directory at `apps/web`,
@@ -55,11 +65,18 @@ Three environment variables are easy to get wrong and fail quietly:
 - `DATABASE_URL_WORKER` must be direct or session mode, never a transaction
   pooler. `@film/db` refuses at startup rather than letting pg-boss silently
   never deliver a job.
+- `R2_ACCOUNT_ID` is the 32-hex account id, **not the endpoint URL** — pasting
+  the whole `https://<id>.r2.cloudflarestorage.com` is the obvious mistake and
+  produces a hostname with the URL inside it. Unset, everything falls back to
+  local disk and the offline path stays first-class.
+
+All four are read **at boot**. Restart the worker after touching `.env`; see
+"Hard-won details".
 
 A worker left running against the development database will pick up any
 project a test leaves behind, so the test suites clean up after themselves.
 
-Measured on the real recordings, 2026-08-08:
+Measured through the **intake** path on the real recordings, 2026-08-08:
 
 | Step | Result |
 |---|---|
@@ -71,6 +88,17 @@ Measured on the real recordings, 2026-08-08:
 | deliver | 115.8 MB at −14.80 LUFS / −0.75 dBTP |
 | download | 115,831,887 bytes, sha256 identical to the stored object |
 
+And through the **browser** path, 2026-08-21, on a project whose typed answers
+were deleted first so that transcription was the only possible source of the
+words:
+
+| Step | Result |
+|---|---|
+| transcribe | 10 takes, whisper.cpp on the worker, audio never left the machine |
+| compose | cut to 3:03, then 1:58 once length became adaptive |
+| deliver | **76 MB** where the same footage at the same length was 110 MB |
+| download | 302 to R2, 206 on a range request, `ftypisom` in the first bytes |
+
 The offline path still works and still needs nothing: `pnpm film`,
 `pnpm project:build`, `pnpm film:real`.
 
@@ -78,19 +106,19 @@ The offline path still works and still needs nothing: `pnpm film`,
 |---|---|
 | 1 — Handwritten EDL, validator, renderer | Complete |
 | 2 — Ingest and QC | Ingest is a real stage. Normalisation, speech measurement, rotation, QC warnings. No HDR tonemapping. |
-| 3 — Browser capture | Walk-through built: record or upload per step, retake, resume, finish. **Cannot yet produce a film** — see below. |
-| 4 — Transcription | Not started. Caption text is supplied at intake; word timings estimated. |
-| 5 — Compose | Deterministic, storage-backed, appends edl_versions. No cue alignment, no LLM selection. |
+| 3 — Browser capture | Done. Walk-through, record or upload per step, retake, resume, finish — and it produces a film. |
+| 4 — Transcription | Done. whisper.cpp on the worker, per take, during capture. No word timings by design — see below. |
+| 5 — Compose | Deterministic, storage-backed, appends edl_versions. Length adapts to how much was said. No cue alignment, no LLM selection. |
 | 6 — Preview and approval | Done. Player preview, warning gate, approval, download, and only for the owner. |
 | 7 — Production render | Done. Worker, dispatcher, reconciler, render, deliver. |
-| 8 — Accounts and payment | Sign-in done: Supabase Auth, magic link. No payment. Deliver sends no mail. |
+| 8 — Accounts and payment | Sign-in done: Supabase Auth, magic link and password. **No payment. Deliver still sends no mail.** |
 
 ---
 
 ## The shape of it
 
 ```
-intake  ──>  Postgres rows + objects in storage
+intake, or the browser walk-through  ──>  Postgres rows + objects in storage
                       │
                       ▼
         ┌──── worker tick, every 5s ────┐
@@ -98,8 +126,18 @@ intake  ──>  Postgres rows + objects in storage
         │  plan from rows -> enqueue     │
         └───────────────┬────────────────┘
                         ▼
-     ingest ─> compose ─> [customer approves] ─> render ─> deliver
+     ingest ─┬─> transcribe ─┬─> compose ─> [approves] ─> render ─> deliver
+             └─> thumbnail ──┘
 ```
+
+`transcribe` and `thumbnail` run **per asset, during capture**, as soon as that
+asset is ingested — while the customer is still recording the next answer. By
+the time they press "Make my film" the words are already in the database and
+the only thing left to wait for is the render.
+
+`thumbnail` is off to the side on purpose: it never blocks the cut and can
+never fail a project. It is a picture for a card in a list, and a film that is
+otherwise fine must not die for one.
 
 **Nothing chains stage to stage.** Every step is derived from rows by
 `planProject`. A queue that is drained, corrupted or rebuilt from scratch costs
@@ -121,13 +159,15 @@ recovery is exercised constantly instead of being the branch nobody has run.
 | `@film/storage` | zod, aws-sdk | Project-scoped object store: local disk and R2. |
 | `@film/pipeline` | all above | What each stage does, the runner, dispatcher, reconciler, intake. |
 | `apps/worker` | db, queue, storage, pipeline | The process. ~170 lines. |
-| `apps/web` | db, storage, pipeline/model, render/props | Preview and approval. |
+| `apps/web` | db, storage, pipeline subpaths, render/props | The walk-through, preview, approval, download. |
 
 Dependencies flow one way. `@film/edl` has **no package dependencies** — this
 is load-bearing, not incidental.
 
-Subpath entries that matter: `@film/render/props` (React-free, so Next can
-import it), `@film/pipeline/model` (no Remotion, same reason).
+Subpath entries that matter, and they are all the same rule: the web app must
+never import `@film/pipeline` at the root, because the root re-exports every
+stage and drags Remotion's bundler into the Next server graph. `@film/render/props`
+(React-free), `@film/pipeline/model`, `/capture`, `/retry`.
 
 ---
 
@@ -179,6 +219,18 @@ callable whatever the page renders — so each of them checks, and each answers
 404 rather than 403, because a refusal that says "not yours" confirms there is
 something there.
 
+**Reading rows and minting signed URLs are separate acts, and the types keep
+them separate.** A signed URL is a bearer credential. `loadWalkthroughView`
+returns storage keys and signs nothing; a caller asks for exactly the URLs its
+page will draw. A component cannot be handed the unsigned shape by accident,
+because it has no `url` on it to render. This began as a performance fix and is
+kept as a security one.
+
+**A list draws a thumbnail or nothing — never the customer's original.** The
+hub referenced 105 MB to draw eighteen 56-pixel squares. Falling back to the
+original when no thumbnail exists yet re-creates exactly that, on exactly the
+films whose ingest is already cached and will never run again.
+
 **A session is read with `getUser()`, never `getSession()`.** The second trusts
 the cookie the browser sent; the first verifies it with the auth server. That
 is the difference between an identity and a claim.
@@ -219,19 +271,29 @@ progress.
   and restart. The scripts that used to cause it — `worker`, `intake`,
   `bed:upload` — now run `pnpm build:packages` instead, which filters out
   `@film/web`; `pnpm build` itself is still unsafe beside a dev server.
-- **The database-backed tests share one development Postgres and run in
-  parallel.** Seen flaking once on 2026-08-21 — `dispatch.test.ts` failed in a
-  full run and passed alone, immediately after two more DB-backed files were
-  added. Not reproduced since, and not diagnosed. If it recurs, the one-line
-  answer is `vitest run --no-file-parallelism`, which was measured at 31s
-  against 18s; that 13s was judged too much to pay on every run for a single
-  unreproduced failure. Scoped project ids are evidently not sufficient
-  isolation on their own.
+- **The database-backed tests share one development Postgres, and now run one
+  file at a time.** They flaked twice — `dispatch.test.ts`, then a 120-SECOND
+  timeout in `runStage.test.ts` — and both passed immediately when run alone.
+  `fileParallelism: false` in `vitest.config.ts` costs about 13 seconds (31s
+  against 18s). That was judged too much for the first unreproduced failure and
+  obviously worth it for the second, which wasted two minutes on a timeout.
+  Scoped project ids are not sufficient isolation on their own. A suite that is
+  sometimes red for no reason is a suite people stop reading.
 - **The web app must import `@film/pipeline` by subpath, never the root.** The
   root re-exports every stage, which drags Remotion's bundler and renderer into
   the Next server graph; the symptom is `Module parse failed: Unexpected
   character` on a binary webpack was never meant to see. That is what
   `@film/pipeline/model`, `/capture` and `/retry` are for.
+- **`pnpm typecheck` did not check the web app until 2026-08-25.** `tsc -b`
+  walks project references and Next owns its own tsconfig, so `apps/web` was
+  outside the graph entirely — every web change since the app was built had
+  been checked only by whatever `next dev` happened to compile. The script now
+  runs `pnpm --filter @film/web exec tsc --noEmit` as a third step.
+- **Two `next dev` servers on one `apps/web` fight over one `.next`.** The
+  symptom is `__webpack_modules__[moduleId] is not a function` or a bare 500,
+  and it looks exactly like a code error. So does switching branches under a
+  running server. Recovery is the same: stop them, `rm -rf apps/web/.next`,
+  start ONE.
 - **`delayRender` at module scope leaks.** A handle created outside a React
   render pass is never reconciled; the watchdog kills the render at the timeout
   boundary after a thousand good frames.
@@ -307,11 +369,22 @@ styling. Mechanisms exist; values are placeholders.
   is what keeps the offline pipeline first-class, and every page says so in a
   banner — but a deployment that forgets those two variables is wide open.
 - **No payment.** Nothing charges anyone.
-- **Deliver sends no mail.** No provider is configured. It marks the project
-  delivered against a specific render and says so.
-- **`qc`, `transcribe` and `select` have queues and enum values but no
-  implementation**, and the worker deliberately does not register them. A stage
-  that succeeds without doing anything is indistinguishable from one that works.
+- **Deliver sends no mail**, and this is now the largest gap in the product. No
+  provider is configured, so a customer who closes the tab is never told their
+  film is ready. Deliver marks the project against a specific render and says
+  plainly that nothing was sent. Sign-in needs a sender too — confirmations,
+  resets and magic links all go through it, and the built-in Supabase sender
+  allows about two an hour — so one provider closes both.
+- **`qc` and `select` have queues and enum values but no implementation**, and
+  the worker deliberately does not register them. A stage that succeeds without
+  doing anything is indistinguishable from one that works. (`transcribe` was in
+  this list until 2026-08-20 and is now real; `thumbnail` was added already
+  implemented.)
+- **A keepsake is the only slot that accepts either a photo or a clip**, and
+  compose handles both as of 2026-08-30. It did not, and the clip was silently
+  dropped from the finished film. Compose now emits a note for anything
+  supplied that it did not place — worth reading in the stage log when a film
+  comes out missing something.
 - **Temp music.** `incoming/songs` holds a commercial recording used as a
   scratch bed, registered `usage: "temp-track"`. The validator refuses it unless
   `ALLOW_UNLICENSED_MUSIC=1`. Replace before launch.
@@ -319,14 +392,21 @@ styling. Mechanisms exist; values are placeholders.
 
 ## Next
 
-1. **Browser capture (Phase 3).** The next block. See below.
-2. **Transcription (Phase 4).** Caption text is typed in at intake and word
-   timings are estimated. The biggest quality gap in the output.
-3. **Delivery by email.** Deliver marks the project and says plainly that no
-   mail provider is configured. A customer who closes the tab is not told —
-   and sign-in already needs a mail provider, so one sender covers both.
-4. **Re-render only what changed.** Segment caching keyed on content hash.
-   379s per film is fine now and will not be at volume.
+Browser capture and transcription were the first two items here and are both
+done. What is left, in the order it is worth doing:
+
+1. **Delivery by email, and it needs the owner.** A finished film currently
+   sits behind a link nobody is told about. Needs a provider account and a
+   sending domain before a line of code helps. One sender covers sign-in too.
+2. **Nothing sweeps abandoned films.** `projects.retention_expires_at` exists
+   and nothing sets it. Anonymous users and half-made projects accumulate for
+   ever; `MAX_UNFINISHED_FILMS` (10 per owner) is the only ceiling, and it
+   bounds one person rather than the table.
+3. **Payment.** Nothing charges anyone.
+4. **A second R2 bucket** before real customer footage lands beside test data
+   in `films`.
+5. **Re-render only what changed.** Segment caching keyed on content hash.
+   389s per film is fine now and will not be at volume.
 
 A different language would still not help: >99% of wall time is inside FFmpeg
 and Chromium.
@@ -389,20 +469,25 @@ section used to leave open — the project is created before capture and sits in
 `capturing`, subject data is step zero, and resume works because state lives in
 rows rather than in React — and it found four things standing between "the
 walk-through works" and "the walk-through produces a film", none of them visible
-from the capture screens. One is now solved:
+from the capture screens. **All four are now solved**, which is why a film can
+be made end to end in a browser:
 
 - **Every take needs its words.** `compose` permanently rejects an interview
-  asset with no `selection.spoken`, and that text is typed by hand into
-  `incoming/project.json` today. **Still open, and it is the next block.**
+  asset with no `selection.spoken`, and that text used to be typed by hand into
+  `incoming/project.json`. **Solved 2026-08-20:** the `transcribe` stage, run
+  per take during capture.
 - **Every project needs a music bed**, which used to arrive as a file somebody
   dropped in `incoming/songs`. **Solved:** an operator loads a track once with
   `pnpm bed:upload` and every project takes its own copy when it is started.
 - **The dispatcher would fail a project mid-capture.** One permanently bad
   photograph, when it is the only asset, is enough — while the customer is
-  standing right there and could pick another. **Still open**, and it is why
-  ingest does not run during capture yet.
-- **There is no page between capture and preview.** `/projects/[id]` 404s until
-  compose has written an EDL version. **Still open.**
+  standing right there and could pick another. **Solved:** a project in
+  `capturing` is never marked failed; its dead ends surface as warnings on the
+  hub card instead. That is what let ingest move inside capture.
+- **There is no page between capture and preview.** `/projects/[id]` 404d until
+  compose had written an EDL version. **Solved:** `WorkingNote` holds that
+  moment and keeps checking. A 404 with somebody's whole film behind it was the
+  worst possible screen for it.
 
 ### The capture experience was redesigned — blocks 1–7 are built
 
@@ -481,7 +566,59 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
-### What it still cannot do
+### The film is as long as what somebody actually said
+
+The template was written for a four-minute film and the first real customer
+recorded two minutes of answers. A fixed structure cut against that produces
+long holds on photographs and a film that feels padded — the material is the
+problem the edit has to solve, not something to compensate for.
+
+- **`editing.adaptiveSpeechMs: { lean, rich }`** in the template declares what
+  it is built on. `composeFilm` measures the speech it was actually given,
+  positions it between those two numbers, and every duration comes from a
+  declared range at that position. The numbers are the template's, not
+  invented in the compose code.
+- **A template that has not declared it gets no guess.** `speechAppetite`
+  returns `undefined` rather than a number the customer would be shown as
+  though the template had said it.
+- **`DURATION_OUTSIDE_TARGET` only warns when it is worth warning.** Too long
+  always; too short only when there was enough speech to have made a longer
+  film. A short film made from short answers is the correct film.
+- **Coaching happens during capture, not after**, because that is the only
+  moment anyone can act on it. `spokenVerdict` compares an answer to the
+  MEDIAN OF THAT PERSON'S OTHER ANSWERS — somebody whose whole conversation is
+  brief is having a brief conversation, not making a mistake — and speaks only
+  below a hard floor or far below their own middle. The hub shows total speech
+  so far. Tone was the whole risk: "never feeling trapped" is one of the four
+  things this product has to feel like.
+
+### The hub stopped downloading the film to draw its thumbnails
+
+`docs/proposal/phase-6-hub-performance.md` has the measurements. Every card was
+drawn from the customer's ORIGINAL — a 7 MB photograph rendered 56 pixels wide,
+a whole interview take opened as a `<video>` — and a fresh signature on every
+render meant the browser cache could never hit, so it came down again on every
+visit and every window focus.
+
+- **`assets.thumbnail_key` and a `thumbnail` stage.** Measured on one real
+  film: **105.2 MB → 157 KB** across seventeen cards.
+- **A card draws the thumbnail or a grey square, never the original.** Falling
+  back would leave exactly the films whose ingest is already cached slow for
+  ever.
+- **Signed URLs round their signing clock to a five-minute window**
+  (`SignedUrlOptions.stableForSeconds`), so a re-render hands the browser the
+  same URL and the second load is free. Verified in a browser: 0 bytes, 1 ms.
+  The TTL is unchanged — this is not a public bucket and not a long-lived URL.
+  A stable URL alone buys nothing, so the object carries `Cache-Control` too.
+- **Loading and signing are separate acts, and the types enforce it.**
+  `loadWalkthroughView` returns storage keys and signs nothing;
+  `withThumbnails` and `stepWithMedia` mint only what their page draws. A step
+  sheet carried 35 bearer credentials to display one asset; it carries 2.
+- **The thumbnail object is `thumb-v{recipe}.jpg`.** The version in the name is
+  what stops a re-run being skipped; the recipe number in the input hash is
+  what lets it run at all. Change both or change neither.
+
+### What a browser-made film can and cannot do
 
 **It produces a film.** Block 8 landed on 2026-08-20 and the pipeline runs end
 to end. Proved on 2026-08-21 with a real project whose typed answers were
@@ -497,8 +634,8 @@ encode IS the delivery and there is no lever downstream. The render costs 389s
 of one machine's time, once; the download happens every time somebody wants to
 watch.
 
-`transcribe` is whisper.cpp, spawned like ffmpeg. Two things about it are worth
-knowing before touching it:
+`transcribe` is whisper.cpp, spawned like ffmpeg. Four things about it are
+worth knowing before touching it:
 
 - **It needs a binary and a model.** `brew install whisper-cpp`, and
   `WHISPER_MODEL` pointing at a ggml file (`models/` is gitignored; small.en is
@@ -547,5 +684,18 @@ Also still true of a browser-made project:
   that used up its attempts.
   **A code fix still needs its recipe constant bumped** — the input hash is all
   the dispatcher compares, and no button changes that.
+- ~~Whether a keepsake supplied as a video should be used~~ — **answered
+  2026-08-30.** It is used, in the same place a photograph would sit. The
+  template promised `accepts: ["photo", "video"]` and compose looked only in
+  `stills`, so the object was silently absent from the finished film.
 - Whether the walk-through's sixteen pieces of coaching copy read the way the
-  owner would say them. They are the highest-leverage strings in the product.
+  owner would say them. They are the highest-leverage strings in the product,
+  and nobody but the owner can answer it.
+- **Whether the length coaching sounds encouraging or like marking homework.**
+  The rule is deliberately quiet — it speaks only below a hard floor or far
+  below that person's own median — but it is the one place the product tells
+  somebody their answer about their mother could be longer. Worth reading the
+  actual sentences in `qcNoteOf` before a stranger does.
+- **Two old test films have no media left in the object store.** Their hubs
+  draw grey squares. Fine to delete; noted so nobody debugs it as a thumbnail
+  fault.
