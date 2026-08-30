@@ -29,15 +29,18 @@ cp .env.example .env             # one env file; every command reads it
 
 pnpm auth:up                     # local Supabase for sign-in (Mailpit :54324)
 pnpm bed:upload                  # once: the music bed, where capture finds it
-pnpm intake                      # incoming/ -> object store + Postgres
-pnpm worker                      # ingest -> compose; then again after approval
-pnpm web                         # localhost:3200
+pnpm worker                      # ingest, transcribe, thumbnail, compose, render, deliver
+pnpm web                         # localhost:3200 — /make starts a film
+pnpm intake                      # optional: incoming/ -> object store + Postgres
 ```
 
-Media can also be captured in a browser: `/start` walks someone through the
-questions, photographs and short videos the template asks for, one step at a
-time, recording or uploading each. It cannot yet produce a film on its own —
-`compose` needs the words of every answer, and nothing transcribes them yet.
+**A film can be made entirely in a browser.** `/make` chooses a film type;
+`/projects/<id>` is the hub, where every question, photograph and short video
+the template asks for is a card, done one at a time by recording or uploading.
+Transcription runs on the worker per take while capture is still going, so by
+the time somebody presses "Make my film" the words are already in the database.
+`transcribe` needs `whisper-cpp` on the machine and a `WHISPER_MODEL` pointing
+at a ggml file; without both, nothing gets any words.
 
 Intake uploads the originals and writes the rows. The worker's dispatcher reads
 the database, works out what each project needs next, and queues it. Compose
@@ -62,7 +65,7 @@ pnpm film:real       # render project/real -> out/life-advice-real.mp4
 ```
 
 ```bash
-pnpm test        # 279 tests, including 23 golden frames
+pnpm test        # 383 tests, including 23 golden frames
 pnpm typecheck
 pnpm fixtures    # regenerate synthetic media (add --force to overwrite)
 
