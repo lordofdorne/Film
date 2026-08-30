@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { getTemplate } from "@film/templates";
+import { validateEdl } from "@film/edl";
+import { getFormat } from "@film/formats";
+import { getTemplate, toConformance } from "@film/templates";
 
 import { composeFilm, type ComposeInput } from "../src/compose/plan.js";
 
@@ -98,6 +100,191 @@ const inputWith = (
     promptQuestionIds: [],
   };
 };
+
+/**
+ * The keepsake somebody FILMED rather than photographed.
+ *
+ * The template declares `accepts: ["photo", "video"]` for this slot and the
+ * step sheet duly offers "Take a video". Compose sorts a video into
+ * `brollAssetIds` and the closing sequence looked only in `stills` — so the
+ * object was silently absent from the finished film. Green tick on the card,
+ * clean ingest, an EDL that validated without one warning. Nothing anywhere
+ * said the thing they filmed had been dropped.
+ */
+describe("a keepsake filmed rather than photographed", () => {
+  /** The same film, with the keepsake supplied as a clip instead of a still. */
+  const filmed = (clipMs = 12_000): ComposeInput => {
+    const base = inputWith(["keepsake"]);
+    return {
+      ...base,
+      brollAssetIds: { ...base.brollAssetIds, keepsake: "clip-keepsake" },
+      assetDurationMs: { ...base.assetDurationMs, "clip-keepsake": clipMs },
+    };
+  };
+
+  it("is a slot that really does accept both, or this test proves nothing", () => {
+    const slot = template.optionalSlots.find((s) => s.id === "keepsake");
+    expect(slot?.accepts).toEqual(expect.arrayContaining(["photo", "video"]));
+  });
+
+  it("puts the filmed object in the film", () => {
+    const { edl } = composeFilm(filmed());
+    const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
+    expect(keepsake).toBeDefined();
+    expect(keepsake?.kind).toBe("broll");
+  });
+
+  /** The ending keeps its shape: the clip sits where the photograph would. */
+  it("closes on it and then the group photograph, in that order", () => {
+    const { edl } = composeFilm(filmed());
+    const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
+    // Present FIRST. Without this the ordering assertion passes on -1, which
+    // is exactly the broken behaviour this file exists to catch.
+    expect(slots).toContain("keepsake");
+    expect(slots.indexOf("keepsake")).toBeLessThan(slots.lastIndexOf("photo_group"));
+  });
+
+  it("never asks for more of the clip than there is", () => {
+    const { edl } = composeFilm(filmed(3_000));
+    const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
+    expect((keepsake as { sourceOutMs?: number } | undefined)?.sourceOutMs).toBeLessThanOrEqual(
+      3_000,
+    );
+  });
+
+  /**
+   * Too brief to be a shot: skipped like any other, and said out loud TWICE —
+   * once by the beat that could not use it, once by the guard that notices
+   * anything supplied and unused. "keepsake" alone would pass on the
+   * unrelated "no keepsake was added" note, which is how a vacuous test looks.
+   */
+  it("skips a clip too short to hold a beat, and says so", () => {
+    const { edl, notes } = composeFilm(filmed(400));
+    const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
+    expect(slots).not.toContain("keepsake");
+    expect(notes.join(" ")).toContain("too short");
+    expect(notes.join(" ")).toContain("does not appear in the film");
+  });
+
+  it("still composes a whole film either way", () => {
+    expect(composeFilm(filmed()).edl.visualSegments.length).toBeGreaterThan(0);
+    expect(composeFilm(inputWith([])).edl.visualSegments.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * And the EDL it produces PASSES THE VALIDATOR.
+   *
+   * Composing a segment is not the same as producing a film. The validator is
+   * what stands between compose and the renderer, and a "fix" that turns a
+   * silently missing beat into a project that fails validation two stages
+   * later has moved the failure rather than fixed it — which is precisely the
+   * shape of the last three real-media bugs in this pipeline.
+   */
+  it("produces an EDL the validator accepts", () => {
+    const input = filmed();
+    const { edl } = composeFilm(input);
+
+    const manifest = {
+      assets: [
+        ...input.answers.map((a) => ({
+          id: a.assetId,
+          kind: "interview" as const,
+          questionId: a.questionId,
+          durationMs: input.assetDurationMs[a.assetId] ?? 40_000,
+          width: 1920,
+          height: 1080,
+        })),
+        ...input.stills.map((s) => ({
+          id: s.assetId,
+          kind: "photo" as const,
+          slotId: s.slotId,
+          width: 1920,
+          height: 1080,
+        })),
+        ...Object.entries(input.brollAssetIds).map(([slotId, assetId]) => ({
+          id: assetId,
+          kind: "video" as const,
+          slotId,
+          durationMs: input.assetDurationMs[assetId] ?? 40_000,
+          width: 1920,
+          height: 1080,
+        })),
+      ],
+    };
+
+    const result = validateEdl(edl, {
+      manifest,
+      format: getFormat(template.defaultFormatId),
+      conformance: toConformance(template),
+      // A whole cue sheet, not just the one cue compose reads. The validator
+      // checks every cue lands inside the track.
+      resolveMusicTrack: () => ({
+        id: "temp",
+        durationMs: 400_000,
+        beatGridMs: input.track.beatGridMs,
+        cues: {
+          openingMs: 0,
+          titleMs: input.track.cues.titleMs,
+          lifts: [60_000, 120_000, 180_000],
+          resolutionMs: 240_000,
+          endingMs: 300_000,
+        },
+        licenseRef: null,
+        usage: "fixture-only",
+        available: true,
+      }),
+      allowPlaceholderMusic: true,
+    });
+
+    // `errors` exists only on the failing branch, so asserting on it directly
+    // passes against `undefined` and proves nothing. Assert `ok`, and print
+    // what went wrong when it is not.
+    expect(result.ok ? [] : result.errors.map((e) => `${e.code} at ${e.path}`)).toEqual([]);
+    expect(result.ok).toBe(true);
+
+    // The clip is there, and the validator agrees it is a real piece of media.
+    const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
+    expect(keepsake?.kind).toBe("broll");
+  });
+});
+
+/**
+ * The guard that would have caught the above without anyone looking.
+ *
+ * The keepsake bug's damage was not that a beat was missing — it was that
+ * NOTHING SAID SO. Compose now compares what it was handed against what it
+ * used, and any difference becomes a note in the stage log.
+ */
+describe("assets that never reach the film", () => {
+  it("says so when a supplied photograph is placed nowhere", () => {
+    const base = inputWith([]);
+    const { notes } = composeFilm({
+      ...base,
+      stills: [...base.stills, { assetId: "still-orphan", slotId: "no_such_slot" }],
+    });
+    expect(notes.join(" ")).toContain("no_such_slot");
+    expect(notes.join(" ")).toContain("does not appear in the film");
+  });
+
+  it("says so when a supplied clip is placed nowhere", () => {
+    const base = inputWith([]);
+    const { notes } = composeFilm({
+      ...base,
+      brollAssetIds: { ...base.brollAssetIds, no_such_slot: "clip-orphan" },
+      assetDurationMs: { ...base.assetDurationMs, "clip-orphan": 20_000 },
+    });
+    expect(notes.join(" ")).toContain("no_such_slot");
+  });
+
+  /**
+   * And stays quiet on a film where everything landed — otherwise it is noise
+   * on every project and nobody reads it when it matters.
+   */
+  it("says nothing about a film that used everything it was given", () => {
+    const { notes } = composeFilm(inputWith([]));
+    expect(notes.filter((n) => n.includes("does not appear in the film"))).toEqual([]);
+  });
+});
 
 describe("a film missing what the template said was optional", () => {
   it("has optional slots at all, or this test proves nothing", () => {
