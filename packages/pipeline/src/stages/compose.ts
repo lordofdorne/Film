@@ -3,7 +3,7 @@ import { edlVersions, hashInputs, projects, type Db, type StageIdentity } from "
 import { validateEdl, type MusicTrackInfo } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { resolveTrack } from "@film/music";
-import { getTemplate, toConformance, type SubjectData } from "@film/templates";
+import { getTemplate, questionCardIds, toConformance, type SubjectData } from "@film/templates";
 
 import { composeFilm, type IngestedAnswer, type StillAsset } from "../compose/plan.js";
 import { permanent } from "../runtime/errors.js";
@@ -33,8 +33,13 @@ import { loadAssets, loadProject } from "./context.js";
  * warning, which is why nobody noticed. Their compose rows say `succeeded`, so
  * without the bump the object they filmed stays missing from a film that the
  * system is quite sure it already made correctly.
+ *
+ * 4: the question appears on screen. Every film ever composed had
+ * `promptSegments: []`, so nobody watching could tell what was being asked.
+ * Same reason as 3 for the bump: those films did not fail, they were simply
+ * missing something nobody could see was missing.
  */
-export const COMPOSE_RECIPE = 3;
+export const COMPOSE_RECIPE = 4;
 
 /**
  * Unlicensed music is refused unless someone has explicitly said otherwise.
@@ -153,7 +158,18 @@ export const runCompose = async (ctx: StageContext): Promise<string | null> => {
       }),
     ),
     track,
-    promptQuestionIds: config.questionPrompts,
+    /**
+     * The template decides unless the project overrides it.
+     *
+     * `questionCardIds` lives in @film/templates because it needs the SUBJECT:
+     * a question whose wording does not resolve for this person — the bonus
+     * question needs an interviewer's name most films do not have — must not
+     * get a card, or the renderer would look up a text key that
+     * `resolveAllText` deliberately left out. Both sides ask the same function,
+     * so they cannot disagree.
+     */
+    promptQuestionIds:
+      config.questionPrompts ?? questionCardIds(template, project.subjectData as SubjectData),
   });
   for (const note of notes) await ctx.log.info(`note: ${note}`);
 

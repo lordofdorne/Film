@@ -185,7 +185,14 @@ export const startCapture = async (
     templateId: input.templateId,
     templateVersion: input.templateVersion,
     subjectData: {},
-    config: { questionPrompts: [] },
+    /**
+     * Empty, so the TEMPLATE decides which questions get a card.
+     *
+     * This used to be `{ questionPrompts: [] }`, and an explicit empty list
+     * means "no card for any question" — which is why no film made in a
+     * browser ever showed the question being asked.
+     */
+    config: {},
     status: "capturing",
   });
   return { ok: true, projectId };
@@ -665,7 +672,7 @@ export const finishCapture = async (
       .update(projects)
       .set({
         config: {
-          questionPrompts: [],
+
           music: {
             trackId: spec.trackId,
             title: spec.title,

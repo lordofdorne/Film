@@ -12,10 +12,19 @@ export const SequentialReveal = ({
   text,
   theme,
   mode,
+  style = "title",
 }: {
   readonly text: string;
   readonly theme: Theme;
   readonly mode: "sequential" | "fade";
+  /**
+   * Which type treatment to set it in. Titles by default.
+   *
+   * A question card wants the same card and the same reveal at a size meant
+   * for a sentence: the end title is three words at 8.5vh, and a ten-word
+   * question set that big fills the frame.
+   */
+  readonly style?: "title" | "question";
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -23,6 +32,7 @@ export const SequentialReveal = ({
 
   const words = text.split(/\s+/).filter((w) => w.length > 0);
   const { revealPerWordMs, revealFadeMs } = theme.title;
+  const type = style === "question" ? theme.question : theme.title;
 
   return (
     <div
@@ -31,14 +41,14 @@ export const SequentialReveal = ({
         flexWrap: "wrap",
         justifyContent: "center",
         alignItems: "center",
-        gap: `0 ${Math.round(theme.title.fontSize * 0.28)}px`,
-        maxWidth: theme.title.maxWidth,
+        gap: `0 ${Math.round(type.fontSize * 0.28)}px`,
+        maxWidth: type.maxWidth,
         fontFamily: theme.fontFamily,
-        fontSize: theme.title.fontSize,
-        fontWeight: theme.title.fontWeight,
-        letterSpacing: theme.title.letterSpacing,
-        lineHeight: theme.title.lineHeight,
-        color: theme.title.color,
+        fontSize: type.fontSize,
+        fontWeight: type.fontWeight,
+        letterSpacing: type.letterSpacing,
+        lineHeight: type.lineHeight,
+        color: type.color,
         textAlign: "center",
       }}
     >

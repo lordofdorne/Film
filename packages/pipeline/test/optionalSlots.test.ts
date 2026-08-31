@@ -102,6 +102,84 @@ const inputWith = (
 };
 
 /**
+ * The question, on screen, so you can tell what is being asked.
+ *
+ * Watching a finished film you could not. The prompt machinery existed — three
+ * modes in the schema, a planner branch, a renderer, three golden frames — and
+ * had never fired for a customer, because `promptQuestionIds` came from a
+ * project config that browser capture created as an empty list, and an empty
+ * list correctly means "no card for any question". Every EDL ever composed had
+ * `promptSegments: []` and nothing looked wrong.
+ */
+describe("the question on screen", () => {
+  const asked = (input: ComposeInput) =>
+    composeFilm(input).edl.visualSegments.filter(
+      (s) => "textStyle" in s && s.textStyle === "question",
+    );
+
+  const withCards = (ids: readonly string[]): ComposeInput => ({
+    ...inputWith([]),
+    promptQuestionIds: ids,
+  });
+
+  it("puts a card before each question it was given", () => {
+    const cards = asked(withCards(["greatest_lesson", "love_lesson"]));
+    expect(cards.map((s) => ("textKey" in s ? s.textKey : undefined))).toEqual([
+      "question:greatest_lesson",
+      "question:love_lesson",
+    ]);
+  });
+
+  /**
+   * A KEY, never the words. The schema's rule for visual segments, and the
+   * reason the card can carry a question whose wording depends on the subject:
+   * "What is the secret to living past 100?" is a different string for a
+   * centenarian, and compose does not know or need to know.
+   */
+  it("names the question rather than carrying its text", () => {
+    const [card] = asked(withCards(["greatest_lesson"]));
+    const text = JSON.stringify(card);
+    expect(text).toContain("question:greatest_lesson");
+    expect(text).not.toContain("What is the greatest lesson");
+  });
+
+  it("is a card on black, in the question treatment", () => {
+    const [card] = asked(withCards(["greatest_lesson"]));
+    expect(card?.kind).toBe("black");
+    expect(card && "textStyle" in card ? card.textStyle : undefined).toBe("question");
+  });
+
+  /** Long enough to read, and a longer question gets longer. */
+  it("holds a longer question for longer, within the template's range", () => {
+    const short = asked(withCards(["love_lesson"]))[0];
+    const long = asked(withCards(["closing_message"]))[0];
+    const { min, max } = template.questionPrompt.cardMs;
+    for (const c of [short, long]) {
+      expect(c?.durationMs).toBeGreaterThanOrEqual(min);
+      expect(c?.durationMs).toBeLessThanOrEqual(max);
+    }
+    // "What have you learned about love?" against "What would you like to say
+    // to whoever watches this?"
+    expect(long?.durationMs).toBeGreaterThan(short?.durationMs ?? 0);
+  });
+
+  it("adds nothing at all when it is asked for nothing", () => {
+    expect(asked(withCards([]))).toEqual([]);
+  });
+
+  /** The cards lengthen the film, which was the accepted cost of seeing them. */
+  it("makes the film longer by roughly the cards it added", () => {
+    const without = composeFilm(withCards([])).edl.totalDurationMs;
+    const cards = asked(withCards(["greatest_lesson", "love_lesson"]));
+    const with2 = composeFilm(withCards(["greatest_lesson", "love_lesson"])).edl.totalDurationMs;
+    const added = cards.reduce((t, c) => t + c.durationMs, 0);
+    // Transitions overlap, so the film grows by a little less than the sum.
+    expect(with2 - without).toBeGreaterThan(added * 0.5);
+    expect(with2 - without).toBeLessThanOrEqual(added);
+  });
+});
+
+/**
  * The keepsake somebody FILMED rather than photographed.
  *
  * The template declares `accepts: ["photo", "video"]` for this slot and the

@@ -5,7 +5,7 @@ import type {
   VisualSegment,
   WordCaption,
 } from "@film/edl";
-import type { Template } from "@film/templates";
+import { questionTextKey, type Template } from "@film/templates";
 import type { SpeechRun } from "../media/ffmpeg.js";
 
 /** Everything ingest learned about one recorded answer. */
@@ -40,9 +40,28 @@ export type ComposeInput = {
 };
 
 const GRID = 100;
-/** How long a question card wants to be on screen before the answer. */
-const PROMPT_MS = 1800;
-const MIN_PROMPT_MS = 900;
+/**
+ * Reading time for a question card, before the template's clamp.
+ *
+ * 900ms to notice the cut plus 240ms a word — around 250 words a minute, which
+ * is unhurried for a line somebody reads once, on a film they are watching
+ * rather than skimming.
+ */
+const READING_BASE_MS = 900;
+const READING_MS_PER_WORD = 240;
+
+/**
+ * A question's wording, for counting words and nothing else.
+ *
+ * The variant chosen here may not be the one this subject is asked, and that is
+ * fine: this decides how long the card holds, not what it says. The words
+ * themselves come from the template at render time, through the key.
+ */
+const questionTextOf = (template: Template, questionId: string): string => {
+  const spec = template.questions.find((q) => q.id === questionId)?.text;
+  if (spec === undefined) return questionId;
+  return typeof spec === "string" ? spec : spec.default;
+};
 const grid = (ms: number): number => Math.round(ms / GRID) * GRID;
 
 /**
@@ -278,6 +297,25 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
     if (found === undefined) throw new Error(`no ingested answer for question "${id}"`);
     return found;
   };
+  /**
+   * How long a question card stays up: enough to read it, no longer.
+   *
+   * Derived from the question's own length rather than fixed, because "What
+   * have you learned about love?" and "What would you like to say to whoever
+   * watches this?" are not the same read. Clamped to the template's range so a
+   * pathological question cannot stall the film.
+   *
+   * Deliberately outside the adaptive-length system. Every other duration here
+   * flexes with how much was said; reading speed does not, and a lean film
+   * whose cards flashed past would be unreadable exactly when it is shortest.
+   */
+  const questionCardMs = (questionId: string): number => {
+    const text = questionTextOf(template, questionId);
+    const words = text.split(/\s+/).filter((w) => w.length > 0).length;
+    const { min, max } = template.questionPrompt.cardMs;
+    return grid(clamp(READING_BASE_MS + words * READING_MS_PER_WORD, min, max));
+  };
+
   const still = (slotId: string): StillAsset => {
     const found = input.stills.find((s) => s.slotId === slotId);
     if (found === undefined) throw new Error(`no still supplied for slot "${slotId}"`);
@@ -540,42 +578,39 @@ export const composeFilm = (input: ComposeInput): ComposeResult => {
       return;
     }
 
-    // A question card needs room BEFORE the answer, so it is made by holding
-    // on the previous shot rather than by moving speech. If the previous take
-    // has no quiet tail left to hold on, the card is dropped and said so.
+    /**
+     * The question, on a card of its own, before the answer.
+     *
+     * Watching the film, you could not tell what was being asked. The prompt
+     * machinery existed — three modes in the schema, a planner branch, a
+     * renderer, three golden frames — and had never once fired for a customer,
+     * because `promptQuestionIds` came from a project config that browser
+     * capture created empty. Every EDL ever composed had `promptSegments: []`.
+     *
+     * It is a black card now rather than text held over the previous shot, and
+     * that is a deliberate change of two things at once.
+     *
+     * The LOOK: the same treatment as the end title, which is the one piece of
+     * text in this film that already reads well.
+     *
+     * The RELIABILITY: the old card was made by holding on the previous take's
+     * quiet tail, and was dropped when there wasn't one — silently, apart from
+     * a note nobody reads. With people recording their own answers that would
+     * have failed often and unpredictably, which is the complaint that started
+     * this. A card of its own always appears.
+     *
+     * The cost is honest and was accepted deliberately: roughly fifteen
+     * seconds on a two-minute film, and a more sectioned rhythm.
+     */
     if (input.promptQuestionIds.includes(questionId)) {
-      const gap = template.questionPrompt.answerGapMs;
-      const grown = visual.extendLast(grid(PROMPT_MS + gap), input.assetDurationMs);
-      if (grown >= MIN_PROMPT_MS + gap) {
-        const promptDur = grown - gap;
-        const questionText = template.questions.find((q: { id: string }) => q.id === questionId)?.text;
-        const pattern =
-          questionText === undefined
-            ? questionId
-            : typeof questionText === "string"
-              ? questionText
-              : questionText.default;
-        const promptWords = pattern.split(/\s+/).filter((w: string) => w.length > 0);
-        // Sequential, non-overlapping slots across the first 70% of the card,
-        // so the last word has landed before the answer starts.
-        const slot = Math.floor((promptDur * 0.7) / promptWords.length);
-        prompts.push({
-          id: `p_${questionId}`,
-          questionId,
-          mode: "text-only",
-          startMs: grid(visual.endMs - grown),
-          durationMs: promptDur,
-          captions: promptWords.map((text: string, i: number) => ({
-            text,
-            startMs: slot * i,
-            endMs: i === promptWords.length - 1 ? promptDur : slot * (i + 1) - 10,
-          })),
-        });
-      } else {
-        notes.push(
-          `no quiet tail before "${questionId}" to hold a question card on; card dropped`,
-        );
-      }
+      visual.push({
+        id: `v_card_${questionId}${suffix}`,
+        kind: "black",
+        durationMs: questionCardMs(questionId),
+        transitionIn: FADE,
+        textKey: questionTextKey(questionId),
+        textStyle: "question",
+      });
     }
 
     const transitionIn = options.transitionIn ?? CUT;

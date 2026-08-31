@@ -160,6 +160,24 @@ export type Template = {
     readonly supportedModes: readonly QuestionPromptMode[];
     /** Silence between the completed question treatment and the answer. */
     readonly answerGapMs: number;
+    /**
+     * How long a question card stays on screen, before and after reading time.
+     *
+     * A range rather than a number because a four-word question and a
+     * ten-word one are not the same read. Deliberately NOT part of the
+     * adaptive-length system: how fast somebody reads has nothing to do with
+     * how much their grandmother said.
+     */
+    readonly cardMs: { readonly min: number; readonly max: number };
+    /**
+     * Narrative roles that get no card of their own.
+     *
+     * The introduction answers — name, age, year of birth — are already
+     * summarised by the title card the film opens on, so putting "What is
+     * your name?" on screen beforehand is asking a question the film has
+     * just answered.
+     */
+    readonly omitCardForRoles: readonly string[];
   };
   readonly photoSlots: readonly MediaSlot[];
   readonly videoSlots: readonly MediaSlot[];

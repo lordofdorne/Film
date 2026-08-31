@@ -99,8 +99,19 @@ describe("buildManifest", () => {
 });
 
 describe("project config", () => {
-  it("defaults to no prompt cards and no music", () => {
-    expect(parseProjectConfig(null)).toEqual({ questionPrompts: [] });
+  /**
+   * ABSENT, not empty. The two mean different things and the difference is
+   * why no film ever showed the question being asked: browser capture wrote
+   * `questionPrompts: []`, which correctly means "no card for any question".
+   * Undefined means "whatever the template says".
+   */
+  it("leaves prompt cards to the template when the project says nothing", () => {
+    expect(parseProjectConfig(null)).toEqual({});
+    expect(parseProjectConfig(null).questionPrompts).toBeUndefined();
+  });
+
+  it("still lets a project ask for none at all", () => {
+    expect(parseProjectConfig({ questionPrompts: [] }).questionPrompts).toEqual([]);
   });
 
   it("refuses an unknown key rather than ignoring it", () => {

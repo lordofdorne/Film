@@ -23,8 +23,18 @@ export const MUSIC_BED_SLOT = "music_bed";
 /** Edit decisions that belong to the project rather than to the subject. */
 export const ProjectConfigSchema = z
   .object({
-    /** Questions that get an on-screen prompt card before the answer. */
-    questionPrompts: z.array(z.string()).default([]),
+    /**
+     * Questions that get an on-screen card before the answer.
+     *
+     * ABSENT means "whatever the template says", which is the normal case and
+     * the reason this is optional rather than defaulting to `[]`. It used to
+     * default to the empty array, browser capture wrote the empty array, and
+     * "no card for any question" is exactly what that means — so no film ever
+     * showed a question, and nothing in the data looked wrong.
+     *
+     * An explicit `[]` still means none. That distinction is the whole point.
+     */
+    questionPrompts: z.array(z.string()).optional(),
     music: z
       .object({
         trackId: z.string(),
