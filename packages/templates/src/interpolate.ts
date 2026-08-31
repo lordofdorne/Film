@@ -127,7 +127,31 @@ export const resolveText = (
   return { ok: true, text: resolved.text, usedFallback };
 };
 
-/** Resolve every text key a template declares, or explain why not. */
+/**
+ * The text key under which a question's own wording is resolved.
+ *
+ * A question card names the question and the template supplies the words —
+ * which is the schema's rule for visual segments, verbatim: "It is a KEY,
+ * never a literal — the template owns all copy." Without this the EDL would
+ * have to carry the question text itself, and a film would be a place copy
+ * lives.
+ *
+ * The namespace also keeps questions from colliding with `text.keys`: a
+ * template is free to have a question called `closing` and a title key called
+ * `closing`, and they are different strings.
+ */
+export const questionTextKey = (questionId: string): string => `question:${questionId}`;
+
+/**
+ * Resolve every text key a template declares, or explain why not.
+ *
+ * Question wording is included, under `question:<id>`, so the renderer can draw
+ * a question card from a key. A question that does NOT resolve is left out
+ * rather than failing the film: the bonus question needs an interviewer's name
+ * that most films do not have, and a missing card is a smaller loss than no
+ * film. Compose asks the same question separately and simply does not put a
+ * card there — the two halves agree, so a key can never be missing at render.
+ */
 export const resolveAllText = (
   template: Template,
   subject: SubjectData,
@@ -140,8 +164,31 @@ export const resolveAllText = (
     if (r.ok) out[key] = r.text;
     else failures.push(`${r.reason}: ${r.detail}`);
   }
+  for (const question of template.questions) {
+    const r = resolveQuestionText(question, subject, template);
+    if (r.ok) out[questionTextKey(question.id)] = r.text;
+  }
   return failures.length > 0 ? { ok: false, failures } : { ok: true, text: out };
 };
+
+/**
+ * The questions this film should put on a card, for this subject.
+ *
+ * Two filters, and both are needed. The template says which narrative roles
+ * get a card at all — the introduction answers are already summarised by the
+ * title, so asking "What is your name?" on screen would be answering a
+ * question the film just answered. And the wording has to actually resolve for
+ * this person, or the render would look up a key that `resolveAllText` left
+ * out.
+ */
+export const questionCardIds = (
+  template: Template,
+  subject: SubjectData,
+): string[] =>
+  template.questions
+    .filter((q) => !template.questionPrompt.omitCardForRoles.includes(q.narrativeRole))
+    .filter((q) => resolveQuestionText(q, subject, template).ok)
+    .map((q) => q.id);
 
 /* ── conditional question wording ─────────────────────────────────────── */
 

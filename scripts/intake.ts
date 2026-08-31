@@ -160,7 +160,11 @@ const main = async (): Promise<void> => {
     });
 
     const projectConfig: ProjectConfig = {
-      questionPrompts: config.questionPrompts ?? [],
+      // Omitted rather than defaulted to `[]`, because an empty list means
+      // "no card for any question" and that is not what a missing key meant.
+      ...(config.questionPrompts === undefined
+        ? {}
+        : { questionPrompts: config.questionPrompts }),
       music: {
         trackId: config.music.trackId,
         title: config.music.title,

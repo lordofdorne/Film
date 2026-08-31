@@ -220,6 +220,13 @@ const config: Template = {
     defaultMode: "live-interviewer",
     supportedModes: ["live-interviewer", "recorded-interviewer", "text-only"],
     answerGapMs: 200,
+    /**
+     * 1.8 to 3.4 seconds. The shortest is "What have you learned about love?"
+     * and the longest "What would you like to say to whoever watches this?";
+     * both should be read without hurry and neither should outstay itself.
+     */
+    cardMs: { min: 1_800, max: 3_400 },
+    omitCardForRoles: ["introduction"],
   },
 
   photoSlots: [

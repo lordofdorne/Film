@@ -35,6 +35,17 @@ export const BlackSegmentSchema = z
     ...baseVisual,
     kind: z.literal("black"),
     textKey: TextKey.optional(),
+    /**
+     * Which type treatment the text gets. Defaults to the title's.
+     *
+     * A question card is a card on black like the end title, but the end title
+     * is three words at 8.5vh and a question is a whole sentence — "What would
+     * you like to say to whoever watches this?" set at title size is a wall.
+     * `question` is the treatment the template already tuned for question
+     * wording, which is the same reason the format's `titleMaxChars` does not
+     * apply to it.
+     */
+    textStyle: z.enum(["title", "question"]).optional(),
   })
   .strict();
 

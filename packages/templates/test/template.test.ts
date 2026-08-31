@@ -6,6 +6,7 @@ import {
   evaluateCondition,
   getTemplate,
   interpolate,
+  questionCardIds,
   resolveAllText,
   resolveQuestionText,
   resolveText,
@@ -123,16 +124,76 @@ describe("text interpolation", () => {
     }
   });
 
+  /**
+   * TITLES, and only titles.
+   *
+   * `resolveAllText` also emits a key per question so a question card can name
+   * one, and a question is a sentence rather than a title — "What would you
+   * like to say to whoever watches this?" is 51 characters against a 48
+   * character title budget, and shortening the product's best question to fit
+   * a constraint that does not apply to it would be the wrong way round. The
+   * card sets them in the question treatment for exactly this reason.
+   */
   it("every resolved title fits the format", () => {
     const all = resolveAllText(LIFE_ADVICE_V1, NANA, LANDSCAPE_CLASSIC);
     expect(all.ok).toBe(true);
     if (all.ok) {
-      for (const [key, text] of Object.entries(all.text)) {
+      for (const key of Object.keys(LIFE_ADVICE_V1.text.keys)) {
+        const text = all.text[key] ?? "";
         expect(text.length, `${key}: "${text}"`).toBeLessThanOrEqual(
           LANDSCAPE_CLASSIC.titleMaxChars,
         );
       }
     }
+  });
+
+  it("resolves a card's worth of text for every question", () => {
+    const all = resolveAllText(LIFE_ADVICE_V1, NANA, LANDSCAPE_CLASSIC);
+    expect(all.ok).toBe(true);
+    if (!all.ok) return;
+    expect(all.text["question:greatest_lesson"]).toBe(
+      "What is the greatest lesson life has taught you?",
+    );
+    // Conditional wording resolves here too, not just through resolveQuestionText.
+    const old = resolveAllText(LIFE_ADVICE_V1, { ...NANA, age: 101 }, LANDSCAPE_CLASSIC);
+    if (old.ok) {
+      expect(old.text["question:longevity"]).toBe("What is the secret to living past 100?");
+    }
+  });
+});
+
+/**
+ * Which questions the film puts on a card.
+ *
+ * Two filters, and the film breaks differently without each. Skip the role
+ * filter and the film asks "What is your name?" on screen immediately after
+ * the title card that answers it. Skip the resolves filter and compose emits a
+ * card whose text key `resolveAllText` deliberately left out, which is a render
+ * that throws rather than a card that is missing.
+ */
+describe("questionCardIds", () => {
+  it("leaves out the introduction, which the title card already answers", () => {
+    const ids = questionCardIds(LIFE_ADVICE_V1, NANA);
+    expect(ids).not.toContain("identity_name");
+    expect(ids).not.toContain("identity_age");
+    expect(ids).not.toContain("identity_birth_year");
+    expect(ids).toContain("greatest_lesson");
+    expect(ids).toContain("closing_message");
+  });
+
+  /**
+   * The bonus question is "What do you think of {{interviewerName}}, your
+   * {{interviewerRelationship}}?" — most films have neither, and a card cannot
+   * be drawn for a question nobody can word.
+   */
+  it("leaves out a question whose wording this subject cannot fill in", () => {
+    const { interviewerName: _n, interviewerRelationship: _r, ...anonymous } = NANA;
+    expect(questionCardIds(LIFE_ADVICE_V1, NANA)).toContain("bonus_interviewer");
+    expect(questionCardIds(LIFE_ADVICE_V1, anonymous)).not.toContain("bonus_interviewer");
+
+    // And the key really is absent, which is what makes the filter necessary.
+    const all = resolveAllText(LIFE_ADVICE_V1, anonymous, LANDSCAPE_CLASSIC);
+    if (all.ok) expect(all.text["question:bonus_interviewer"]).toBeUndefined();
   });
 
   it("reports missing tokens instead of substituting empty strings", () => {

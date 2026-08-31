@@ -89,6 +89,7 @@ const SegmentBody = ({
               text={resolvedText(props, segment.textKey)}
               theme={theme}
               mode="fade"
+              style={segment.textStyle ?? "title"}
             />
           )}
         </AbsoluteFill>
