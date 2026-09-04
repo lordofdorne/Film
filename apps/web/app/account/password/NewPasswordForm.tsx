@@ -28,13 +28,13 @@ export const NewPasswordForm = () => {
 
   if (done) {
     return (
-      <div style={styles.done}>
-        <h2 style={styles.doneTitle}>That is set</h2>
-        <p style={styles.doneBody}>
+      <div className="card note--quiet stack">
+        <h2 className="heading">That is set</h2>
+        <p className="lede">
           You can sign in with it from now on. Nothing else has changed — your films are
           where you left them.
         </p>
-        <Link href="/" style={styles.primary}>
+        <Link href="/" className="btn btn--primary">
           Back to your films
         </Link>
       </div>
@@ -42,9 +42,9 @@ export const NewPasswordForm = () => {
   }
 
   return (
-    <form onSubmit={submit} style={styles.form}>
-      <label style={styles.field}>
-        <span style={styles.label}>New password</span>
+    <form onSubmit={submit} className="stack-4">
+      <label className="field">
+        <span className="field__label">New password</span>
         <input
           name="password"
           type="password"
@@ -52,55 +52,17 @@ export const NewPasswordForm = () => {
           minLength={8}
           autoComplete="new-password"
           autoFocus
-          style={styles.input}
+          className="input"
         />
-        <span style={styles.rule}>
+        <span className="field__hint">
           At least 8 characters, with a capital letter, a small one and a number.
         </span>
       </label>
-      <button type="submit" disabled={pending} style={{ ...styles.submit, opacity: pending ? 0.5 : 1 }}>
+      <button type="submit" disabled={pending} className="btn btn--primary btn--wide">
         {pending ? "Saving…" : "Save this password"}
       </button>
-      {error !== null && <p style={styles.error}>{error}</p>}
+      {error !== null && <p className="note note--error">{error}</p>}
     </form>
   );
 };
 
-const styles = {
-  form: { display: "flex", flexDirection: "column", gap: 18, marginTop: 26 },
-  field: { display: "flex", flexDirection: "column", gap: 6 },
-  label: { fontSize: 15, fontWeight: 600 },
-  rule: { fontSize: 13, color: "#888" },
-  input: {
-    fontSize: 16,
-    padding: "10px 12px",
-    border: "1px solid #d6d6d6",
-    borderRadius: 8,
-    fontFamily: "inherit",
-  },
-  submit: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "13px 22px",
-    fontSize: 16,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  error: { color: "#a11", fontSize: 14, margin: 0 },
-  done: { marginTop: 26, padding: 20, border: "1px solid #cfe3d7", background: "#f3f9f5", borderRadius: 10 },
-  doneTitle: { fontSize: 18, fontWeight: 600, margin: 0 },
-  doneBody: { fontSize: 15, lineHeight: 1.6, color: "#3c5c4a", margin: "10px 0 0" },
-  primary: {
-    display: "inline-block",
-    marginTop: 16,
-    background: "#12603a",
-    color: "#fff",
-    borderRadius: 8,
-    padding: "11px 22px",
-    fontSize: 15,
-    fontWeight: 600,
-    textDecoration: "none",
-  },
-} as const;

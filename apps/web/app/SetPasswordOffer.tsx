@@ -50,7 +50,7 @@ export const SetPasswordOffer = ({
 
   if (confirmTo !== null) {
     return (
-      <div style={styles.done}>
+      <div className="card note--quiet stack">
         <strong>Almost.</strong> We have sent a note to {confirmTo} to check the address
         is really yours. Click the link in it and your password works from then on —
         until you do, the link is still how you get back in.
@@ -60,8 +60,8 @@ export const SetPasswordOffer = ({
 
   if (!open) {
     return (
-      <p style={styles.offerLine}>
-        <button type="button" onClick={() => { setOpen(true); }} style={styles.quiet}>
+      <p className="muted">
+        <button type="button" onClick={() => { setOpen(true); }} className="linklike">
           {prompt}
         </button>
       </p>
@@ -69,95 +69,42 @@ export const SetPasswordOffer = ({
   }
 
   return (
-    <form onSubmit={submit} style={styles.form}>
-      <label style={styles.field}>
-        <span style={styles.label}>Email address</span>
+    <form onSubmit={submit} className="stack-4">
+      <label className="field">
+        <span className="field__label">Email address</span>
         <input
           name="email"
           type="email"
           required
           autoComplete="email"
           defaultValue={defaultEmail}
-          style={styles.input}
+          className="input"
         />
       </label>
-      <label style={styles.field}>
-        <span style={styles.label}>Password</span>
+      <label className="field">
+        <span className="field__label">Password</span>
         <input
           name="password"
           type="password"
           required
           minLength={8}
           autoComplete="new-password"
-          style={styles.input}
+          className="input"
         />
-        <span style={styles.rule}>
+        <span className="field__hint">
           At least 8 characters, with a capital letter, a small one and a number.
         </span>
       </label>
-      <div style={styles.row}>
-        <button type="submit" disabled={pending} style={{ ...styles.save, opacity: pending ? 0.6 : 1 }}>
+      <div className="row">
+        <button type="submit" disabled={pending} className="btn btn--primary">
           {pending ? "Setting up…" : "Set a password"}
         </button>
-        <button type="button" onClick={() => { setOpen(false); setError(null); }} style={styles.quiet}>
+        <button type="button" onClick={() => { setOpen(false); setError(null); }} className="linklike">
           Not now
         </button>
       </div>
-      {error !== null && <p style={styles.error}>{error}</p>}
+      {error !== null && <p className="note note--error">{error}</p>}
     </form>
   );
 };
 
-const styles = {
-  offerLine: { margin: "18px 0 0", fontSize: 15 },
-  form: {
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 14,
-    margin: "18px 0 0",
-    padding: 18,
-    border: "1px solid #e4e4e4",
-    borderRadius: 10,
-  },
-  field: { display: "flex", flexDirection: "column" as const, gap: 6 },
-  label: { fontSize: 14, fontWeight: 600 },
-  rule: { fontSize: 12, color: "#888" },
-  input: {
-    fontSize: 16,
-    padding: "10px 12px",
-    border: "1px solid #d6d6d6",
-    borderRadius: 8,
-    fontFamily: "inherit",
-  },
-  row: { display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" as const },
-  save: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "11px 22px",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  error: { color: "#a11", fontSize: 14, margin: 0 },
-  done: {
-    margin: "18px 0 0",
-    padding: 16,
-    border: "1px solid #cfe3d7",
-    background: "#f3f9f5",
-    borderRadius: 10,
-    fontSize: 15,
-    lineHeight: 1.6,
-    color: "#3c5c4a",
-  },
-  quiet: {
-    border: "none",
-    background: "none",
-    padding: 0,
-    font: "inherit",
-    color: "#12603a",
-    textDecoration: "underline",
-    cursor: "pointer",
-  },
-} as const;

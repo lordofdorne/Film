@@ -20,9 +20,9 @@ export default async function SignInPage({
 
   if (!authConfigured()) {
     return (
-      <main style={styles.page}>
-        <h1 style={styles.title}>Sign-in is not configured</h1>
-        <p style={styles.blurb}>
+      <main className="page page--narrow stack-4">
+        <h1 className="title">Sign-in is not configured</h1>
+        <p className="lede">
           This server is running without Supabase, so there is nobody to sign in as and
           every film is open to anyone who has its link. That is the development
           arrangement, and it is not safe for anything real.
@@ -44,9 +44,9 @@ export default async function SignInPage({
   if (identity !== null && identity.email !== null) redirect(safeNext(next) ?? "/");
 
   return (
-    <main style={styles.page}>
-      <h1 style={styles.title}>Sign in</h1>
-      <p style={styles.blurb}>
+    <main className="page page--narrow stack-4">
+      <h1 className="title">Sign in</h1>
+      <p className="lede">
         Use your password if you set one. If you did not — most people have not — we
         will email you a link instead, and it works just as well.
       </p>
@@ -58,14 +58,3 @@ export default async function SignInPage({
   );
 }
 
-const styles = {
-  page: {
-    maxWidth: 480,
-    margin: "0 auto",
-    padding: "64px 24px 96px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  title: { fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: -0.4 },
-  blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "14px 0 0" },
-} as const;

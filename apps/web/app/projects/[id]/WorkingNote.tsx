@@ -21,9 +21,9 @@ export const WorkingNote = () => {
   }, [router]);
 
   return (
-    <main style={styles.page}>
-      <h1 style={styles.title}>Putting your film together</h1>
-      <p style={styles.blurb}>
+    <main className="page stack-4 centred">
+      <h1 className="title">Putting your film together</h1>
+      <p className="lede">
         Everything arrived. The first cut usually takes a few minutes — this page
         will update itself when it is ready to watch.
       </p>
@@ -31,15 +31,3 @@ export const WorkingNote = () => {
   );
 };
 
-const styles = {
-  page: {
-    maxWidth: 620,
-    margin: "0 auto",
-    padding: "96px 24px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-    textAlign: "center" as const,
-  },
-  title: { fontSize: 26, fontWeight: 600, letterSpacing: -0.4, margin: 0 },
-  blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "14px 0 0" },
-} as const;

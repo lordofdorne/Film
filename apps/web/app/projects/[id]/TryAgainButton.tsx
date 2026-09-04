@@ -41,7 +41,7 @@ export const TryAgainButton = ({ projectId }: { readonly projectId: string }) =>
 
   if (outcome === "started") {
     return (
-      <p style={styles.started}>
+      <p className="note note--quiet">
         We are trying again now. This page will change on its own when there is
         something to see — it usually takes a few minutes, and you can close it.
       </p>
@@ -50,34 +50,11 @@ export const TryAgainButton = ({ projectId }: { readonly projectId: string }) =>
 
   return (
     <>
-      <button type="button" onClick={press} disabled={pending} style={{ ...styles.primary, opacity: pending ? 0.6 : 1 }}>
+      <button type="button" onClick={press} disabled={pending} className="btn btn--primary">
         {pending ? "Starting…" : "Try making it again"}
       </button>
-      {outcome !== null && <p style={styles.error}>{outcome}</p>}
+      {outcome !== null && <p className="note note--error">{outcome}</p>}
     </>
   );
 };
 
-const styles = {
-  primary: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "12px 24px",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  started: {
-    fontSize: 15,
-    lineHeight: 1.6,
-    color: "#3c5c4a",
-    background: "#f3f9f5",
-    border: "1px solid #cfe3d7",
-    borderRadius: 10,
-    padding: "14px 16px",
-    margin: 0,
-  },
-  error: { fontSize: 14, color: "#a11", margin: "10px 0 0" },
-} as const;
