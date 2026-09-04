@@ -1,0 +1,659 @@
+/*
+ * The one place colour, type and spacing are decided.
+ *
+ * Before this there were NINETEEN files each carrying its own `styles` object,
+ * and twelve of them hardcoded the same green. Changing an accent meant
+ * finding twelve copies; nothing was consistent because nothing was shared;
+ * and the result read as a project rather than a product. That is the whole
+ * reason this file exists.
+ *
+ * Deliberately unbranded. Type, rhythm and colour are chosen to be quiet and
+ * correct so that a name, a voice and a palette can land later without moving
+ * a single box.
+ */
+
+:root {
+  /* Ink. Four weights, which is all any screen here has needed. */
+  --ink: #1a1a1a;
+  --ink-2: #575757;
+  --ink-3: #8a8a8a;
+  --ink-4: #b4b4b4;
+
+  /* Ground. */
+  --bg: #fbfbfa;
+  --surface: #ffffff;
+  --line: #e4e4e4;
+  --line-strong: #cfcfcf;
+
+  /*
+   * One accent, and it was already the product's: the green that twelve files
+   * had each written out for themselves.
+   */
+  --accent: #12603a;
+  --accent-ink: #ffffff;
+  --accent-soft: #eef4f0;
+
+  /* Something went wrong, and something needs care. Kept apart on purpose. */
+  --danger: #8c2f2f;
+  --warn-ink: #5c4a33;
+  --warn-bg: #fdf6ec;
+  --warn-line: #f0dcc0;
+
+  /*
+   * A system stack. No webfont: it costs a round trip on a page somebody opens
+   * on a phone in a relative's kitchen, and nothing here needs a typeface of
+   * its own until there is a brand to have one.
+   */
+  --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* A type scale, so headings stop being invented per file. */
+  --t-display: 32px;
+  --t-title: 24px;
+  --t-heading: 18px;
+  --t-body: 16px;
+  --t-small: 14px;
+  --t-tiny: 13px;
+
+  /* Spacing on a 4px grid. */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  --radius: 10px;
+  --radius-sm: 8px;
+  --measure: 680px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Somebody who has set larger type in their OS gets larger type here. */
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: var(--t-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p, ul, ol, figure {
+  margin: 0;
+}
+
+ul, ol {
+  padding: 0;
+}
+
+a {
+  color: var(--accent);
+}
+
+/*
+ * Visible focus, everywhere, and never removed.
+ *
+ * People fill this in on phones and laptops belonging to somebody else, and a
+ * keyboard user losing their place in a form about their grandmother is a
+ * worse failure than a slightly heavier outline.
+ */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── the page shell ─────────────────────────────────────────────────── */
+
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.site-header {
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.site-header__inner {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s-3) var(--s-5);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+}
+
+.site-header__mark {
+  font-size: var(--t-small);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header__who {
+  font-size: var(--t-tiny);
+  color: var(--ink-3);
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.page {
+  flex: 1;
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: var(--s-7) var(--s-5) var(--s-8);
+}
+
+/* A narrower column for anything that is mostly a form to fill in. */
+.page--narrow {
+  max-width: 460px;
+}
+
+/* ── type ───────────────────────────────────────────────────────────── */
+
+.display {
+  font-size: var(--t-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.title {
+  font-size: var(--t-title);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.heading {
+  font-size: var(--t-heading);
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.eyebrow {
+  font-size: var(--t-tiny);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.lede {
+  font-size: var(--t-body);
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+.muted {
+  color: var(--ink-3);
+  font-size: var(--t-small);
+}
+
+.tiny {
+  color: var(--ink-3);
+  font-size: var(--t-tiny);
+}
+
+/* ── stacks, so vertical rhythm stops being invented per file ───────── */
+
+.stack > * + * { margin-top: var(--s-3); }
+.stack-4 > * + * { margin-top: var(--s-4); }
+.stack-5 > * + * { margin-top: var(--s-5); }
+.stack-6 > * + * { margin-top: var(--s-6); }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+
+/* ── buttons ────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  /* 44px tall: a thumb on a phone, held by somebody who is not looking. */
+  min-height: 44px;
+  padding: var(--s-3) var(--s-5);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: var(--t-small);
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease;
+}
+
+.btn--primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+.btn--primary:hover { background: #0e4d2e; }
+
+.btn--secondary {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+.btn--secondary:hover { border-color: var(--ink-4); }
+
+.btn--quiet {
+  background: transparent;
+  color: var(--ink-2);
+  padding: var(--s-2) var(--s-3);
+  min-height: 0;
+  font-weight: 500;
+}
+.btn--quiet:hover { color: var(--ink); }
+
+.btn--danger {
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--danger);
+}
+
+.btn[disabled],
+.btn[aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--wide { width: 100%; }
+
+/* ── surfaces ───────────────────────────────────────────────────────── */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--s-4);
+}
+
+.card--flush { padding: 0; overflow: hidden; }
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+
+/* ── notes: a fact, a warning, a failure ────────────────────────────── */
+
+.note {
+  border-radius: var(--radius-sm);
+  padding: var(--s-3) var(--s-4);
+  font-size: var(--t-small);
+  line-height: 1.55;
+}
+
+.note--warn {
+  color: var(--warn-ink);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+}
+
+.note--error {
+  color: var(--danger);
+  background: #fdf0f0;
+  border: 1px solid #f0d5d5;
+}
+
+.note--quiet {
+  color: var(--ink-2);
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+}
+
+/* ── forms ──────────────────────────────────────────────────────────── */
+
+.field { display: block; }
+
+.field__label {
+  display: block;
+  font-size: var(--t-small);
+  font-weight: 600;
+  margin-bottom: var(--s-2);
+}
+
+.field__hint {
+  font-size: var(--t-tiny);
+  color: var(--ink-3);
+  margin-top: var(--s-2);
+}
+
+.input {
+  width: 100%;
+  min-height: 44px;
+  padding: var(--s-3);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: var(--t-body);
+}
+
+.input:focus-visible {
+  border-color: var(--accent);
+  outline-offset: 0;
+}
+
+/* ── media ──────────────────────────────────────────────────────────── */
+
+.media {
+  width: 100%;
+  border-radius: var(--radius);
+  background: #000;
+  display: block;
+}
+
+/* ── home ───────────────────────────────────────────────────────────── */
+
+.film-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  text-decoration: none;
+  color: inherit;
+}
+
+.film-row:hover { border-color: var(--line-strong); }
+
+.film-row__name {
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.steps { gap: var(--s-3); counter-reset: step; }
+
+.step {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+
+.step__number {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: var(--t-tiny);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* A button that has to read as a link: a mode switch inside a form. */
+.linklike {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.signin-form { margin-top: var(--s-5); }
+
+/* Spans, so they may sit inside a link or a list item — which means the
+   stack utilities (margins between blocks) do nothing until they are told
+   to be blocks. They ran together on one line without this. */
+.step__text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-1);
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-4);
+  flex-wrap: wrap;
+}
+
+.centred { text-align: center; }
+
+/* ── the hub ────────────────────────────────────────────────────────── */
+
+.hub-head { margin-bottom: var(--s-2); }
+.hub-head > * + * { margin-top: var(--s-2); }
+
+.track {
+  height: 4px;
+  background: var(--line);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: var(--s-3);
+}
+
+.track__fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 240ms ease;
+}
+
+.chapter { margin-top: var(--s-6); }
+.chapter__blurb { font-size: var(--t-small); margin-top: var(--s-2); }
+.chapter__cards { margin-top: var(--s-4); }
+
+.step-card {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+  text-decoration: none;
+  color: inherit;
+}
+.step-card:hover { border-color: var(--line-strong); }
+
+.step-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.step-card__ask { font-size: var(--t-small); line-height: 1.4; }
+.step-card__ask--open { font-weight: 600; }
+
+.step-card__note {
+  font-size: var(--t-tiny);
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step-card__thumb-holder { flex-shrink: 0; }
+
+.mark {
+  font-size: var(--t-body);
+  color: var(--ink-4);
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.mark--done { color: var(--accent); font-weight: 700; }
+
+.thumb {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  background: #000;
+  display: block;
+}
+
+/* Recorded, not yet looked at. Quiet enough not to read as a broken image. */
+.thumb--waiting { background: #ececec; }
+
+.hub-foot {
+  position: sticky;
+  bottom: 0;
+  margin-top: var(--s-6);
+  padding: var(--s-4) 0 var(--s-5);
+  background: linear-gradient(transparent, var(--bg) 30%);
+}
+
+/* ── delivery ───────────────────────────────────────────────────────── */
+
+.panel { padding: var(--s-5); }
+.panel--ready { border-color: #cfe3d7; background: var(--accent-soft); }
+.panel--failed { border-color: var(--warn-line); background: var(--warn-bg); }
+
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  margin-right: var(--s-2);
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--accent);
+  border-radius: 999px;
+  animation: spin 900ms linear infinite;
+  vertical-align: -1px;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── step sheets ────────────────────────────────────────────────────── */
+
+.examples { flex-direction: row; flex-wrap: wrap; gap: var(--s-2); }
+
+.example {
+  font-size: var(--t-tiny);
+  color: var(--ink-2);
+  background: var(--accent-soft);
+  border-radius: 999px;
+  padding: var(--s-1) var(--s-3);
+}
+
+.step-nav { margin-top: var(--s-5); justify-content: space-between; }
+
+/* ── preview and approval ───────────────────────────────────────────── */
+
+.player-frame {
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #000;
+  margin-top: var(--s-5);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  margin-left: var(--s-2);
+  border-radius: 999px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-ink);
+  font-size: var(--t-tiny);
+  font-weight: 700;
+}
+
+.warning {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--s-3) var(--s-4);
+}
+
+/* Acknowledged: still there, no longer asking for anything. */
+.warning--done { opacity: 0.45; }
+
+.warning__label { display: block; font-size: var(--t-small); }
+.warning__text { display: block; font-size: var(--t-tiny); color: var(--ink-2); margin-top: 2px; }
+
+/* ── capture ────────────────────────────────────────────────────────── */
+
+/* Round, because these are camera controls and nothing else on the page is. */
+.btn--pill { border-radius: 999px; }
+
+.btn--record { background: var(--danger); color: #fff; }
+.btn--stop { background: var(--ink); color: #fff; }
+
+.step-head { justify-content: space-between; }
+.step-ask { margin-top: var(--s-5); }
+.step-coaching { margin-top: var(--s-3); }
+.step-examples { margin-top: var(--s-4); }
+.step-qc { margin-top: var(--s-4); }
+
+.stage { margin-top: var(--s-5); }
+.stage__row { margin-top: var(--s-4); }
+
+.stage__media {
+  width: 100%;
+  max-height: 460px;
+  object-fit: contain;
+  background: #000;
+  border-radius: var(--radius);
+  display: block;
+}
+
+.stage__empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius);
+  padding: var(--s-7) var(--s-5);
+  text-align: center;
+  color: var(--ink-3);
+  font-size: var(--t-small);
+}
+
+.timer {
+  font-variant-numeric: tabular-nums;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.saved-note { font-size: var(--t-small); color: var(--accent); font-weight: 600; }
+
+.linklike--quiet { color: var(--ink-3); }

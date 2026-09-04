@@ -219,6 +219,18 @@ callable whatever the page renders — so each of them checks, and each answers
 404 rather than 403, because a refusal that says "not yours" confirms there is
 something there.
 
+**The web app has ONE stylesheet.** `apps/web/app/globals.css` holds every
+colour, type size and spacing step as a custom property, and every screen is
+classes over that. It replaced nineteen per-file `styles` objects, twelve of
+which had each written out the same green — which is most of what made the app
+look like a project rather than a product. A new screen uses the tokens or
+changes them; it does not start its own palette.
+
+**The product is named in one place.** `apps/web/src/product.ts`. "Life Advice"
+is a TEMPLATE id, not a product name, and using it as one would be wrong the
+day a second film type exists. The current name is a placeholder awaiting the
+owner, and nothing but that file needs to change.
+
 **Reading rows and minting signed URLs are separate acts, and the types keep
 them separate.** A signed URL is a bearer credential. `loadWalkthroughView`
 returns storage keys and signs nothing; a caller asks for exactly the URLs its

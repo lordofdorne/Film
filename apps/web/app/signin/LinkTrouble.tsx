@@ -41,18 +41,6 @@ export const LinkTrouble = ({ fallback }: { readonly fallback?: string }) => {
   }, []);
 
   if (reason === null) return null;
-  return <p style={styles.notice}>{reason}</p>;
+  return <p className="note note--warn">{reason}</p>;
 };
 
-const styles = {
-  notice: {
-    fontSize: 14,
-    lineHeight: 1.5,
-    color: "#5c4a33",
-    background: "#fdf6ec",
-    border: "1px solid #f0dcc0",
-    borderRadius: 8,
-    padding: "10px 12px",
-    margin: "16px 0 0",
-  },
-} as const;

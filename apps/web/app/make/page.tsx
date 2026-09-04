@@ -17,19 +17,19 @@ export default function MakePage() {
   });
 
   return (
-    <main style={styles.page}>
-      <h1 style={styles.title}>What kind of film?</h1>
-      <p style={styles.blurb}>
+    <main className="page stack-5">
+      <h1 className="display">What kind of film?</h1>
+      <p className="lede">
         You will be walked through it piece by piece — you can record here, upload
         things you already have, and stop and come back whenever you like.
       </p>
 
-      <ul style={styles.list}>
+      <ul className="list">
         {templates.map((t) => (
-          <li key={t.id} style={styles.card}>
-            <div>
-              <h2 style={styles.name}>{t.displayName}</h2>
-              <p style={styles.facts}>
+          <li key={t.id} className="card choice">
+            <div className="stack">
+              <h2 className="heading">{t.displayName}</h2>
+              <p className="muted">
                 A {filmMinutes(t)}-minute film · about {captureMinutes(t)} minutes to put
                 together
               </p>
@@ -56,34 +56,3 @@ const captureMinutes = (t: Template): number => {
   return Math.max(1, Math.round(seconds / 60));
 };
 
-const styles = {
-  page: {
-    maxWidth: 620,
-    margin: "0 auto",
-    padding: "48px 24px 96px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  title: { fontSize: 30, fontWeight: 600, margin: 0, letterSpacing: -0.5 },
-  blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "16px 0 0" },
-  list: {
-    listStyle: "none",
-    padding: 0,
-    margin: "28px 0 0",
-    display: "flex",
-    flexDirection: "column" as const,
-    gap: 12,
-  },
-  card: {
-    border: "1px solid #e4e4e4",
-    borderRadius: 12,
-    padding: "20px 22px",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    gap: 16,
-    flexWrap: "wrap" as const,
-  },
-  name: { fontSize: 20, fontWeight: 600, margin: 0 },
-  facts: { fontSize: 14, color: "#666", margin: "6px 0 0" },
-} as const;

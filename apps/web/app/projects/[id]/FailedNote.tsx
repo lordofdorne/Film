@@ -19,61 +19,30 @@ import { TryAgainButton } from "./TryAgainButton.js";
  * belongs on the screen.
  */
 export const FailedNote = ({ projectId }: { readonly projectId: string }) => (
-  <main style={styles.page}>
-    <h1 style={styles.title}>We could not finish this film</h1>
-    <p style={styles.blurb}>
+  <main className="page stack-4">
+    <h1 className="title">We could not finish this film</h1>
+    <p className="lede">
       Something went wrong while putting it together, and it stopped rather than
       making you something broken.
     </p>
-    <p style={styles.reassure}>
+    <p className="note note--quiet">
       <strong>Nothing has been lost.</strong> Every recording and photograph you gave
       us is exactly where it was — the fault is in the making, not the material, and
       the film can be made again once it is fixed.
     </p>
-    <div style={styles.action}>
+    <div className="row">
       <TryAgainButton projectId={projectId} />
     </div>
-    <p style={styles.blurb}>
+    <p className="lede">
       Sometimes that is all it takes. If it stops in the same place, the fault is
       one we have to fix at our end — we can see that this happened, and you can
       reply to the email we sent you to hurry us along.
     </p>
-    <nav style={styles.nav}>
-      <Link href="/" style={styles.secondary}>
+    <nav className="row">
+      <Link href="/" className="btn btn--secondary">
         Your films
       </Link>
     </nav>
   </main>
 );
 
-const styles = {
-  page: {
-    maxWidth: 620,
-    margin: "0 auto",
-    padding: "96px 24px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  title: { fontSize: 26, fontWeight: 600, margin: 0, letterSpacing: -0.4 },
-  blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "16px 0 0" },
-  reassure: {
-    fontSize: 16,
-    lineHeight: 1.6,
-    color: "#3c5c4a",
-    background: "#f3f9f5",
-    border: "1px solid #cfe3d7",
-    borderRadius: 10,
-    padding: "14px 16px",
-    margin: "18px 0 0",
-  },
-  action: { marginTop: 26 },
-  nav: { display: "flex", gap: 12, marginTop: 30, flexWrap: "wrap" as const },
-  secondary: {
-    border: "1px solid #ccc",
-    borderRadius: 8,
-    padding: "11px 21px",
-    fontSize: 15,
-    textDecoration: "none",
-    color: "#1a1a1a",
-  },
-} as const;

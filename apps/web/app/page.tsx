@@ -1,101 +1,113 @@
 import Link from "next/link";
 
-import { authConfigured, currentUser, sessionIdentity } from "../src/server/auth.js";
+import { HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../src/product.js";
+import { authConfigured, currentUser } from "../src/server/auth.js";
 import { listProjects } from "../src/server/project.js";
-import { SignOutButton } from "./SignOutButton.js";
 
+/**
+ * Two pages at one address, and which one you get is the honest question
+ * "does this person have films here?"
+ *
+ * Somebody arriving with nothing needs to know what this is and what they are
+ * agreeing to before they press anything. Somebody with films in progress
+ * needs those films, immediately, and nothing else — telling them again what
+ * the product does would be noise on the screen they see most.
+ */
 export default async function Home() {
   const open = !authConfigured();
   const user = await currentUser();
+  const projects = user === null && !open ? [] : await listProjects(user?.id);
 
-  // Nobody signed in, and sign-in exists: there is nothing of theirs to list.
-  if (!open && user === null) {
-    return (
-      <main style={styles.page}>
-        <h1 style={styles.title}>Life Advice</h1>
-        <p style={styles.blurb}>
-          A short documentary made from an interview with someone you love.
-        </p>
-        <div style={styles.actions}>
-          <Link href="/make" style={styles.primary}>
-            Make a film
-          </Link>
-          <Link href="/signin" style={styles.secondary}>
-            Sign in
-          </Link>
-        </div>
-      </main>
-    );
-  }
-
-  const identity = await sessionIdentity();
-  const projects = await listProjects(user?.id);
+  if (projects.length === 0) return <Introduction open={open} />;
 
   return (
-    <main style={styles.page}>
-      <header style={styles.header}>
-        <h1 style={styles.title}>Your films</h1>
-        {user !== null && (
-          /**
-           * Say something true. This rendered `user.email` and nothing else,
-           * which for an anonymous visitor — now the ordinary case, since
-           * pressing Start signs one in — was an empty gap followed by a dot.
-           */
-          <span style={styles.who}>
-            {identity?.email !== null && identity?.email !== undefined ? (
-              <>
-                {identity.email} · <Link href="/account/password" style={styles.quiet}>Password</Link>
-              </>
-            ) : identity?.pendingEmail !== null && identity?.pendingEmail !== undefined ? (
-              <>Waiting for you to confirm {identity.pendingEmail}</>
-            ) : (
-              <>
-                Not signed in — these are kept in this browser ·{" "}
-                <Link href="/signin" style={styles.quiet}>Sign in</Link>
-              </>
-            )}{" "}
-            · <SignOutButton />
-          </span>
-        )}
-      </header>
+    <main className="page stack-5">
+      <h1 className="title">Your films</h1>
 
-      {open && (
-        /**
-         * Loud on purpose. "Auth quietly turned itself off" is the worst way
-         * for this to be wrong, so an unconfigured server says so on the page
-         * rather than in a log nobody reads.
-         */
-        <p style={styles.warning}>
-          No sign-in is configured on this server, so every film here is open to
-          anyone who can reach it. Development only.
-        </p>
-      )}
+      {open && <DevelopmentWarning />}
 
-      {projects.length === 0 ? (
-        <p style={styles.blurb}>
-          Nothing here yet. <Link href="/make">Make a film</Link>.
-        </p>
-      ) : (
-        <ul style={styles.list}>
-          {projects.map((p) => (
-            <li key={p.id} style={styles.row}>
-              <Link href={`/projects/${p.id}`} style={styles.name}>
-                {p.subjectName}
-              </Link>
-              <span style={styles.status}>{worded(p.status)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="list">
+        {projects.map((p) => (
+          <li key={p.id}>
+            <Link href={`/projects/${p.id}`} className="card film-row">
+              <span className="film-row__name">{p.subjectName ?? "Untitled"}</span>
+              <span className="muted">{worded(p.status)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
 
-      <p style={styles.footer}>
-        <Link href="/make" style={styles.secondary}>
+      <div className="row">
+        <Link href="/make" className="btn btn--secondary">
           Start another
         </Link>
-      </p>
+      </div>
     </main>
   );
 }
+
+/**
+ * What this is, for somebody who has never seen it.
+ *
+ * Deliberately not a landing page: no pricing, no testimonials, no example
+ * film. It answers the three questions somebody actually has — what is it,
+ * what will I have to do, what do I get — and then gets out of the way. The
+ * one thing it must not do is let somebody press Start without knowing they
+ * will need the person in front of them.
+ */
+const Introduction = ({ open }: { readonly open: boolean }) => (
+  <main className="page stack-6">
+    <section className="stack-4">
+      <h1 className="display">{PRODUCT_BLURB}</h1>
+      <p className="lede">{PRODUCT_SUB}</p>
+      <div className="row">
+        <Link href="/make" className="btn btn--primary">
+          Start a film
+        </Link>
+        <Link href="/signin" className="btn btn--secondary">
+          I have one already
+        </Link>
+      </div>
+      {/* Said before they start, not after: it is the one thing that decides
+          whether now is a good moment. */}
+      <p className="tiny">
+        About twenty minutes, with the person you are filming. No account needed
+        to begin.
+      </p>
+    </section>
+
+    {open && <DevelopmentWarning />}
+
+    <section className="stack-4">
+      <h2 className="eyebrow">How it works</h2>
+      <ol className="list steps">
+        {HOW_IT_WORKS.map((step, i) => (
+          <li key={step.title} className="card step">
+            <span className="step__number" aria-hidden>
+              {i + 1}
+            </span>
+            <span className="step__text">
+              <span className="heading">{step.title}</span>
+              <span className="lede">{step.body}</span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  </main>
+);
+
+/**
+ * Loud on purpose. "Auth quietly turned itself off" is the worst way for this
+ * to be wrong, so an unconfigured server says so on the page rather than in a
+ * log nobody reads.
+ */
+const DevelopmentWarning = () => (
+  <p className="note note--warn">
+    No sign-in is configured on this server, so every film here is open to
+    anyone who can reach it. Development only.
+  </p>
+);
 
 /**
  * The state of a film, in words rather than in the enum's.
@@ -117,21 +129,3 @@ const worded = (status: string): string =>
     delivered: "ready",
     failed: "needs another go",
   })[status] ?? status;
-
-const styles = {
-  page: { maxWidth: 720, margin: "0 auto", padding: "48px 24px", fontFamily: "system-ui, sans-serif", color: "#1a1a1a" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" as const },
-  title: { fontSize: 24, fontWeight: 600, margin: 0 },
-  who: { fontSize: 13, color: "#888" },
-  quiet: { color: "#12603a", textDecoration: "underline" },
-  blurb: { color: "#666", fontSize: 16, lineHeight: 1.6 },
-  actions: { display: "flex", gap: 12, marginTop: 24, flexWrap: "wrap" as const },
-  primary: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "12px 22px", fontSize: 15, fontWeight: 600, textDecoration: "none" },
-  secondary: { border: "1px solid #ccc", borderRadius: 8, padding: "11px 21px", fontSize: 15, textDecoration: "none", color: "#1a1a1a" },
-  warning: { fontSize: 13, lineHeight: 1.5, color: "#5c4a33", background: "#fdf6ec", border: "1px solid #f0dcc0", borderRadius: 8, padding: "10px 12px", margin: "16px 0 0" },
-  list: { listStyle: "none", padding: 0, display: "flex", flexDirection: "column", gap: 8, margin: "24px 0 0" },
-  row: { border: "1px solid #e4e4e4", borderRadius: 8, padding: 14 },
-  name: { fontWeight: 600, textDecoration: "none", color: "#12603a" },
-  status: { marginLeft: 10, color: "#888", fontSize: 13 },
-  footer: { marginTop: 28 },
-} as const;

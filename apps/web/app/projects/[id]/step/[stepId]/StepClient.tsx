@@ -304,43 +304,43 @@ export const StepClient = ({
     localUrl !== null ? localIsPhoto : step.asset !== null && step.asset.kind === "photo";
 
   return (
-    <main style={styles.page}>
-      <header style={styles.head}>
-        <span style={styles.chapter}>{step.chapterTitle}</span>
-        {!step.required && <span style={styles.counter}>optional</span>}
+    <main className="page page--narrow">
+      <header className="row step-head">
+        <span className="eyebrow">{step.chapterTitle}</span>
+        {!step.required && <span className="tiny">optional</span>}
       </header>
 
-      <h1 style={styles.ask}>{step.ask}</h1>
-      {step.coaching !== undefined && <p style={styles.coaching}>{step.coaching}</p>}
+      <h1 className="title step-ask">{step.ask}</h1>
+      {step.coaching !== undefined && <p className="lede step-coaching">{step.coaching}</p>}
       {step.examples !== undefined && step.examples.length > 0 && (
-        <ul style={styles.examples}>
+        <ul className="list examples step-examples">
           {step.examples.map((example) => (
-            <li key={example} style={styles.example}>{example}</li>
+            <li key={example} className="example">{example}</li>
           ))}
         </ul>
       )}
-      {step.qcNote !== undefined && <p style={styles.qcNote}>{step.qcNote}</p>}
+      {step.qcNote !== undefined && <p className="note note--warn step-qc">{step.qcNote}</p>}
 
-      <section style={styles.stage}>
+      <section className="stage">
         {live !== null ? (
           <>
             {/* autoPlay as well as the effect: whichever wins, the person
                 sees themselves rather than a black rectangle. */}
-            <video ref={liveRef} autoPlay muted playsInline style={styles.media} />
-            <div style={styles.row}>
+            <video ref={liveRef} autoPlay muted playsInline className="stage__media" />
+            <div className="row stage__row">
               {live === "video" ? (
                 <>
-                  <button type="button" onClick={stopRecording} style={styles.stop}>
+                  <button type="button" onClick={stopRecording} className="btn btn--pill btn--stop">
                     Stop recording
                   </button>
-                  <span style={styles.timer}>{formatSeconds(seconds)}</span>
+                  <span className="timer">{formatSeconds(seconds)}</span>
                 </>
               ) : (
                 <>
-                  <button type="button" onClick={takePhoto} style={styles.record}>
+                  <button type="button" onClick={takePhoto} className="btn btn--pill btn--record">
                     Take the photo
                   </button>
-                  <button type="button" onClick={cancelCamera} style={styles.secondary}>
+                  <button type="button" onClick={cancelCamera} className="btn btn--pill btn--secondary">
                     Cancel
                   </button>
                 </>
@@ -350,7 +350,7 @@ export const StepClient = ({
         ) : shownUrl !== null ? (
           <>
             {shownIsPhoto ? (
-              <img src={shownUrl} alt="" style={styles.media} />
+              <img src={shownUrl} alt="" className="stage__media" />
             ) : (
               /*
                 Nothing is fetched until somebody presses play.
@@ -368,7 +368,7 @@ export const StepClient = ({
                 src={shownUrl}
                 controls
                 playsInline
-                style={styles.media}
+                className="stage__media"
                 {...(localUrl === null
                   ? {
                       preload: "none" as const,
@@ -379,12 +379,12 @@ export const StepClient = ({
                   : {})}
               />
             )}
-            <div style={styles.row}>
+            <div className="row stage__row">
               {takesVideo && (
                 <button
                   type="button"
                   onClick={() => { void startRecording(); }}
-                  style={styles.secondary}
+                  className="btn btn--pill btn--secondary"
                 >
                   Record again
                 </button>
@@ -393,12 +393,12 @@ export const StepClient = ({
                 <button
                   type="button"
                   onClick={() => { void startPhoto(); }}
-                  style={styles.secondary}
+                  className="btn btn--pill btn--secondary"
                 >
                   {takesVideo ? "Take a photo" : "Take another photo"}
                 </button>
               )}
-              <label style={styles.secondary}>
+              <label className="btn btn--pill btn--secondary">
                 {takesVideo ? "Choose a different file" : "Choose a different photo"}
                 <input
                   type="file"
@@ -408,7 +408,7 @@ export const StepClient = ({
                 />
               </label>
               {!step.required && (
-                <button type="button" onClick={removeCapture} style={styles.remove}>
+                <button type="button" onClick={removeCapture} className="linklike linklike--quiet">
                   Remove
                 </button>
               )}
@@ -417,16 +417,16 @@ export const StepClient = ({
           </>
         ) : (
           <>
-            <div style={styles.empty}>
+            <div className="stage__empty">
               {takesVideo && takesPhoto
                 ? "Record something, or choose a photo or video you already have."
                 : takesVideo
                   ? "Record it here, or choose a video you already have."
                   : "Take a photo, or choose one you already have."}
             </div>
-            <div style={styles.row}>
+            <div className="row stage__row">
               {takesVideo && (
-                <button type="button" onClick={() => { void startRecording(); }} style={styles.record}>
+                <button type="button" onClick={() => { void startRecording(); }} className="btn btn--pill btn--record">
                   Record
                 </button>
               )}
@@ -434,12 +434,12 @@ export const StepClient = ({
                 <button
                   type="button"
                   onClick={() => { void startPhoto(); }}
-                  style={takesVideo ? styles.secondary : styles.record}
+                  className={takesVideo ? "btn btn--pill btn--secondary" : "btn btn--pill btn--record"}
                 >
                   Take a photo
                 </button>
               )}
-              <label style={styles.secondary}>
+              <label className="btn btn--pill btn--secondary">
                 {takesPhoto && !takesVideo ? "Choose a photo" : "Choose a file"}
                 <input
                   type="file"
@@ -451,13 +451,13 @@ export const StepClient = ({
             </div>
           </>
         )}
-        {cameraError !== null && <p style={styles.error}>{cameraError}</p>}
+        {cameraError !== null && <p className="note note--error">{cameraError}</p>}
       </section>
 
-      <nav style={styles.nav}>
+      <nav className="row step-nav">
         <Link
           href={`/projects/${projectId}`}
-          style={saved ? styles.done : styles.back}
+          className={saved ? "btn btn--primary" : "btn btn--quiet"}
         >
           {saved ? "Done — back to the film" : "Back to the film"}
         </Link>
@@ -467,9 +467,9 @@ export const StepClient = ({
 };
 
 const SavingNote = ({ saving, saved }: { readonly saving: Saving; readonly saved: boolean }) => {
-  if (saving.state === "saving") return <span style={styles.saving}>Saving…</span>;
-  if (saving.state === "failed") return <span style={styles.error}>{saving.error}</span>;
-  if (saved) return <span style={styles.savedNote}>Saved</span>;
+  if (saving.state === "saving") return <span className="muted">Saving…</span>;
+  if (saving.state === "failed") return <span className="note note--error">{saving.error}</span>;
+  if (saved) return <span className="saved-note">Saved</span>;
   return null;
 };
 
@@ -483,43 +483,3 @@ const acceptAttribute = (step: StepView): string => {
 const formatSeconds = (total: number): string =>
   `${String(Math.floor(total / 60))}:${String(total % 60).padStart(2, "0")}`;
 
-const styles = {
-  page: {
-    maxWidth: 720,
-    margin: "0 auto",
-    padding: "32px 24px 80px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  head: { display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 },
-  chapter: { fontSize: 13, fontWeight: 600, letterSpacing: 0.6, textTransform: "uppercase" as const, color: "#12603a" },
-  counter: { fontSize: 13, color: "#888" },
-  ask: { fontSize: 26, fontWeight: 600, lineHeight: 1.3, letterSpacing: -0.4, margin: "20px 0 0" },
-  coaching: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "12px 0 0" },
-  examples: { display: "flex", flexWrap: "wrap" as const, gap: 8, listStyle: "none", padding: 0, margin: "14px 0 0" },
-  example: { fontSize: 13, color: "#5c4a33", background: "#fdf6ec", border: "1px solid #f0dcc0", borderRadius: 999, padding: "4px 12px" },
-  qcNote: { fontSize: 14, lineHeight: 1.5, color: "#7a4a12", background: "#fdf3e4", border: "1px solid #f0d6ae", borderRadius: 8, padding: "10px 12px", margin: "14px 0 0" },
-  stage: { marginTop: 24 },
-  media: { width: "100%", maxHeight: 460, objectFit: "contain" as const, background: "#000", borderRadius: 10, display: "block" },
-  empty: {
-    border: "1px dashed #d0d0d0",
-    borderRadius: 10,
-    padding: "40px 24px",
-    textAlign: "center" as const,
-    color: "#888",
-    fontSize: 14,
-    lineHeight: 1.6,
-  },
-  row: { display: "flex", alignItems: "center", gap: 12, marginTop: 14, flexWrap: "wrap" as const },
-  record: { background: "#a11", color: "#fff", border: "none", borderRadius: 999, padding: "12px 26px", fontSize: 15, fontWeight: 600, cursor: "pointer" },
-  stop: { background: "#1a1a1a", color: "#fff", border: "none", borderRadius: 999, padding: "12px 26px", fontSize: 15, fontWeight: 600, cursor: "pointer" },
-  secondary: { border: "1px solid #ccc", background: "#fff", borderRadius: 999, padding: "12px 22px", fontSize: 15, cursor: "pointer" },
-  remove: { border: "none", background: "none", color: "#888", fontSize: 14, cursor: "pointer", textDecoration: "underline" },
-  timer: { fontVariantNumeric: "tabular-nums" as const, color: "#a11", fontWeight: 600 },
-  saving: { fontSize: 14, color: "#888" },
-  savedNote: { fontSize: 14, color: "#12603a", fontWeight: 600 },
-  error: { fontSize: 14, color: "#a11", margin: "10px 0 0" },
-  nav: { display: "flex", justifyContent: "flex-start", marginTop: 36 },
-  back: { color: "#666", textDecoration: "none", fontSize: 15 },
-  done: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "12px 26px", fontSize: 15, fontWeight: 600, textDecoration: "none" },
-} as const;

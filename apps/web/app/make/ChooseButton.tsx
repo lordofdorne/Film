@@ -21,7 +21,7 @@ export const ChooseButton = ({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <span style={styles.holder}>
+    <span className="row">
       <button
         type="button"
         disabled={pending}
@@ -34,26 +34,12 @@ export const ChooseButton = ({
             if (result !== undefined && !result.ok) setError(result.error);
           });
         }}
-        style={{ ...styles.button, opacity: pending ? 0.6 : 1 }}
+        className="btn btn--primary"
       >
         {pending ? "Setting up…" : "Start"}
       </button>
-      {error !== null && <span style={styles.error}>{error}</span>}
+      {error !== null && <span className="note note--error">{error}</span>}
     </span>
   );
 };
 
-const styles = {
-  holder: { display: "flex", flexDirection: "column" as const, alignItems: "flex-end", gap: 6 },
-  button: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "12px 26px",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  error: { fontSize: 13, color: "#a11" },
-} as const;

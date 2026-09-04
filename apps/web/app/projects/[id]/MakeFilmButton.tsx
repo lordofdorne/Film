@@ -23,7 +23,7 @@ export const MakeFilmButton = ({
   const ready = stillMissing === 0;
 
   return (
-    <div style={styles.holder}>
+    <div className="row">
       <button
         type="button"
         disabled={!ready || pending}
@@ -35,32 +35,17 @@ export const MakeFilmButton = ({
             else setError(result.error);
           });
         }}
-        style={{ ...styles.button, opacity: ready && !pending ? 1 : 0.45 }}
+        className="btn btn--primary"
       >
         {pending ? "Handing it over…" : "Make my film"}
       </button>
       {!ready && (
-        <span style={styles.hint}>
+        <span className="muted">
           {stillMissing === 1 ? "1 thing still needed" : `${String(stillMissing)} things still needed`}
         </span>
       )}
-      {error !== null && <span style={styles.error}>{error}</span>}
+      {error !== null && <span className="note note--error">{error}</span>}
     </div>
   );
 };
 
-const styles = {
-  holder: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" as const },
-  button: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 10,
-    padding: "14px 30px",
-    fontSize: 16,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  hint: { fontSize: 14, color: "#888" },
-  error: { fontSize: 14, color: "#a11" },
-} as const;

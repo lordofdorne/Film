@@ -22,9 +22,9 @@ export default async function PasswordPage({
 
   if (!authConfigured()) {
     return (
-      <main style={styles.page}>
-        <h1 style={styles.title}>Accounts are not configured</h1>
-        <p style={styles.blurb}>
+      <main className="page page--narrow stack-4">
+        <h1 className="title">Accounts are not configured</h1>
+        <p className="lede">
           This server runs without Supabase, so there is nobody to have a password.
         </p>
       </main>
@@ -40,9 +40,9 @@ export default async function PasswordPage({
   }
 
   return (
-    <main style={styles.page}>
-      <h1 style={styles.title}>{fromReset ? "Choose a new password" : "Change your password"}</h1>
-      <p style={styles.blurb}>
+    <main className="page page--narrow stack-4">
+      <h1 className="title">{fromReset ? "Choose a new password" : "Change your password"}</h1>
+      <p className="lede">
         {fromReset
           ? "You are signed in. Pick something you will have to hand next time — or close this and carry on; the link in your email works for signing in either way."
           : "You are signed in as "}
@@ -50,8 +50,8 @@ export default async function PasswordPage({
         {!fromReset && "."}
       </p>
       <NewPasswordForm />
-      <p style={styles.footer}>
-        <Link href="/" style={styles.back}>
+      <p className="step-nav">
+        <Link href="/" className="btn btn--quiet">
           Back to your films
         </Link>
       </p>
@@ -59,16 +59,3 @@ export default async function PasswordPage({
   );
 }
 
-const styles = {
-  page: {
-    maxWidth: 480,
-    margin: "0 auto",
-    padding: "64px 24px 96px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  title: { fontSize: 28, fontWeight: 600, margin: 0, letterSpacing: -0.4 },
-  blurb: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "14px 0 0" },
-  footer: { marginTop: 30 },
-  back: { color: "#666", textDecoration: "none", fontSize: 15 },
-} as const;

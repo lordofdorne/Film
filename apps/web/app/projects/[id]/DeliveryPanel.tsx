@@ -70,9 +70,9 @@ export const DeliveryPanel = ({
 
   if (state.kind === "failed") {
     return (
-      <section style={{ ...styles.panel, ...styles.failed }}>
-        <h2 style={styles.h2}>Something went wrong making this film</h2>
-        <p style={styles.body}>
+      <section className="card panel panel--failed stack">
+        <h2 className="heading">Something went wrong making this film</h2>
+        <p className="lede">
           The pipeline stopped and did not produce a file. Nothing has been lost — the
           recordings are all still stored, and the film can be made again once the fault
           is fixed.
@@ -83,14 +83,13 @@ export const DeliveryPanel = ({
 
   if (state.kind === "rendering") {
     return (
-      <section style={{ ...styles.panel, ...styles.working }}>
+      <section className="card panel stack">
         {/* Inline styles cannot declare keyframes, and this is the only one. */}
-        <style>{"@keyframes film-spin { to { transform: rotate(360deg) } }"}</style>
-        <h2 style={styles.h2}>
-          <span style={styles.spinner} aria-hidden />
+        <h2 className="heading">
+          <span className="spinner" aria-hidden />
           Making your film
         </h2>
-        <p style={styles.body}>
+        <p className="lede">
           {gaveUp
             ? "This is taking much longer than it should. Reload the page — if it still says this, the render needs looking at."
             : "This usually takes a few minutes. You can close this page; the film will be here when you come back."}
@@ -100,26 +99,26 @@ export const DeliveryPanel = ({
   }
 
   return (
-    <section style={{ ...styles.panel, ...styles.ready }}>
-      <h2 style={styles.h2}>Your film is ready</h2>
-      <div style={styles.row}>
+    <section className="card panel panel--ready stack">
+      <h2 className="heading">Your film is ready</h2>
+      <div className="row">
         {/*
           A plain link, not a fetch-and-blob. The browser's own download
           handling gives a progress bar, resumes a broken transfer through the
           range header the route honours, and survives the tab being closed —
           none of which is worth reimplementing badly in JavaScript.
         */}
-        <a href={`/projects/${projectId}/download`} download style={styles.download}>
+        <a href={`/projects/${projectId}/download`} download className="btn btn--primary">
           Download
         </a>
-        <span style={styles.filename}>
+        <span className="muted">
           {state.filename}
           {state.byteSize !== null && (
-            <span style={styles.size}> · {(state.byteSize / 1e6).toFixed(0)} MB</span>
+            <span className="tiny"> · {(state.byteSize / 1e6).toFixed(0)} MB</span>
           )}
         </span>
       </div>
-      <p style={styles.body}>
+      <p className="lede">
         This is the full-quality file, mastered to −14 LUFS. It plays anywhere that
         plays MP4 — phones, televisions, editing software.
       </p>
@@ -127,24 +126,3 @@ export const DeliveryPanel = ({
   );
 };
 
-const styles = {
-  panel: { marginTop: 24, padding: 20, border: "1px solid #e4e4e4", borderRadius: 10 },
-  ready: { borderColor: "#bfe0cd", background: "#f3faf6" },
-  working: { borderColor: "#e0dcc0", background: "#fbf9f0" },
-  failed: { borderColor: "#e6c4c4", background: "#fcf5f5" },
-  h2: { fontSize: 16, fontWeight: 600, margin: "0 0 12px", display: "flex", alignItems: "center", gap: 10 },
-  row: { display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" as const },
-  download: { background: "#12603a", color: "#fff", borderRadius: 8, padding: "11px 22px", fontSize: 15, fontWeight: 600, textDecoration: "none" },
-  filename: { fontSize: 13, color: "#4a5a51" },
-  size: { color: "#7a8a81" },
-  body: { margin: "12px 0 0", fontSize: 13, color: "#5c6660", lineHeight: 1.55, maxWidth: 620 },
-  spinner: {
-    width: 12,
-    height: 12,
-    borderRadius: "50%",
-    border: "2px solid #d8cfa8",
-    borderTopColor: "#8a7a40",
-    display: "inline-block",
-    animation: "film-spin 0.9s linear infinite",
-  },
-} as const;

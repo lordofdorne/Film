@@ -48,10 +48,10 @@ export const DetailStepClient = ({
 
   if (linkSentTo !== null) {
     return (
-      <main style={styles.page}>
-        <span style={styles.chapter}>{step.chapterTitle}</span>
-        <h1 style={styles.ask}>One click, whenever suits</h1>
-        <p style={styles.coaching}>
+      <main className="page page--narrow stack-4">
+        <span className="eyebrow">{step.chapterTitle}</span>
+        <h1 className="title">One click, whenever suits</h1>
+        <p className="lede">
           {linkSentTo.already ? (
             <>
               There is already a link waiting in <strong>{linkSentTo.email}</strong> from
@@ -73,7 +73,7 @@ export const DetailStepClient = ({
             prompt="…or set a password now, so you can just sign in"
           />
         )}
-        <Link href={`/projects/${projectId}`} style={styles.primaryLink}>
+        <Link href={`/projects/${projectId}`} className="btn btn--primary">
           Back to the film
         </Link>
       </main>
@@ -81,19 +81,19 @@ export const DetailStepClient = ({
   }
 
   return (
-    <main style={styles.page}>
-      <span style={styles.chapter}>{step.chapterTitle}</span>
-      <h1 style={styles.ask}>{step.ask}</h1>
-      {step.coaching !== undefined && <p style={styles.coaching}>{step.coaching}</p>}
+    <main className="page page--narrow stack-4">
+      <span className="eyebrow">{step.chapterTitle}</span>
+      <h1 className="title">{step.ask}</h1>
+      {step.coaching !== undefined && <p className="lede">{step.coaching}</p>}
       {step.examples !== undefined && step.examples.length > 0 && (
-        <ul style={styles.examples}>
+        <ul className="list examples">
           {step.examples.map((example) => (
-            <li key={example} style={styles.example}>{example}</li>
+            <li key={example} className="example">{example}</li>
           ))}
         </ul>
       )}
 
-      <div style={styles.row}>
+      <div className="row">
         <input
           type={inputType}
           value={value}
@@ -104,80 +104,26 @@ export const DetailStepClient = ({
           onKeyDown={(event) => {
             if (event.key === "Enter") save();
           }}
-          style={styles.input}
+          className="input"
         />
         <button
           type="button"
           onClick={save}
           disabled={pending}
-          style={{ ...styles.save, opacity: pending ? 0.6 : 1 }}
+          className="btn btn--primary"
         >
           {pending ? "Saving…" : "Save"}
         </button>
       </div>
-      {error !== null && <p style={styles.error}>{error}</p>}
+      {error !== null && <p className="note note--error">{error}</p>}
 
-      <nav style={styles.nav}>
-        <Link href={`/projects/${projectId}`} style={styles.back}>
+      <nav className="row step-nav">
+        <Link href={`/projects/${projectId}`} className="btn btn--quiet">
           Back to the film
         </Link>
-        {!step.required && <span style={styles.optional}>optional — leave it empty if you like</span>}
+        {!step.required && <span className="tiny">optional — leave it empty if you like</span>}
       </nav>
     </main>
   );
 };
 
-const styles = {
-  page: {
-    maxWidth: 620,
-    margin: "0 auto",
-    padding: "40px 24px 80px",
-    fontFamily: "system-ui, sans-serif",
-    color: "#1a1a1a",
-  },
-  chapter: {
-    fontSize: 13,
-    fontWeight: 600,
-    letterSpacing: 0.6,
-    textTransform: "uppercase" as const,
-    color: "#12603a",
-  },
-  ask: { fontSize: 26, fontWeight: 600, lineHeight: 1.3, letterSpacing: -0.4, margin: "16px 0 0" },
-  coaching: { fontSize: 16, lineHeight: 1.6, color: "#555", margin: "12px 0 0" },
-  examples: { display: "flex", flexWrap: "wrap" as const, gap: 8, listStyle: "none", padding: 0, margin: "14px 0 0" },
-  example: { fontSize: 13, color: "#5c4a33", background: "#fdf6ec", border: "1px solid #f0dcc0", borderRadius: 999, padding: "4px 12px" },
-  row: { display: "flex", gap: 10, marginTop: 26, flexWrap: "wrap" as const },
-  input: {
-    flex: 1,
-    minWidth: 220,
-    fontSize: 17,
-    padding: "12px 14px",
-    border: "1px solid #ccc",
-    borderRadius: 8,
-  },
-  save: {
-    background: "#12603a",
-    color: "#fff",
-    border: "none",
-    borderRadius: 8,
-    padding: "12px 26px",
-    fontSize: 15,
-    fontWeight: 600,
-    cursor: "pointer",
-  },
-  error: { fontSize: 14, color: "#a11", margin: "10px 0 0" },
-  nav: { display: "flex", alignItems: "baseline", gap: 14, marginTop: 34, flexWrap: "wrap" as const },
-  back: { color: "#666", textDecoration: "none", fontSize: 15 },
-  optional: { fontSize: 13, color: "#999" },
-  primaryLink: {
-    display: "inline-block",
-    marginTop: 26,
-    background: "#12603a",
-    color: "#fff",
-    borderRadius: 8,
-    padding: "12px 26px",
-    fontSize: 15,
-    fontWeight: 600,
-    textDecoration: "none",
-  },
-} as const;
