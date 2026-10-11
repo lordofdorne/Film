@@ -6,15 +6,17 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { discardStep, finishUpload, mintUploadFor } from "../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../src/server/capture.js";
+import { Button, Chip, Icon, Tip } from "../../../../../src/ui/index.js";
 
 /**
- * One capture, opened from the hub: record it, look at it, do it again, go
- * back. Both ways of giving us something are on every step, always — some
- * moments have to be captured now, others already exist and only need
- * finding, and that difference is about the moment, not the file.
+ * One capture, one screen of the wizard: record it, look at it, do it again,
+ * keep it and carry on. Both ways of giving us something are on every step,
+ * always — some moments have to be captured now, others already exist and
+ * only need finding, and that difference is about the moment, not the file.
  *
- * No Next, no counter. The hub is the map; finishing here is walking back to
- * it with the card ticked.
+ * Keep is the reassurance beat: after a take the screen says it is saved and
+ * shows it back, and only then offers the way forward. Skip and Keep go to the
+ * same place, which the server worked out.
  *
  * Not a single string here is specific to one film type. Everything the
  * customer reads arrives in `step`, which the template authored.
@@ -38,9 +40,12 @@ type Saving = { readonly state: "idle" | "saving" | "saved" | "failed"; readonly
 export const StepClient = ({
   projectId,
   step,
+  nextHref,
 }: {
   readonly projectId: string;
   readonly step: StepView;
+  /** Where Keep and Skip both lead — worked out on the server. */
+  readonly nextHref: string;
 }) => {
   const router = useRouter();
 
@@ -149,7 +154,7 @@ export const StepClient = ({
     setCameraError(null);
     const mimeType = supportedType();
     if (mimeType === null) {
-      setCameraError("This browser cannot record video. Use “Choose a file” instead.");
+      setCameraError("This browser cannot record video. Use Upload instead — a video from the camera app works just as well.");
       return;
     }
     try {
@@ -182,7 +187,7 @@ export const StepClient = ({
     } catch {
       // Almost always a refused permission, and there is a way round it.
       setCameraError(
-        "No camera or microphone available — check the permission, or use “Choose a file”.",
+        "No camera or microphone available. Check the browser’s permission, or use Upload instead.",
       );
       stopStream();
     }
@@ -220,7 +225,7 @@ export const StepClient = ({
       streamRef.current = stream;
       setLive("photo");
     } catch {
-      setCameraError("No camera available — check the permission, or use “Choose a photo”.");
+      setCameraError("No camera available. Check the browser’s permission, or use Choose a photo instead.");
       stopStream();
     }
   }, [stopStream]);
@@ -302,175 +307,228 @@ export const StepClient = ({
   const shownUrl = localUrl ?? step.asset?.url ?? null;
   const shownIsPhoto =
     localUrl !== null ? localIsPhoto : step.asset !== null && step.asset.kind === "photo";
+  const captured = shownUrl !== null && live === null;
+  const photoOnly = takesPhoto && !takesVideo;
+
+  const fileButton = (label: string) => (
+    <label className="ui-btn ui-btn--ghost ui-file">
+      <Icon name="upload" size={18} />
+      {label}
+      <input
+        type="file"
+        accept={acceptAttribute(step)}
+        onChange={(event) => { chooseFile(event.target.files?.[0]); }}
+      />
+    </label>
+  );
 
   return (
-    <main className="page page--narrow">
-      <header className="row step-head">
-        <span className="eyebrow">{step.chapterTitle}</span>
-        {!step.required && <span className="tiny">optional</span>}
-      </header>
+    <>
+      <main className="wz-body">
+        <p className="eyebrow wz-eyebrow">
+          {step.chapterTitle}
+          {!step.required && " · optional"}
+        </p>
+        <h1 className="wz-ask">{step.ask}</h1>
 
-      <h1 className="title step-ask">{step.ask}</h1>
-      {step.coaching !== undefined && <p className="lede step-coaching">{step.coaching}</p>}
-      {step.examples !== undefined && step.examples.length > 0 && (
-        <ul className="list examples step-examples">
-          {step.examples.map((example) => (
-            <li key={example} className="example">{example}</li>
-          ))}
-        </ul>
-      )}
-      {step.qcNote !== undefined && <p className="note note--warn step-qc">{step.qcNote}</p>}
-
-      <section className="stage">
-        {live !== null ? (
-          <>
-            {/* autoPlay as well as the effect: whichever wins, the person
-                sees themselves rather than a black rectangle. */}
-            <video ref={liveRef} autoPlay muted playsInline className="stage__media" />
-            <div className="row stage__row">
-              {live === "video" ? (
-                <>
-                  <button type="button" onClick={stopRecording} className="btn btn--pill btn--stop">
-                    Stop recording
-                  </button>
-                  <span className="timer">{formatSeconds(seconds)}</span>
-                </>
+        <section aria-label="Camera">
+          {live !== null ? (
+            <div className="vf vf--filled">
+              {/* autoPlay as well as the effect: whichever wins, the person
+                  sees themselves rather than a black rectangle. */}
+              <video ref={liveRef} autoPlay muted playsInline className="vf__media vf__media--live" />
+              {live === "video" && (
+                <span className="vf__badge" aria-live="off">
+                  <span className="vf__dot" aria-hidden />
+                  {formatSeconds(seconds)}
+                </span>
+              )}
+            </div>
+          ) : shownUrl !== null ? (
+            <div className="vf vf--filled">
+              {shownIsPhoto ? (
+                <img src={shownUrl} alt="What you added for this step" className="vf__media" />
               ) : (
-                <>
-                  <button type="button" onClick={takePhoto} className="btn btn--pill btn--record">
-                    Take the photo
-                  </button>
-                  <button type="button" onClick={cancelCamera} className="btn btn--pill btn--secondary">
-                    Cancel
-                  </button>
-                </>
-              )}
-            </div>
-          </>
-        ) : shownUrl !== null ? (
-          <>
-            {shownIsPhoto ? (
-              <img src={shownUrl} alt="" className="stage__media" />
-            ) : (
-              /*
-                Nothing is fetched until somebody presses play.
+                /*
+                  Nothing is fetched until somebody presses play.
 
-                A take is hundreds of megabytes, and the default preload starts
-                pulling it the moment this page renders — so opening a step to
-                re-read the question cost a download of the answer. The poster
-                is the thumbnail: one small image, and the frame it shows is
-                the frame play would have started on anyway.
+                  A take is hundreds of megabytes, and the default preload starts
+                  pulling it the moment this page renders — so opening a step to
+                  re-read the question cost a download of the answer. The poster
+                  is the thumbnail: one small image, and the frame it shows is
+                  the frame play would have started on anyway.
 
-                `localUrl` is this session's own blob, already in memory, so it
-                needs neither.
-              */
-              <video
-                src={shownUrl}
-                controls
-                playsInline
-                className="stage__media"
-                {...(localUrl === null
-                  ? {
-                      preload: "none" as const,
-                      ...(step.asset?.thumbUrl === undefined
-                        ? {}
-                        : { poster: step.asset.thumbUrl }),
-                    }
-                  : {})}
-              />
-            )}
-            <div className="row stage__row">
-              {takesVideo && (
-                <button
-                  type="button"
-                  onClick={() => { void startRecording(); }}
-                  className="btn btn--pill btn--secondary"
-                >
-                  Record again
-                </button>
-              )}
-              {takesPhoto && (
-                <button
-                  type="button"
-                  onClick={() => { void startPhoto(); }}
-                  className="btn btn--pill btn--secondary"
-                >
-                  {takesVideo ? "Take a photo" : "Take another photo"}
-                </button>
-              )}
-              <label className="btn btn--pill btn--secondary">
-                {takesVideo ? "Choose a different file" : "Choose a different photo"}
-                <input
-                  type="file"
-                  accept={acceptAttribute(step)}
-                  style={{ display: "none" }}
-                  onChange={(event) => { chooseFile(event.target.files?.[0]); }}
+                  `localUrl` is this session's own blob, already in memory, so it
+                  needs neither.
+                */
+                <video
+                  src={shownUrl}
+                  controls
+                  playsInline
+                  className="vf__media"
+                  {...(localUrl === null
+                    ? {
+                        preload: "none" as const,
+                        ...(step.asset?.thumbUrl === undefined
+                          ? {}
+                          : { poster: step.asset.thumbUrl }),
+                      }
+                    : {})}
                 />
-              </label>
-              {!step.required && (
-                <button type="button" onClick={removeCapture} className="linklike linklike--quiet">
-                  Remove
-                </button>
               )}
-              <SavingNote saving={saving} saved={saved} />
             </div>
-          </>
-        ) : (
-          <>
-            <div className="stage__empty">
-              {takesVideo && takesPhoto
-                ? "Record something, or choose a photo or video you already have."
-                : takesVideo
-                  ? "Record it here, or choose a video you already have."
-                  : "Take a photo, or choose one you already have."}
+          ) : (
+            <div className={photoOnly ? "vf vf--light" : "vf"}>
+              {!photoOnly && <span className="vf__frame" aria-hidden />}
+              <Icon name={photoOnly ? "photo" : "video"} size={36} className="vf__icon" />
+              <p className="vf__hint">
+                {takesVideo && takesPhoto
+                  ? "Record something, or add a photo or video you already have."
+                  : takesVideo
+                    ? "Record it here, or upload a video you already have."
+                    : "Take a photo, or choose one you already have."}
+              </p>
             </div>
-            <div className="row stage__row">
-              {takesVideo && (
-                <button type="button" onClick={() => { void startRecording(); }} className="btn btn--pill btn--record">
-                  Record
-                </button>
-              )}
-              {takesPhoto && (
-                <button
-                  type="button"
-                  onClick={() => { void startPhoto(); }}
-                  className={takesVideo ? "btn btn--pill btn--secondary" : "btn btn--pill btn--record"}
-                >
-                  Take a photo
-                </button>
-              )}
-              <label className="btn btn--pill btn--secondary">
-                {takesPhoto && !takesVideo ? "Choose a photo" : "Choose a file"}
-                <input
-                  type="file"
-                  accept={acceptAttribute(step)}
-                  style={{ display: "none" }}
-                  onChange={(event) => { chooseFile(event.target.files?.[0]); }}
-                />
-              </label>
-            </div>
-          </>
+          )}
+        </section>
+
+        {captured && <Reassurance saving={saving} saved={saved} />}
+        {cameraError !== null && (
+          <p className="note note--error" role="alert">
+            {cameraError}
+          </p>
         )}
-        {cameraError !== null && <p className="note note--error">{cameraError}</p>}
-      </section>
+        {step.qcNote !== undefined && saving.state !== "saving" && (
+          <p className="note note--warn">{step.qcNote}</p>
+        )}
+        {step.coaching !== undefined && <Tip>{step.coaching}</Tip>}
+        {step.examples !== undefined && step.examples.length > 0 && (
+          <div className="wz-examples" aria-label="Ideas">
+            {step.examples.map((example) => (
+              <Chip key={example}>{example}</Chip>
+            ))}
+          </div>
+        )}
+      </main>
 
-      <nav className="row step-nav">
-        <Link
-          href={`/projects/${projectId}`}
-          className={saved ? "btn btn--primary" : "btn btn--quiet"}
-        >
-          {saved ? "Done — back to the film" : "Back to the film"}
-        </Link>
-      </nav>
-    </main>
+      <footer className="wz-foot">
+        {live === "video" ? (
+          <div className="wz-foot__row">
+            <Button size="lg" variant="secondary" block onClick={stopRecording}>
+              <span className="vf__dot" aria-hidden />
+              Stop recording · {formatSeconds(seconds)}
+            </Button>
+          </div>
+        ) : live === "photo" ? (
+          <div className="wz-foot__row">
+            <Button variant="quiet" onClick={cancelCamera}>
+              Cancel
+            </Button>
+            <Button size="lg" onClick={takePhoto}>
+              <Icon name="camera" size={18} />
+              Take the photo
+            </Button>
+          </div>
+        ) : captured ? (
+          /* Secondary actions in one row, the way forward full width under
+             them: on a phone, a thumb finds the bottom of the screen. */
+          <div className="wz-foot__row wz-foot__row--stack">
+            <div className="wz-foot__secondary">
+              {takesVideo && (
+                <Button variant="ghost" onClick={() => { void startRecording(); }}>
+                  <Icon name="rotate" size={18} />
+                  Again
+                </Button>
+              )}
+              {takesPhoto && (
+                <Button variant="ghost" onClick={() => { void startPhoto(); }}>
+                  <Icon name="camera" size={18} />
+                  {takesVideo ? "Photo" : "Retake"}
+                </Button>
+              )}
+              {fileButton("Replace")}
+              {!step.required && (
+                <Button variant="quiet" onClick={removeCapture}>
+                  Remove
+                </Button>
+              )}
+            </div>
+            <Button
+              size="lg"
+              block
+              disabled={saving.state === "saving" || saving.state === "failed"}
+              onClick={() => { router.push(nextHref); }}
+            >
+              {saving.state === "saving" ? "Saving…" : "Keep and continue"}
+              {saving.state !== "saving" && <Icon name="forward" size={18} />}
+            </Button>
+          </div>
+        ) : (
+          <div className="wz-foot__row wz-foot__row--stack">
+            <div className="wz-foot__secondary">
+              <Button variant="quiet" asChild>
+                <Link href={nextHref}>Skip for now</Link>
+              </Button>
+              <span className="wz-foot__group">
+                {takesVideo && takesPhoto && (
+                  <Button variant="ghost" onClick={() => { void startPhoto(); }}>
+                    <Icon name="camera" size={18} />
+                    Photo
+                  </Button>
+                )}
+                {fileButton(photoOnly ? "Choose a photo" : "Upload")}
+              </span>
+            </div>
+            {takesVideo ? (
+              <Button size="lg" block onClick={() => { void startRecording(); }}>
+                <span className="ui-rec-dot" aria-hidden />
+                Record
+              </Button>
+            ) : (
+              <Button size="lg" block onClick={() => { void startPhoto(); }}>
+                <Icon name="camera" size={18} />
+                Take a photo
+              </Button>
+            )}
+          </div>
+        )}
+      </footer>
+    </>
   );
 };
 
-const SavingNote = ({ saving, saved }: { readonly saving: Saving; readonly saved: boolean }) => {
-  if (saving.state === "saving") return <span className="muted">Saving…</span>;
-  if (saving.state === "failed") return <span className="note note--error">{saving.error}</span>;
-  if (saved) return <span className="saved-note">Saved</span>;
-  return null;
+/**
+ * The reassurance after a take — the first of the three things the owner
+ * asked capture to feel like. Said plainly, as soon as the bytes have landed,
+ * and with the one thing people worry about answered: it is kept.
+ */
+const Reassurance = ({ saving, saved }: { readonly saving: Saving; readonly saved: boolean }) => {
+  if (saving.state === "saving") {
+    return (
+      <p className="wz-foot__status" role="status">
+        <span className="spinner" aria-hidden />
+        Saving — keep this page open for a moment.
+      </p>
+    );
+  }
+  if (saving.state === "failed") {
+    return (
+      <p className="note note--error" role="alert">
+        {saving.error} Your recording is still here — try saving it again with Replace, or
+        record it once more.
+      </p>
+    );
+  }
+  if (!saved) return null;
+  return (
+    <div className="wz-saved" role="status">
+      <Icon name="check" size={22} strokeWidth={2.4} />
+      <p className="wz-saved__text">
+        Got it — that is saved.
+        <span>Watch it back if you like, or carry on. You can always come back to it.</span>
+      </p>
+    </div>
+  );
 };
 
 const acceptAttribute = (step: StepView): string => {

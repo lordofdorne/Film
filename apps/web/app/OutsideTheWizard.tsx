@@ -11,5 +11,5 @@ import { usePathname } from "next/navigation";
  */
 export const OutsideTheWizard = ({ children }: { readonly children: React.ReactNode }) => {
   const path = usePathname();
-  return /^\/projects\/[^/]+\/(step|chapter)\//.test(path) ? null : <>{children}</>;
+  return /^\/projects\/[^/]+\/(step\/|chapter\/|continue$)/.test(path) ? null : <>{children}</>;
 };

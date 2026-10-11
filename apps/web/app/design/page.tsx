@@ -98,7 +98,7 @@ export default function DesignPage() {
         </div>
         <div className="row">
           <Button size="lg">
-            <span className="ds__rec" aria-hidden />
+            <span className="ui-rec-dot" aria-hidden />
             Record answer
           </Button>
           <IconButton label="Close"><Icon name="close" size={18} /></IconButton>

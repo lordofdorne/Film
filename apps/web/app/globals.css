@@ -735,5 +735,267 @@ a {
 .ds__narrow { max-width: 420px; }
 .ds__icons { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: var(--s-3); }
 .ds__icon { display: flex; flex-direction: column; align-items: center; gap: var(--s-2); padding: var(--s-3); border-radius: var(--radius-md); background: var(--surface-2); }
-.ds__rec { width: 12px; height: 12px; border-radius: 999px; background: currentColor; }
+
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9em; }
+
+/* ── the capture wizard ─────────────────────────────────────────────── */
+
+.wz {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.wz-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: saturate(1.4) blur(8px);
+  padding: var(--s-3) var(--s-4) var(--s-3);
+  border-bottom: 1px solid var(--line);
+}
+.wz-bar__row,
+.wz-bar__progress {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.wz-bar__row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.wz-bar__where {
+  flex: 1;
+  min-width: 0;
+  text-align: center;
+  font-size: var(--t-small);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.wz-bar__all { min-height: 44px; padding: 0 var(--s-4); font-size: var(--t-small); border-radius: var(--radius-pill); }
+.wz-bar__progress { margin-top: var(--s-3); }
+.wz-bar__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+  margin-top: var(--s-2);
+  font-size: var(--t-tiny);
+  font-weight: 500;
+  color: var(--ink-3);
+}
+
+/* Narrow phones: the label goes before the meaning of the buttons does. */
+@media (max-width: 380px) {
+  /* Hidden on screen, still the button's name for a screen reader. */
+  .wz-bar__all span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+  .wz-bar__all { width: 44px; padding: 0; }
+}
+
+.wz-body {
+  flex: 1;
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: var(--s-6) var(--s-5) 168px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-5);
+  animation: ui-enter var(--dur-2) var(--ease-out);
+}
+
+.wz-eyebrow { color: var(--accent-soft-ink); }
+
+.wz-ask {
+  font-size: clamp(26px, 5.5vw, 34px);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  text-wrap: balance;
+}
+
+.wz-foot {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.97);
+  backdrop-filter: saturate(1.4) blur(8px);
+  border-top: 1px solid var(--line);
+  padding: var(--s-3) var(--s-5) calc(var(--s-3) + env(safe-area-inset-bottom));
+}
+.wz-foot__row {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  flex-wrap: wrap;
+}
+.wz-foot__main { margin-left: auto; }
+.wz-foot__row--stack { flex-direction: column; align-items: stretch; gap: var(--s-2); }
+.wz-foot__secondary { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); flex-wrap: wrap; }
+.wz-foot__group { display: flex; gap: var(--s-2); }
+
+/* Wide enough for one line: secondary actions left, the way forward right. */
+@media (min-width: 640px) {
+  .wz-foot__row--stack { flex-direction: row; align-items: center; }
+  .wz-foot__row--stack > .ui-btn--block { width: auto; flex-shrink: 0; }
+  .wz-foot__secondary { flex: 1; justify-content: flex-start; }
+}
+.wz-foot__status { font-size: var(--t-small); color: var(--ink-3); }
+
+/* The viewfinder: what the camera sees, what was captured, or an invitation. */
+.vf {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  /* On a laptop the full 4:3 would push the reassurance and the coaching
+     below the fold; the media inside letterboxes instead. */
+  max-height: min(48dvh, 440px);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #262626;
+  color: rgba(255, 255, 255, 0.82);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  text-align: center;
+  padding: var(--s-5);
+}
+.vf--light {
+  background: var(--surface-2);
+  color: var(--ink-3);
+  border: 1.5px dashed var(--line-strong);
+}
+.vf--filled { padding: 0; background: #000; }
+.vf__icon { opacity: 0.9; }
+.vf__hint { font-size: var(--t-small); font-weight: 500; max-width: 30ch; }
+.vf__media { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.vf__media--live { object-fit: cover; }
+.vf__frame {
+  position: absolute;
+  inset: 14px;
+  border: 1.5px dashed rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+  pointer-events: none;
+}
+.vf__badge {
+  position: absolute;
+  top: var(--s-3);
+  left: var(--s-3);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: 6px 12px;
+  border-radius: var(--radius-pill);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.vf__dot { width: 10px; height: 10px; border-radius: 999px; background: var(--accent); animation: vf-pulse 1.2s ease-in-out infinite; }
+@keyframes vf-pulse { 50% { opacity: 0.35; } }
+
+/* "Got it": the reassurance after a take. */
+.wz-saved {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius);
+  background: var(--success-soft);
+  color: var(--success);
+  font-weight: 600;
+  animation: ui-enter var(--dur-2) var(--ease-out);
+}
+.wz-saved__text { display: flex; flex-direction: column; }
+.wz-saved__text span { font-weight: 400; color: var(--ink-2); font-size: var(--t-small); }
+
+.wz-examples { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+
+/* A file input that is a real, focusable control dressed as a button. */
+.ui-file { position: relative; }
+.ui-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+.ui-file:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* Chapter intro. */
+.wz-intro__part { color: var(--accent-soft-ink); }
+.wz-intro__title { font-size: clamp(32px, 7vw, 44px); font-weight: 800; letter-spacing: -0.03em; line-height: 1.08; }
+.wz-intro__meta { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.wz-prepare { display: flex; flex-direction: column; gap: var(--s-3); margin-top: var(--s-4); }
+.wz-prepare li { display: flex; gap: var(--s-3); align-items: flex-start; font-size: var(--t-body); }
+.wz-prepare__tick {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* All steps. */
+.wz-outline + .wz-outline { margin-top: var(--s-5); }
+.wz-outline > .eyebrow { margin: var(--s-4) 0 var(--s-2); }
+.wz-outline__list { gap: 2px; }
+.wz-outline__row {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 52px;
+  padding: var(--s-2) var(--s-3);
+  margin: 0 calc(-1 * var(--s-3));
+  border-radius: var(--radius-md);
+  color: var(--ink);
+  text-decoration: none;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.wz-outline__row:hover { background: var(--surface-2); }
+.wz-outline__row[aria-current="step"] { background: var(--accent-soft); }
+.wz-outline__ask { flex: 1; min-width: 0; }
+.wz-sheet-foot { display: flex; flex-direction: column; gap: var(--s-2); }
+
+/* ── the overview ───────────────────────────────────────────────────── */
+
+.ov { display: flex; flex-direction: column; gap: var(--s-6); }
+.ov-head { display: flex; flex-direction: column; gap: var(--s-3); }
+.ov-head__meta { display: flex; flex-wrap: wrap; gap: var(--s-2); font-size: var(--t-small); color: var(--ink-3); }
+.ov-next { display: flex; align-items: center; justify-content: space-between; gap: var(--s-4); flex-wrap: wrap; box-shadow: var(--shadow-2); }
+.ov-chapter { display: flex; flex-direction: column; gap: var(--s-2); }
+.ov-chapter__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s-3); }
+.ov-chapter__steps { margin-top: var(--s-2); gap: 0; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.ov-chapter__steps > li + li { border-top: 1px solid var(--line); }
+.ov-step {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 64px;
+  padding: var(--s-3) var(--s-4);
+  color: inherit;
+  text-decoration: none;
+  background: var(--surface);
+  transition: background-color var(--dur-1) ease;
+}
+.ov-step:hover { background: var(--surface-2); }
+.ov-step__chev { color: var(--ink-4); flex-shrink: 0; }
+.ov-step .thumb { width: 48px; height: 48px; }
+.hub-foot { background: linear-gradient(transparent, var(--bg) 30%); }
+.hub-foot--waiting { position: static; margin-top: 0; padding-top: 0; }

@@ -223,3 +223,25 @@
 @keyframes ui-rise { from { transform: translateY(24px); opacity: 0; } }
 @keyframes ui-slide { from { transform: translateX(24px); opacity: 0; } }
 @keyframes ui-enter { from { transform: translateY(8px); opacity: 0; } }
+
+/* The record dot, on a record button. */
+.ui-rec-dot { width: 12px; height: 12px; border-radius: 999px; background: currentColor; flex-shrink: 0; }
+
+/* An icon inside any control keeps its size; flexbox would otherwise shrink
+   it to nothing in a tight button. */
+.ui-btn svg,
+.ui-icon-btn svg,
+.ui-chip svg { flex-shrink: 0; }
+
+/* Present for screen readers, absent on screen. */
+.ui-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
