@@ -119,6 +119,12 @@ export type CaptureChapter = {
   readonly id: string;
   readonly title: string;
   readonly blurb: string;
+  /**
+   * What to have ready before the chapter starts, shown on its intro screen —
+   * "somewhere quiet", "the photo albums". Short lines, a handful at most.
+   * Optional: a chapter with nothing to set up simply shows none.
+   */
+  readonly prepare?: readonly string[];
   readonly steps: readonly CaptureStepRef[];
 };
 

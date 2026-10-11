@@ -2,15 +2,20 @@ import { notFound, redirect } from "next/navigation";
 
 import { guardProject } from "../../../../../src/server/auth.js";
 import { loadWalkthroughView, stepWithMedia } from "../../../../../src/server/capture.js";
+import { backHref, chaptersOf, nextHref, outlineOf, progressOf } from "../../../../../src/server/wizard.js";
+import { WizardFrame } from "../../WizardFrame.js";
 import { DetailStepClient } from "./DetailStepClient.js";
 import { StepClient } from "./StepClient.js";
 
 /**
- * One step, opened from the hub: a detour, not a destination.
+ * One step of the wizard: the ask, the coaching, the camera or the input, and
+ * a way forward.
  *
- * Give us the thing — a typed answer, a take, a photograph — and go back.
- * There is no Next and no counter, because the hub is the map and nobody is
- * ever mid-sequence.
+ * Where "forward" goes is worked out here, from the rows, and handed down as
+ * a plain href — so the client never decides the order, and finishing a step
+ * on one device and opening the film on another lands in the same place.
+ * Finishing and skipping lead to the same stop, because `nextStop` never
+ * returns the step being left.
  */
 export default async function StepPage({
   params,
@@ -40,8 +45,29 @@ export default async function StepPage({
   const step = await stepWithMedia(walkthrough, stepId);
   if (step === null) notFound();
 
-  if (step.kind === "detail") {
-    return <DetailStepClient projectId={id} step={step} />;
-  }
-  return <StepClient projectId={id} step={step} />;
+  const chapter = chaptersOf(walkthrough.steps).find((c) => c.id === step.chapterId);
+  const position = (chapter?.steps.findIndex((s) => s.id === step.id) ?? 0) + 1;
+  const where =
+    chapter === undefined
+      ? step.chapterTitle
+      : `${chapter.title} · ${String(position)} of ${String(chapter.steps.length)}`;
+
+  const next = nextHref(id, walkthrough.steps, step.id);
+
+  return (
+    <WizardFrame
+      projectId={id}
+      backHref={backHref(id, walkthrough.steps, step.id)}
+      where={where}
+      progress={progressOf(walkthrough.steps, step.chapterId)}
+      outline={outlineOf(id, walkthrough.steps)}
+      currentStepId={step.id}
+    >
+      {step.kind === "detail" ? (
+        <DetailStepClient key={step.id} projectId={id} step={step} nextHref={next} />
+      ) : (
+        <StepClient key={step.id} projectId={id} step={step} nextHref={next} />
+      )}
+    </WizardFrame>
+  );
 }

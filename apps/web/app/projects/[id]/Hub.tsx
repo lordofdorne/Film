@@ -3,14 +3,17 @@ import Link from "next/link";
 import type { HubStep, HubView } from "../../../src/server/capture.js";
 import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
+import { chaptersOf, isDone, progressOf } from "../../../src/server/wizard.js";
+import { Button, Card, ChapterProgress, Icon, StatusMark } from "../../../src/ui/index.js";
 
 /**
- * The hub is the product: one overview of everything the film still needs.
+ * The overview: the whole film at a glance, and the review before making it.
  *
- * Every ask is a card — done, missing, optional — and tapping one opens just
- * that capture. People choose their own order, see the whole shape, and can
- * put the phone down and pick it up somewhere else in the list. There is no
- * sequence to be trapped in, which is why there is no Next anywhere.
+ * It used to be the only way through — every ask a card, tap one, come back.
+ * The wizard now leads by default, and this is what the wizard's "All steps"
+ * opens onto and where it ends: what is done, what is left, how long that
+ * will take, and one primary action — Continue while anything is left, Make
+ * my film once nothing required is.
  *
  * Server-rendered from rows. Coming back three days later on another device
  * renders the same page, because none of this lives in React state.
@@ -24,67 +27,88 @@ export const Hub = ({
   readonly pendingEmail: string | null;
 }) => {
   const steps = walkthrough.steps;
-  const done = steps.filter(isDone);
-  const secondsLeft = steps
-    .filter((s) => s.required && !isDone(s))
-    .reduce((sum, s) => sum + s.estimatedSeconds, 0);
-
+  const progress = progressOf(steps);
   const name = walkthrough.subject.displayName ?? walkthrough.subject.subjectName;
-
-  const chapters = new Map<string, HubStep[]>();
-  for (const step of steps) {
-    const list = chapters.get(step.chapterId) ?? [];
-    list.push(step);
-    chapters.set(step.chapterId, list);
-  }
+  const ready = walkthrough.missing.length === 0;
+  const untouched = progress.done === 0;
 
   return (
-    <main className="page">
+    <main className="page ov">
       {/* Thumbnails here are signed URLs with a fifteen-minute life, pointing
           at the small stills the thumbnail stage makes — never at the
           customer's originals. */}
       <FreshenOnReturn />
-      <header className="hub-head">
-        <h1 className="title">{name === undefined ? "Your film" : `${name}’s film`}</h1>
-        <p className="muted">
-          {done.length} of {steps.length} done
-          {secondsLeft > 0 && ` · about ${minutesLeft(secondsLeft)} left`}
-        </p>
-        {/*
-          What has been said so far, which is what the film is made of.
 
-          "of answers" rather than a predicted film length: the finished
-          duration depends on the edit, and a number that turns out wrong on
-          the preview screen is worse than no number. One short answer is
-          nothing; this is what makes five of them visible while there is
-          still time to add to it.
-        */}
-        {walkthrough.spokenSecondsSoFar > 0 && (
-          <p className="tiny">
-            {spokenSoFar(walkthrough.spokenSecondsSoFar)} of answers recorded
-          </p>
-        )}
-        <div className="track">
-          <div
-            className="track__fill"
-            style={{ width: `${String(Math.round((done.length / Math.max(1, steps.length)) * 100))}%` }}
-          />
-        </div>
+      <header className="ov-head">
+        <p className="eyebrow">Your film</p>
+        <h1 className="display">{name === undefined ? "Your film" : `${name}’s film`}</h1>
+        <ChapterProgress
+          chapters={progress.segments}
+          label={`${String(progress.done)} of ${String(progress.total)} done`}
+        />
+        <p className="ov-head__meta">
+          <span>
+            {progress.done} of {progress.total} done
+          </span>
+          <span aria-hidden>·</span>
+          <span>{progress.timeLeft}</span>
+          {/*
+            What has been said so far, which is what the film is made of.
+
+            "of answers" rather than a predicted film length: the finished
+            duration depends on the edit, and a number that turns out wrong on
+            the preview screen is worse than no number. One short answer is
+            nothing; this is what makes five of them visible while there is
+            still time to add to it.
+          */}
+          {walkthrough.spokenSecondsSoFar > 0 && (
+            <>
+              <span aria-hidden>·</span>
+              <span>{spokenSoFar(walkthrough.spokenSecondsSoFar)} of answers</span>
+            </>
+          )}
+        </p>
       </header>
 
-      {[...chapters.entries()].map(([chapterId, chapterSteps]) => (
-        <section key={chapterId} className="chapter">
-          <h2 className="eyebrow">{chapterSteps[0]?.chapterTitle}</h2>
-          <p className="lede chapter__blurb">{chapterSteps[0]?.chapterBlurb}</p>
-          <ul className="list chapter__cards">
-            {chapterSteps.map((step) => (
+      {!ready && (
+        <Card className="ov-next">
+          <div>
+            <p className="heading">{untouched ? "Ready when you are" : "Pick up where you left off"}</p>
+            <p className="muted">
+              {walkthrough.missing.length === 1
+                ? "1 thing still needed before the film can be made."
+                : `${String(walkthrough.missing.length)} things still needed before the film can be made.`}
+            </p>
+          </div>
+          <Button size="lg" asChild>
+            <Link href={`/projects/${walkthrough.projectId}/continue`}>
+              {untouched ? "Start" : "Continue"}
+              <Icon name="forward" size={18} />
+            </Link>
+          </Button>
+        </Card>
+      )}
+
+      {chaptersOf(steps).map((chapter) => (
+        <section key={chapter.id} className="ov-chapter">
+          <div className="ov-chapter__head">
+            <h2 className="heading">{chapter.title}</h2>
+            <span className="tiny">
+              {chapter.steps.filter(isDone).length} of {chapter.steps.length}
+            </span>
+          </div>
+          <p className="muted">{chapter.blurb}</p>
+          <ul className="list ov-chapter__steps">
+            {chapter.steps.map((step) => (
               <StepCard key={step.id} projectId={walkthrough.projectId} step={step} />
             ))}
           </ul>
         </section>
       ))}
 
-      <footer className="hub-foot">
+      {/* Sticky only once there is something to press: a disabled button
+          following somebody down the page is a nag, not a promise. */}
+      <footer className={ready ? "hub-foot hub-foot--ready" : "hub-foot hub-foot--waiting"}>
         {/* The same `missing` that drew the cards drives the gate, so this page
             cannot say "all done" beside a disabled button. */}
         <MakeFilmButton
@@ -105,14 +129,6 @@ export const ownerEmailOf = (walkthrough: HubView): string => {
     (step) => step.kind === "detail" && step.field?.target === "owner",
   );
   return typeof owed?.value === "string" ? owed.value : "";
-};
-
-const isDone = (step: HubStep): boolean =>
-  step.asset !== null || (step.value !== null && step.value !== "");
-
-const minutesLeft = (seconds: number): string => {
-  const minutes = Math.max(1, Math.round(seconds / 60));
-  return minutes === 1 ? "a minute" : `${String(minutes)} minutes`;
 };
 
 /**
@@ -138,17 +154,19 @@ const StepCard = ({
   const done = isDone(step);
   return (
     <li>
-      <Link href={`/projects/${projectId}/step/${step.id}`} className="card step-card">
-        <span className={done ? "mark mark--done" : "mark"} aria-hidden>
-          {done ? "✓" : "○"}
-        </span>
+      <Link href={`/projects/${projectId}/step/${step.id}`} className="ov-step">
+        <StatusMark done={done} />
         <span className="step-card__body">
           <span className={done ? "step-card__ask" : "step-card__ask step-card__ask--open"}>{step.ask}</span>
-          <span className="step-card__note">
-            {!step.required && !done && "optional"}
-            {done && step.value !== null && step.value !== "" && String(step.value)}
-            {step.qcNote !== undefined && ` · ${step.qcNote}`}
-          </span>
+          {(!step.required && !done) ||
+          (done && step.value !== null && step.value !== "") ||
+          step.qcNote !== undefined ? (
+            <span className="step-card__note">
+              {!step.required && !done && "Optional"}
+              {done && step.value !== null && step.value !== "" && String(step.value)}
+              {step.qcNote !== undefined && (done && step.value !== null ? ` · ${step.qcNote}` : step.qcNote)}
+            </span>
+          ) : null}
         </span>
         {step.asset !== null && (
           <span className="step-card__thumb-holder">
@@ -176,6 +194,7 @@ const StepCard = ({
             )}
           </span>
         )}
+        <Icon name="forward" size={18} className="ov-step__chev" />
       </Link>
     </li>
   );

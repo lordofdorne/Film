@@ -8,10 +8,12 @@ import { hasAccount } from "@film/db";
 import { accessToProject, authConfigured, currentUser, ensureUser } from "./auth.js";
 import { sendMagicLink, type SendResult } from "./authActions.js";
 import { retryFilm } from "./project.js";
+import { nextHref } from "./wizard.js";
 import {
   completeUpload,
   createProjectFor,
   discardCapture,
+  loadWalkthroughView,
   mintUpload,
   saveDetailFor,
   startTheFilmFor,
@@ -64,7 +66,15 @@ export const chooseFilm = async (
   }
   const created = await createProjectFor(user?.id ?? null, templateId, templateVersion);
   if (!created.ok) return created;
-  redirect(`/projects/${created.projectId}`);
+  // Straight to the first screen — the first chapter's intro — rather than
+  // via /continue: a server action's redirect into a route handler leaves
+  // that handler's URL in the address bar.
+  const view = await loadWalkthroughView(created.projectId);
+  redirect(
+    view === null
+      ? `/projects/${created.projectId}`
+      : nextHref(created.projectId, view.steps, null),
+  );
 };
 
 export type DetailResult =

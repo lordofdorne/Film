@@ -1,17 +1,20 @@
 /**
  * What the product calls itself, in one place.
  *
- * Unbranded on purpose, for now. "Life Advice" is a TEMPLATE id — the first
- * kind of film this engine makes — and using it as the product's name would be
- * wrong the day a second kind exists. Naming and voice are the owner's to
- * decide; the pages are built so that decision is this constant and nothing
- * else.
+ * "Porch" is the working name that came with the brand direction the owner
+ * chose on 2026-10-11. It is not cleared yet — it needs a trademark and domain
+ * check — which is why it lives here and only here. "Life Advice" is a
+ * TEMPLATE id, the first kind of film this engine makes, and must never be
+ * used as the product's name.
  *
  * Everything here is deliberately plain rather than persuasive. A stranger
  * should understand what the thing is; selling it is a different page that
  * does not exist yet.
  */
-export const PRODUCT_NAME = "Films";
+export const PRODUCT_NAME = "porch";
+
+/** The brand line, from the Porch direction. */
+export const PRODUCT_LINE = "Sit down together. Leave with a film.";
 
 /**
  * The heading on the only page that introduces itself.

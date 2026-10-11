@@ -578,6 +578,33 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Capture is a wizard now, wearing Porch — Phase 7, Blocks 2 and 3
+
+The owner chose the **Porch** brand (white, Ember #D92B4B, Plus Jakarta Sans)
+and a **wizard with an overview** in place of the hub-only flow.
+
+- **Design system:** tokens in `apps/web/app/globals.css`, components in
+  `apps/web/src/ui` (Radix Dialog under the Sheet), every piece rendered at
+  `/design`. The legacy class names were re-pointed at the tokens, so screens
+  not yet redesigned (home, sign-in, preview) already wear the brand.
+- **The wizard:** Start → the first chapter's intro → one step per screen →
+  Keep and continue → … → the overview with Make my film. `/projects/[id]`
+  while capturing is the overview; `/chapter/[chapterId]` is an intro;
+  `/step/[stepId]` is a step; `/continue` goes wherever the film is up to.
+- **Nothing about position is stored.** `nextStop` in `@film/templates`
+  works out the next screen from what is done, every time, with tests — so a
+  reload, another device and Back all agree. Skip and Keep go to the same
+  place, because the step being left is never a candidate.
+- **Never trapped:** Back, and "All steps" (a sheet listing every step,
+  each a link) on every screen, with Save and leave.
+- Chapters gained an optional `prepare` list for their intros. The four
+  life-advice lists are new copy the owner has not read yet.
+
+Not walked: live camera recording. The Browser pane blocks the camera; the
+recording code is unchanged from the version proven on Chrome. Photo upload,
+typed steps, skip, the sheet, the intros and the overview were walked at
+375px and 1280px.
+
 ### A finished film needs an account — Phase 7, Block 1
 
 Capture is still anonymous: pressing Start costs nothing. But the anonymous
