@@ -110,9 +110,11 @@ export const DetailStepClient = ({
     <>
       <main className="wz-body">
         <p className="eyebrow wz-eyebrow">{step.chapterTitle}</p>
-        <label htmlFor={inputId} className="wz-ask">
-          {step.ask}
-        </label>
+        {/* The page's heading and the field's label at once: a screen reader
+            lands on the question, and the input is named by it. */}
+        <h1 className="wz-ask">
+          <label htmlFor={inputId}>{step.ask}</label>
+        </h1>
         {step.coaching !== undefined && <Tip>{step.coaching}</Tip>}
         {step.examples !== undefined && step.examples.length > 0 && (
           <div className="wz-examples">

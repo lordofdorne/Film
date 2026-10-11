@@ -32,6 +32,7 @@ export const ChapterProgress = ({
       aria-valuemax={total}
       aria-valuenow={done}
       aria-valuetext={label}
+      aria-label={`Progress: ${label}`}
     >
       {chapters.map((chapter) => (
         <span
