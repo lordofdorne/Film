@@ -1,5 +1,6 @@
 import "./globals.css";
 import "../src/ui/ui.css";
+import "./styles/after-capture.css";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
 

@@ -1,0 +1,63 @@
+/* After capture: making the film, failure, preview and approval, delivery. Tokens from globals.css. */
+
+/* ── after capture: making, failure, the film ───────────────────────── */
+
+.state-page {
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--s-4);
+}
+.state-page > .ui-working,
+.state-page > .ui-notice { align-self: stretch; }
+.state-page__icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  color: var(--accent-soft-ink);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.state-page__icon--warn { background: var(--warn-bg); color: var(--warn-ink); }
+.state-page__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+.stages { gap: var(--s-3); margin: var(--s-2) 0; }
+.stages__item { display: flex; align-items: center; gap: var(--s-3); color: var(--ink-3); }
+.stages__mark {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--line-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+}
+.stages__item--done { color: var(--ink); }
+.stages__item--done .stages__mark { background: var(--success); border-color: var(--success); }
+.stages__item--now { color: var(--ink); font-weight: 600; }
+.stages__item--now .stages__mark { border-color: var(--accent); box-shadow: inset 0 0 0 4px var(--surface), inset 0 0 0 12px var(--accent); }
+
+.film-page { max-width: 920px; display: flex; flex-direction: column; gap: var(--s-5); }
+.film-page__head { display: flex; flex-direction: column; gap: var(--s-3); }
+.film-page .player-frame { margin-top: 0; border-radius: var(--radius-lg); box-shadow: var(--shadow-3); }
+.film-page__review { display: flex; flex-direction: column; gap: var(--s-4); }
+.film-warnings { gap: var(--s-2); }
+.film-warning { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-3) 0; border-top: 1px solid var(--line); }
+.film-warning__icon { flex-shrink: 0; color: var(--warn-ink); }
+.film-warning__text { flex: 1; min-width: 0; display: flex; flex-direction: column; font-size: var(--t-small); color: var(--ink-2); }
+.film-warning__text strong { color: var(--ink); font-size: var(--t-body); }
+.film-warning--done { opacity: 0.55; }
+.film-warning--done .film-warning__icon { color: var(--success); }
+.film-approve { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-4); box-shadow: var(--shadow-2); }
+
+.delivery { display: flex; flex-direction: column; gap: var(--s-4); padding: var(--s-5); border-radius: var(--radius-lg); border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow-2); }
+.delivery--ready { background: var(--success-soft); border-color: #cfe7db; }
+.delivery__head { display: flex; align-items: flex-start; gap: var(--s-4); }
+.delivery__icon { flex-shrink: 0; width: 48px; height: 48px; border-radius: var(--radius-pill); background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; }
+.delivery__icon--ready { background: var(--success); color: #fff; }
+.delivery__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }

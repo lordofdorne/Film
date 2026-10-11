@@ -27,7 +27,9 @@ import { EdlSchema, type EDL } from "@film/edl";
 import { retryProject } from "@film/pipeline/retry";
 import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
 import { storeFromEnv, usingLocalStore, type ObjectStore } from "@film/storage";
-import type { SubjectData } from "@film/templates";
+import { getTemplate, resolveCaptureSteps, type SubjectData } from "@film/templates";
+
+import { wordedWarning } from "./capture.js";
 // From "./props", not "./composition".
 //
 // The composition entry pulls in React and Remotion, and importing it for a
@@ -213,13 +215,25 @@ export const loadProjectForPreview = async (
   }
 
   const bed = assetRows.find(isMusicBed);
+  /**
+   * Named the way the walk-through named them — "Add a photo of the person
+   * from another time", not `photo_early` — and worded the way the overview
+   * worded them. A slot id and a pixel count were what the approval screen
+   * used to show the one person it exists for.
+   */
+  const askOf = new Map(
+    resolveCaptureSteps(getTemplate(project.templateId, project.templateVersion), subject).map(
+      (step) => [step.id, step.ask] as const,
+    ),
+  );
   const warnings: AssetWarning[] = assetRows.flatMap((asset) => {
     const list = (asset.warnings ?? []) as { code?: string; message?: string }[];
+    const id = asset.questionId ?? asset.slotId;
     return list.map((w) => ({
       assetId: asset.id,
-      label: asset.questionId ?? asset.slotId ?? asset.kind,
+      label: (id === null ? undefined : askOf.get(id)) ?? "One of your recordings",
       code: w.code ?? "WARNING",
-      message: w.message ?? "",
+      message: wordedWarning(w.code ?? "", w.message ?? ""),
     }));
   });
 

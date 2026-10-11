@@ -1,7 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
+
 import type { DeliveryState } from "../../../src/server/project.js";
+import { Button, Icon, Notice, Working } from "../../../src/ui/index.js";
 
 /** A render takes minutes; this is often enough to feel immediate. */
 const POLL_MS = 6_000;
@@ -70,59 +73,69 @@ export const DeliveryPanel = ({
 
   if (state.kind === "failed") {
     return (
-      <section className="card panel panel--failed stack">
-        <h2 className="heading">Something went wrong making this film</h2>
-        <p className="lede">
-          The pipeline stopped and did not produce a file. Nothing has been lost — the
-          recordings are all still stored, and the film can be made again once the fault
-          is fixed.
-        </p>
-      </section>
+      <Notice tone="warn" title="Something went wrong making the final file">
+        It stopped without producing one. Nothing has been lost — every recording is still
+        stored, and the film can be made again.
+      </Notice>
     );
   }
 
   if (state.kind === "rendering") {
     return (
-      <section className="card panel stack">
-        {/* Inline styles cannot declare keyframes, and this is the only one. */}
-        <h2 className="heading">
-          <span className="spinner" aria-hidden />
-          Making your film
-        </h2>
-        <p className="lede">
-          {gaveUp
-            ? "This is taking much longer than it should. Reload the page — if it still says this, the render needs looking at."
-            : "This usually takes a few minutes. You can close this page; the film will be here when you come back."}
-        </p>
+      <section className="delivery delivery--working" aria-live="polite">
+        <div className="delivery__head">
+          <span className="delivery__icon" aria-hidden>
+            <Icon name="film" size={24} />
+          </span>
+          <div>
+            <h2 className="heading">Making your film</h2>
+            <p className="muted">
+              {gaveUp
+                ? "This is taking much longer than it should. Reload the page — if it still says this, the film needs looking at."
+                : "The full-quality file usually takes a few minutes. You can close this page; your film will be here when you come back."}
+            </p>
+          </div>
+        </div>
+        {!gaveUp && <Working label="Making the full-quality film" />}
       </section>
     );
   }
 
   return (
-    <section className="card panel panel--ready stack">
-      <h2 className="heading">Your film is ready</h2>
-      <div className="row">
+    <section className="delivery delivery--ready" aria-live="polite">
+      <div className="delivery__head">
+        <span className="delivery__icon delivery__icon--ready" aria-hidden>
+          <Icon name="check" size={24} strokeWidth={2.4} />
+        </span>
+        <div>
+          <h2 className="title">Your film is ready</h2>
+          <p className="muted">
+            {state.filename}
+            {state.byteSize !== null && ` · ${(state.byteSize / 1e6).toFixed(0)} MB`}
+          </p>
+        </div>
+      </div>
+      <div className="delivery__actions">
         {/*
           A plain link, not a fetch-and-blob. The browser's own download
           handling gives a progress bar, resumes a broken transfer through the
           range header the route honours, and survives the tab being closed —
           none of which is worth reimplementing badly in JavaScript.
         */}
-        <a href={`/projects/${projectId}/download`} download className="btn btn--primary">
-          Download
-        </a>
-        <span className="muted">
-          {state.filename}
-          {state.byteSize !== null && (
-            <span className="tiny"> · {(state.byteSize / 1e6).toFixed(0)} MB</span>
-          )}
-        </span>
+        <Button size="lg" asChild>
+          <a href={`/projects/${projectId}/download`} download>
+            <Icon name="download" size={20} />
+            Download the film
+          </a>
+        </Button>
+        <Button size="lg" variant="secondary" asChild>
+          <Link href="/make">Make another</Link>
+        </Button>
       </div>
-      <p className="lede">
-        This is the full-quality file, mastered to −14 LUFS. It plays anywhere that
-        plays MP4 — phones, televisions, editing software.
+      <p className="tiny">
+        The full-quality file. It plays on phones, televisions and computers, and in any
+        editing software.
       </p>
     </section>
   );
 };
-

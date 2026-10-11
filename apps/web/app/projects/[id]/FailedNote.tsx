@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Button, Icon, Notice } from "../../../src/ui/index.js";
 import { TryAgainButton } from "./TryAgainButton.js";
 
 /**
@@ -17,32 +18,33 @@ import { TryAgainButton } from "./TryAgainButton.js";
  * and not in the material, and it can be made again once the fault is fixed.
  * That is the difference between a bad afternoon and a bereavement, and it
  * belongs on the screen.
+ *
+ * It used to end by inviting a reply to "the email we sent you". No email is
+ * sent — nothing sends mail yet — so that sentence is gone until one is.
  */
 export const FailedNote = ({ projectId }: { readonly projectId: string }) => (
-  <main className="page stack-4">
-    <h1 className="title">We could not finish this film</h1>
+  <main className="page state-page">
+    <span className="state-page__icon state-page__icon--warn" aria-hidden>
+      <Icon name="alert" size={30} />
+    </span>
+    <h1 className="display">We could not finish this film</h1>
     <p className="lede">
-      Something went wrong while putting it together, and it stopped rather than
-      making you something broken.
+      Something went wrong while putting it together, and it stopped rather than make you
+      something broken.
     </p>
-    <p className="note note--quiet">
-      <strong>Nothing has been lost.</strong> Every recording and photograph you gave
-      us is exactly where it was — the fault is in the making, not the material, and
-      the film can be made again once it is fixed.
-    </p>
-    <div className="row">
+    <Notice tone="success" title="Nothing has been lost">
+      Every recording and photograph you gave us is exactly where it was. The fault is in
+      the making, not the material, and the film can be made again.
+    </Notice>
+    <div className="state-page__actions">
       <TryAgainButton projectId={projectId} />
+      <Button variant="secondary" asChild>
+        <Link href="/">Your films</Link>
+      </Button>
     </div>
-    <p className="lede">
-      Sometimes that is all it takes. If it stops in the same place, the fault is
-      one we have to fix at our end — we can see that this happened, and you can
-      reply to the email we sent you to hurry us along.
+    <p className="muted">
+      Sometimes trying again is all it takes. If it stops in the same place, the fault is
+      ours to fix — we can see that it happened.
     </p>
-    <nav className="row">
-      <Link href="/" className="btn btn--secondary">
-        Your films
-      </Link>
-    </nav>
   </main>
 );
-
