@@ -25,7 +25,14 @@ export type SendResult =
     }
   | { readonly ok: false; readonly error: string };
 
-export const sendMagicLink = async (rawEmail: string, next?: string): Promise<SendResult> => {
+export const sendMagicLink = async (
+  rawEmail: string,
+  next?: string,
+  /** A film to hand over the moment the link is opened — see the callback
+   *  route. A claim like any other value from the browser: the callback
+   *  checks ownership before acting on it. */
+  makeFilm?: string,
+): Promise<SendResult> => {
   if (!authConfigured()) {
     return { ok: false, error: "Sign-in is not configured on this server." };
   }
@@ -56,6 +63,7 @@ export const sendMagicLink = async (rawEmail: string, next?: string): Promise<Se
   const target = new URL("/auth/callback", await origin());
   const destination = safeNext(next);
   if (destination !== null) target.searchParams.set("next", destination);
+  if (makeFilm !== undefined) target.searchParams.set("make", makeFilm);
 
   const { error } = await client.auth.signInWithOtp({
     email,

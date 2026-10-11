@@ -5,10 +5,10 @@ import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  accessToFilm,
   adoptFilms,
   createDb,
   linkIdentity,
-  ownsProject,
   type AppUser,
   type Db,
 } from "@film/db";
@@ -198,16 +198,25 @@ export const carryFilmsOver = async (
 
 export type Access =
   | { readonly allowed: true; readonly user: AppUser | null }
-  | { readonly allowed: false; readonly reason: "signed-out" | "not-yours" };
+  | {
+      readonly allowed: false;
+      readonly reason: "signed-out" | "not-yours" | "needs-account";
+    };
 
 /**
  * May the person asking see this project?
  *
- * The two refusals are deliberately different. "Signed out" is answerable — go
- * and click the link in your email. "Not yours" is not, and it must not leak
- * whether the project exists: somebody probing project ids should learn nothing
- * from the difference between a film that is not theirs and one that is not
- * there, so callers render both as 404.
+ * The refusals are deliberately different. "Signed out" is answerable — go and
+ * click the link in your email. "Needs an account" is answerable too, and only
+ * ever said to the film's own owner: they made it anonymously, it has been
+ * handed over, and from here on it needs an address (see `accessToFilm`).
+ * "Not yours" is not answerable, and it must not leak whether the project
+ * exists: somebody probing project ids should learn nothing from the
+ * difference between a film that is not theirs and one that is not there, so
+ * callers render it as 404.
+ *
+ * Every route that serves a film's media or its file asks this and treats
+ * every refusal as a 404, so `needs-account` closes them too.
  */
 export const accessToProject = async (projectId: string): Promise<Access> => {
   // Nobody to check against, and nothing to check. Development only, and every
@@ -215,27 +224,33 @@ export const accessToProject = async (projectId: string): Promise<Access> => {
   if (!authConfigured()) return { allowed: true, user: null };
 
   const user = await currentUser();
-  if (user !== null && (await ownsProject(db(), user.id, projectId))) {
-    return { allowed: true, user };
-  }
+  if (user === null) return { allowed: false, reason: "signed-out" };
 
-  return { allowed: false, reason: user === null ? "signed-out" : "not-yours" };
+  const access = await accessToFilm(db(), user, projectId);
+  if (access === "owner") return { allowed: true, user };
+  return { allowed: false, reason: access === "needs-account" ? "needs-account" : "not-yours" };
 };
 
+export type Guarded =
+  | { readonly needsAccount: false; readonly user: AppUser | null }
+  /** Their own film, past capture, and they have no address yet. The page
+   *  shows the save sheet in its place. */
+  | { readonly needsAccount: true };
+
 /**
- * The same check, for a page: sign them in, or show them a 404.
+ * The same check, for a page: sign them in, or show them a 404 — or, for the
+ * owner of a handed-over film who has no account yet, say so and let the page
+ * ask for one.
  *
  * A film that is not yours is Not Found rather than Forbidden. "You may not
  * see this" confirms there is something to see, and somebody working through
  * project ids should learn nothing from the difference between a film that is
  * not theirs and one that does not exist.
  */
-export const guardProject = async (
-  projectId: string,
-  backTo: string,
-): Promise<AppUser | null> => {
+export const guardProject = async (projectId: string, backTo: string): Promise<Guarded> => {
   const access = await accessToProject(projectId);
-  if (access.allowed) return access.user;
+  if (access.allowed) return { needsAccount: false, user: access.user };
+  if (access.reason === "needs-account") return { needsAccount: true };
   if (access.reason === "signed-out") {
     redirect(`/signin?next=${encodeURIComponent(backTo)}`);
   }

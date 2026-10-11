@@ -15,7 +15,14 @@ import { MakeFilmButton } from "./MakeFilmButton.js";
  * Server-rendered from rows. Coming back three days later on another device
  * renders the same page, because none of this lives in React state.
  */
-export const Hub = ({ walkthrough }: { readonly walkthrough: HubView }) => {
+export const Hub = ({
+  walkthrough,
+  pendingEmail,
+}: {
+  readonly walkthrough: HubView;
+  /** A confirmation already in this person's inbox, if any. */
+  readonly pendingEmail: string | null;
+}) => {
   const steps = walkthrough.steps;
   const done = steps.filter(isDone);
   const secondsLeft = steps
@@ -83,10 +90,21 @@ export const Hub = ({ walkthrough }: { readonly walkthrough: HubView }) => {
         <MakeFilmButton
           projectId={walkthrough.projectId}
           stillMissing={walkthrough.missing.length}
+          suggestedEmail={ownerEmailOf(walkthrough)}
+          pendingEmail={pendingEmail}
         />
       </footer>
     </main>
   );
+};
+
+/** The address they gave for where the film should go — the obvious one to
+ *  save it under. */
+export const ownerEmailOf = (walkthrough: HubView): string => {
+  const owed = walkthrough.steps.find(
+    (step) => step.kind === "detail" && step.field?.target === "owner",
+  );
+  return typeof owed?.value === "string" ? owed.value : "";
 };
 
 const isDone = (step: HubStep): boolean =>

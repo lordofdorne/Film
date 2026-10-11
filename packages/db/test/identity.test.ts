@@ -5,7 +5,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
-import { adoptFilms, linkIdentity, ownsProject, type Db } from "../src/index.js";
+import { accessToFilm, adoptFilms, linkIdentity, ownsProject, type Db } from "../src/index.js";
 import { projects, users } from "../src/schema/tables.js";
 import * as schema from "../src/schema/tables.js";
 
@@ -68,7 +68,10 @@ const unclaimedUser = async (email: string): Promise<string> => {
   return id;
 };
 
-const addProject = async (ownerId: string): Promise<string> => {
+const addProject = async (
+  ownerId: string,
+  status: (typeof projects.$inferInsert)["status"] = "capturing",
+): Promise<string> => {
   const id = randomUUID();
   await db.insert(projects).values({
     id,
@@ -76,7 +79,7 @@ const addProject = async (ownerId: string): Promise<string> => {
     templateId: "life-advice",
     templateVersion: 1,
     subjectData: { subjectName: "Ada Lovelace" },
-    status: "capturing",
+    status,
   });
   return id;
 };
@@ -327,5 +330,68 @@ describe("ownsProject", () => {
     needsDb();
     const mine = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
     expect(await ownsProject(db, mine.id, randomUUID())).toBe(false);
+  });
+});
+
+/**
+ * The door that was left open: a finished film, watchable by whoever holds the
+ * browser that made it, with nobody ever signed in.
+ */
+describe("accessToFilm", () => {
+  const anonymous = async () => {
+    const user = await linkIdentity(db, { authId: randomUUID(), email: null });
+    anonIds.push(user.id);
+    return user;
+  };
+
+  it("lets an anonymous owner make their film", async () => {
+    needsDb();
+    const nobody = await anonymous();
+    expect(await accessToFilm(db, nobody, await addProject(nobody.id, "draft"))).toBe("owner");
+    expect(await accessToFilm(db, nobody, await addProject(nobody.id, "capturing"))).toBe("owner");
+  });
+
+  it("asks an anonymous owner for an address once the film is handed over", async () => {
+    needsDb();
+    const nobody = await anonymous();
+    for (const status of [
+      "processing",
+      "awaiting_approval",
+      "approved",
+      "rendering",
+      "delivered",
+      "failed",
+    ] as const) {
+      expect(await accessToFilm(db, nobody, await addProject(nobody.id, status))).toBe(
+        "needs-account",
+      );
+    }
+  });
+
+  it("lets an owner with a proved address see the finished film", async () => {
+    needsDb();
+    const me = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
+    expect(await accessToFilm(db, me, await addProject(me.id, "delivered"))).toBe("owner");
+  });
+
+  /**
+   * "needs-account" must never be a way to learn that somebody else's film
+   * exists: it is reserved for the owner.
+   */
+  it("is none for anybody else's film, whatever its state", async () => {
+    needsDb();
+    const me = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
+    const nobody = await anonymous();
+    const theirs = await addProject(me.id, "delivered");
+    expect(await accessToFilm(db, nobody, theirs)).toBe("none");
+    expect(await accessToFilm(db, nobody, await addProject(me.id, "capturing"))).toBe("none");
+  });
+
+  it("is none rather than a crash for ids that cannot be ids", async () => {
+    needsDb();
+    const me = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });
+    expect(await accessToFilm(db, me, "not-a-uuid")).toBe("none");
+    expect(await accessToFilm(db, { id: "not-a-uuid", email: null }, randomUUID())).toBe("none");
+    expect(await accessToFilm(db, me, randomUUID())).toBe("none");
   });
 });

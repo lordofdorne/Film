@@ -10,9 +10,9 @@ import { claimAccount } from "../src/server/passwordActions.js";
  * The whole walk-through works with no account at all. That is the premise of
  * the capture flow rather than a detail of it, and this is the component most
  * likely to quietly undo it, so: it starts collapsed, it sits beside the link
- * rather than in front of it, and nothing anywhere waits on it. It appears in
- * exactly two places — after somebody has said where their film should go, and
- * on the finished film, where "keep this" has an obvious meaning.
+ * rather than in front of it. It appears in exactly two places — after
+ * somebody has said where their film should go, and in the save sheet, beside
+ * the link that makes their film.
  *
  * Setting a password does not create a second account. It attaches an address
  * and a password to the session already here, which is why the films made
