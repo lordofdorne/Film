@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 
 import {
+  accessToProject,
   anonymousHolder,
   authConfigured,
   carryFilmsOver,
   currentUser,
   supabase,
 } from "../../../src/server/auth.js";
+import { startTheFilmFor } from "../../../src/server/capture.js";
 
 /**
  * Where the link in the email lands.
@@ -64,6 +66,23 @@ export async function GET(request: Request): Promise<Response> {
    */
   const user = await currentUser();
   await carryFilmsOver(anonymousAuthId, user);
+
+  /**
+   * The link was asked for by pressing "Make my film", so opening it makes the
+   * film. Landing them on the button they already pressed, to press it again,
+   * would be the product forgetting what they asked for.
+   *
+   * `make` came from a URL, so it is a claim: it acts only on a film this
+   * now-proved identity owns, and handing over is idempotent — a film that is
+   * already being made is left alone, so a link opened twice does nothing the
+   * second time. A film that is not ready yet simply is not handed over; the
+   * hub they land on says what is still missing.
+   */
+  const make = url.searchParams.get("make");
+  if (make !== null && user !== null && user.email !== null) {
+    const access = await accessToProject(make);
+    if (access.allowed) await startTheFilmFor(make);
+  }
 
   return NextResponse.redirect(new URL(destination, url.origin));
 }

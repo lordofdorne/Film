@@ -578,6 +578,31 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### A finished film needs an account — Phase 7, Block 1
+
+Capture is still anonymous: pressing Start costs nothing. But the anonymous
+identity used to own the film all the way to the download, so whoever held
+that browser could watch it with nobody signed in. Now:
+
+- **`accessToFilm` (@film/db)** answers owner / needs-account / none. An
+  anonymous owner is enough while a project is `draft` or `capturing`, and not
+  after. Every page, route and action that asked `accessToProject` inherits it
+  — `/delivery`, `/download` and `/api/media` are 404 for an anonymous holder
+  of a handed-over film.
+- **"Make my film" is the gate.** `startTheFilm` returns `needsAccount` and the
+  button opens the save sheet, prefilled with the address given in capture.
+  The link carries `make=<project>`, and `/auth/callback` hands the film over
+  when it is opened — one click from inbox to "Putting your film together".
+- **The owner's own film is a save sheet, never a 404.** Films handed over
+  before this existed (two in the dev database) show "Save your film to watch
+  it".
+- The password door is beside the link in the sheet, but its confirmation does
+  not carry `make`: somebody who takes it lands home and presses the button
+  again.
+
+Every film now passes through an email, so **custom SMTP is a launch
+blocker**. Design and the remaining blocks: `docs/proposal/phase-7-product-and-design-system.md`.
+
 ### The film is as long as what somebody actually said
 
 The template was written for a four-minute film and the first real customer

@@ -1,12 +1,12 @@
 import { notFound } from "next/navigation";
 import { guardProject, sessionIdentity } from "../../../src/server/auth.js";
-import { SetPasswordOffer } from "../../SetPasswordOffer.js";
 import { loadWalkthroughView, withThumbnails } from "../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
 import { DeliveryPanel } from "./DeliveryPanel.js";
 import { FailedNote } from "./FailedNote.js";
-import { Hub } from "./Hub.js";
+import { Hub, ownerEmailOf } from "./Hub.js";
 import { PreviewClient } from "./PreviewClient.js";
+import { SaveFilmSheet } from "./SaveFilmSheet.js";
 import { WorkingNote } from "./WorkingNote.js";
 
 /**
@@ -36,10 +36,32 @@ export default async function ProjectPage({
    * mattered most. Signed out sends them to get a link; somebody else's film
    * is a 404, because "not yours" confirms there is something there.
    */
-  await guardProject(id, `/projects/${id}`);
+  const guard = await guardProject(id, `/projects/${id}`);
 
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
+
+  const identity = await sessionIdentity();
+  const pendingEmail = identity?.pendingEmail ?? null;
+
+  /**
+   * Their own film, handed over while they had no account — before the gate
+   * at "Make my film" existed, or by a confirmation they never opened. Nothing
+   * below this line is shown to an identity that lives in one browser's
+   * cookie: not the preview, not the download, not even whether it failed.
+   */
+  if (guard.needsAccount) {
+    return (
+      <main className="page page--narrow">
+        <SaveFilmSheet
+          projectId={id}
+          purpose="watch"
+          suggestedEmail={ownerEmailOf(walkthrough)}
+          pendingEmail={pendingEmail}
+        />
+      </main>
+    );
+  }
 
   /**
    * The URLs are minted here, after the status is known, and only on the
@@ -50,7 +72,7 @@ export default async function ProjectPage({
    * on it at all, so it mints nothing.
    */
   if (walkthrough.status === "capturing") {
-    return <Hub walkthrough={await withThumbnails(walkthrough)} />;
+    return <Hub walkthrough={await withThumbnails(walkthrough)} pendingEmail={pendingEmail} />;
   }
 
   /**
@@ -73,39 +95,11 @@ export default async function ProjectPage({
 
   const delivery = (await loadDelivery(id)) ?? { kind: "unapproved" as const };
 
-  /**
-   * "Keep this" has an obvious meaning here and nowhere earlier, so the second
-   * and last offer of a password sits beside the finished film.
-   *
-   * Only for somebody who has no address on their identity yet, and none
-   * pending: for everyone else it would be either meaningless or a second
-   * email chasing a confirmation they already have.
-   */
-  const identity = await sessionIdentity();
-  const owed = walkthrough.steps.find(
-    (step) => step.kind === "detail" && step.field?.target === "owner",
-  );
-  const offer =
-    delivery.kind === "ready" &&
-    identity !== null &&
-    identity.email === null &&
-    identity.pendingEmail === null ? (
-      <SetPasswordOffer
-        defaultEmail={typeof owed?.value === "string" ? owed.value : ""}
-        prompt="Set a password, so this film is easy to come back to"
-      />
-    ) : null;
-
   return (
     <PreviewClient
       summary={loaded.summary}
       props={loaded.props}
-      delivery={
-        <>
-          <DeliveryPanel projectId={id} initial={delivery} />
-          {offer}
-        </>
-      }
+      delivery={<DeliveryPanel projectId={id} initial={delivery} />}
     />
   );
 }
