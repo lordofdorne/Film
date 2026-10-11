@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import {
   LIFE_ADVICE_V1,
+  chapterStart,
+  nextStop,
+  previousStep,
   resolveCaptureSteps,
   validateTemplate,
   type SubjectData,
   type Template,
+  type WizardStep,
 } from "../src/index.js";
 
 const SUBJECT: SubjectData = {
@@ -199,5 +203,89 @@ describe("validateTemplate: the walk-through and the film cannot drift apart", (
     );
     // displayName is covered only through subjectName's prefill, so it goes too.
     expect(messages(noName).join("\n")).toContain('subject field "displayName"');
+  });
+});
+
+/**
+ * The wizard's map: worked out from what is done, never stored, so a reload or
+ * another device lands in the same place.
+ */
+describe("nextStop", () => {
+  // Two chapters: a, b | c, d.
+  const walk = (done: readonly string[]): WizardStep[] =>
+    [
+      { id: "a", chapterId: "one" },
+      { id: "b", chapterId: "one" },
+      { id: "c", chapterId: "two" },
+      { id: "d", chapterId: "two" },
+    ].map((step) => ({ ...step, done: done.includes(step.id) }));
+
+  it("opens on the first chapter's intro for a film nobody has started", () => {
+    expect(nextStop(walk([]), null)).toEqual({ kind: "chapter", chapterId: "one", stepId: "a" });
+  });
+
+  it("goes to the next step in the same chapter without an intro", () => {
+    expect(nextStop(walk(["a"]), "a")).toEqual({ kind: "step", stepId: "b" });
+  });
+
+  it("introduces a chapter on the way into it", () => {
+    expect(nextStop(walk(["a", "b"]), "b")).toEqual({
+      kind: "chapter",
+      chapterId: "two",
+      stepId: "c",
+    });
+  });
+
+  it("skips the intro of a chapter somebody has already started", () => {
+    expect(nextStop(walk(["a", "b", "d"]), "b")).toEqual({ kind: "step", stepId: "c" });
+  });
+
+  it("passes over what is already done", () => {
+    expect(nextStop(walk(["a", "b", "c"]), "a")).toEqual({ kind: "step", stepId: "d" });
+  });
+
+  /** Skipping is leaving a step unfinished; it must not come straight back. */
+  it("never returns the step being left, even when it is unfinished", () => {
+    expect(nextStop(walk([]), "a")).toEqual({ kind: "step", stepId: "b" });
+  });
+
+  it("comes round to what was skipped once the end is reached", () => {
+    expect(nextStop(walk(["b", "c"]), "d")).toEqual({ kind: "step", stepId: "a" });
+  });
+
+  it("is the review when nothing else is left", () => {
+    expect(nextStop(walk(["a", "b", "c", "d"]), "d")).toEqual({ kind: "review" });
+    // Including when the only thing left is the step just skipped: the review
+    // says it is missing, rather than the wizard looping on it.
+    expect(nextStop(walk(["a", "b", "c"]), "d")).toEqual({ kind: "review" });
+  });
+
+  it("resumes at the first unfinished step when arriving from the overview", () => {
+    expect(nextStop(walk(["a", "c"]), null)).toEqual({ kind: "step", stepId: "b" });
+  });
+
+  it("starts a chapter at its first unfinished step", () => {
+    expect(chapterStart(walk(["c"]), "two")?.id).toBe("d");
+    expect(chapterStart(walk(["c", "d"]), "two")?.id).toBe("c");
+  });
+
+  it("goes back one step, or to the overview from the first", () => {
+    expect(previousStep(walk([]), "c")?.id).toBe("b");
+    expect(previousStep(walk([]), "a")).toBeNull();
+  });
+
+  it("walks the real template from start to review", () => {
+    const steps = resolveCaptureSteps(LIFE_ADVICE_V1, SUBJECT);
+    const done = new Set<string>();
+    const state = (): WizardStep[] => steps.map((s) => ({ ...s, done: done.has(s.id) }));
+    let stop = nextStop(state(), null);
+    const intros: string[] = [];
+    while (stop.kind !== "review") {
+      if (stop.kind === "chapter") intros.push(stop.chapterId);
+      done.add(stop.stepId);
+      stop = nextStop(state(), stop.stepId);
+    }
+    expect(done.size).toBe(steps.length);
+    expect(intros).toEqual(LIFE_ADVICE_V1.capture.chapters.map((c) => c.id));
   });
 });

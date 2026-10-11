@@ -418,6 +418,7 @@ const config: Template = {
       {
         id: "details",
         title: "The film",
+        prepare: ["Two minutes", "The address the film should go to"],
         blurb:
           "A few quick answers before the camera comes out — who this is " +
           "about, and where the finished film should go.",
@@ -432,6 +433,12 @@ const config: Template = {
       {
         id: "story",
         title: "Their story",
+        prepare: [
+          "Somewhere quiet, sitting down",
+          "Light from a window in front of them, not behind",
+          "The phone held sideways",
+          "About fifteen minutes together",
+        ],
         blurb:
           "Ten questions, answered to camera. Landscape, somewhere quiet, and " +
           "sit them near a window rather than in front of one. You ask, they " +
@@ -452,6 +459,10 @@ const config: Template = {
       {
         id: "photographs",
         title: "Photographs",
+        prepare: [
+          "Old albums, or photos on your phone",
+          "A flat surface and some daylight for prints",
+        ],
         blurb:
           "Three photographs. These can wait for another day — you do not need " +
           "anyone sitting with you for this part.",
@@ -464,6 +475,7 @@ const config: Template = {
       {
         id: "moments",
         title: "Moments",
+        prepare: ["The phone, and ten seconds for each"],
         blurb:
           "Short pieces of film with no talking in them, used between the " +
           "answers. Ten seconds each is plenty.",
