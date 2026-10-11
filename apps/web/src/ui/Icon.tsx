@@ -58,6 +58,28 @@ const PATHS = {
   ),
   home: <path d="M4 10.5L12 4l8 6.5V19a1 1 0 01-1 1h-4.5v-5.5h-5V20H5a1 1 0 01-1-1z" />,
   play: <path d="M8 5.5v13l10.5-6.5z" />,
+  mail: (
+    <>
+      <rect x="3" y="5.5" width="18" height="13" rx="2.5" />
+      <path d="M4 7l8 6 8-6" />
+    </>
+  ),
+  download: <path d="M12 4v11M7 10l5 5 5-5M5 19.5h14" />,
+  film: (
+    <>
+      <rect x="3" y="4" width="18" height="16" rx="2.5" />
+      <path d="M7 4v16M17 4v16M3 9h4M3 15h4M17 9h4M17 15h4" />
+    </>
+  ),
+  user: (
+    <>
+      <circle cx="12" cy="8.5" r="3.5" />
+      <path d="M5 19.5c1.2-3.4 4-5 7-5s5.8 1.6 7 5" />
+    </>
+  ),
+  alert: <path d="M12 8.5v4.5M12 16.5v.5M10.3 4.2L2.8 17.3A2 2 0 004.5 20.3h15a2 2 0 001.7-3L13.7 4.2a2 2 0 00-3.4 0z" />,
+  plus: <path d="M12 5v14M5 12h14" />,
+  heart: <path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0112 7.3a4.3 4.3 0 017.5 2.5C19.5 15.4 12 20 12 20z" />,
 } as const;
 
 export type IconName = keyof typeof PATHS;

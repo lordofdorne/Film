@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { chooseFilm, type StartResult } from "../../src/server/captureActions.js";
+import { Button, Icon, Notice } from "../../src/ui/index.js";
 
 /**
  * One press creates the project and lands on its hub. A client component only
@@ -21,9 +22,10 @@ export const ChooseButton = ({
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <span className="row">
-      <button
-        type="button"
+    <div className="stack">
+      <Button
+        size="lg"
+        block
         disabled={pending}
         onClick={() => {
           setError(null);
@@ -34,12 +36,11 @@ export const ChooseButton = ({
             if (result !== undefined && !result.ok) setError(result.error);
           });
         }}
-        className="btn btn--primary"
       >
-        {pending ? "Setting up…" : "Start"}
-      </button>
-      {error !== null && <span className="note note--error">{error}</span>}
-    </span>
+        {pending ? "Setting up…" : "Start this film"}
+        {!pending && <Icon name="forward" size={18} />}
+      </Button>
+      {error !== null && <Notice tone="error" title="That did not start">{error}</Notice>}
+    </div>
   );
 };
-

@@ -9,5 +9,5 @@ export { Button, IconButton, type ButtonProps } from "./Button.js";
 export { Icon, Logo, type IconName } from "./Icon.js";
 export { ChapterProgress, type ChapterSegment } from "./Progress.js";
 export { Sheet, SheetClose } from "./Sheet.js";
-export { Card, Chip, StatusMark, TextField, Tip } from "./Surface.js";
+export { Avatar, Card, Chip, Disclosure, Notice, StatusMark, TextField, Tip, Working } from "./Surface.js";
 export { cx } from "./cx.js";

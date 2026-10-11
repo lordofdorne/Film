@@ -59,3 +59,50 @@ export const HOW_IT_WORKS: readonly { readonly title: string; readonly body: str
       "captions. You watch it before anybody else does, and download it to keep.",
   },
 ];
+
+/**
+ * What somebody deciding whether to start actually asks, answered plainly.
+ *
+ * Every answer here has to be true of the product as built — no promise of an
+ * email that is never sent, no price that does not exist. When the product
+ * changes, these change with it.
+ */
+export const FAQ: readonly { readonly q: string; readonly a: string }[] = [
+  {
+    q: "How long does it take?",
+    a:
+      "About twenty minutes with the person you are filming, and a few more to " +
+      "add photographs. You can stop at any point and pick up later — everything " +
+      "is saved as you go.",
+  },
+  {
+    q: "Do I need an account?",
+    a:
+      "Not to start. When you are ready to make the film we ask for your email, so " +
+      "that the finished film is yours and only yours.",
+  },
+  {
+    q: "Can I use photos and videos I already have?",
+    a:
+      "Yes. Every step lets you record or take a photo there and then, or upload " +
+      "something from your phone or computer.",
+  },
+  {
+    q: "What do I get?",
+    a:
+      "A film you can download and keep — an MP4 that plays on phones, televisions " +
+      "and computers. You watch it first, and nothing is final until you approve it.",
+  },
+  {
+    q: "Who can see it?",
+    a:
+      "Only you. Your film is kept behind your email address, and nobody else can " +
+      "open it.",
+  },
+  {
+    q: "What if something goes wrong?",
+    a:
+      "Nothing you record is lost. If a film cannot be finished, every recording " +
+      "stays exactly where it was and the film can be made again.",
+  },
+];

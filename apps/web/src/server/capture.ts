@@ -142,7 +142,7 @@ const mediaUrl = async (key: string): Promise<string> =>
  */
 const THUMBNAIL_URL_STABLE_SECONDS = 300;
 
-const thumbnailUrl = async (key: string): Promise<string> =>
+export const thumbnailUrl = async (key: string): Promise<string> =>
   usingLocalStore()
     ? `/api/media/${key}`
     : storeFromEnv().signedGetUrl(key, {

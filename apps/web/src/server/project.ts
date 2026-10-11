@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import {
   approvals,
   assets,
@@ -96,9 +96,17 @@ export type ProjectSummary = {
  * directory of other people's recordings. `ownerId` undefined means auth is not
  * configured — the development arrangement, which the page says out loud.
  */
-export const listProjects = async (
-  ownerId?: string,
-): Promise<{ id: string; status: string; subjectName: string }[]> => {
+export type FilmListing = {
+  readonly id: string;
+  readonly status: string;
+  /** What the person calls them — "Tim" — falling back to the full name. */
+  readonly name: string | null;
+  /** A small still for the card: the thumbnail of a photograph if there is
+   *  one, else of anything. Never an original. */
+  readonly posterKey: string | null;
+};
+
+export const listProjects = async (ownerId?: string): Promise<FilmListing[]> => {
   const rows = await db()
     .select({ id: projects.id, status: projects.status, subjectData: projects.subjectData })
     .from(projects)
@@ -106,11 +114,40 @@ export const listProjects = async (
     .orderBy(desc(projects.createdAt))
     .limit(50);
 
-  return rows.map((r) => ({
-    id: r.id,
-    status: r.status,
-    subjectName: (r.subjectData as { subjectName?: string }).subjectName ?? "Untitled",
-  }));
+  /**
+   * One query for every card's picture, not one per card. Photographs first,
+   * because a film's card should show the person rather than a frame of an
+   * interview mid-blink.
+   */
+  const posters = new Map<string, string>();
+  if (rows.length > 0) {
+    const stills = await db()
+      .select({ projectId: assets.projectId, key: assets.thumbnailKey, kind: assets.kind })
+      .from(assets)
+      .where(
+        and(
+          inArray(
+            assets.projectId,
+            rows.map((r) => r.id),
+          ),
+          isNotNull(assets.thumbnailKey),
+        ),
+      )
+      .orderBy(sql`case when ${assets.kind} = 'photo' then 0 else 1 end`, assets.createdAt);
+    for (const still of stills) {
+      if (still.key !== null && !posters.has(still.projectId)) posters.set(still.projectId, still.key);
+    }
+  }
+
+  return rows.map((r) => {
+    const subject = r.subjectData as { subjectName?: string; displayName?: string };
+    return {
+      id: r.id,
+      status: r.status,
+      name: subject.displayName ?? subject.subjectName ?? null,
+      posterKey: posters.get(r.id) ?? null,
+    };
+  });
 };
 
 /**

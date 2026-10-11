@@ -2,21 +2,17 @@ import Link from "next/link";
 
 import { PRODUCT_NAME } from "../src/product.js";
 import { authConfigured, sessionIdentity } from "../src/server/auth.js";
-import { Logo } from "../src/ui/index.js";
-import { SignOutButton } from "./SignOutButton.js";
+import { Avatar, Button, Logo } from "../src/ui/index.js";
 
 /**
- * The same header on every page, which is most of what "a product rather than
- * a project" means in practice.
+ * The same header on every page outside the wizard: the name, going home, and
+ * the truth about your session in as few words as possible.
  *
- * Before this, each page began wherever its own `<main>` began: the hub, the
- * chooser and the sign-in form shared no frame, no way back and no indication
- * of who you were. Whether you were signed in was stated on the home page and
- * nowhere else — so somebody who followed a link into a step sheet could not
- * tell whose films these were, or how to get out.
- *
- * Deliberately quiet: a name that goes home, and the truth about your session.
- * Nothing here competes with the film.
+ * Signed in, it is "Your films" and an avatar that opens the account page —
+ * the sign-out and the password live there rather than crowding every page.
+ * Not signed in, it is one button. An address waiting for confirmation says
+ * so, because that is the one state where somebody is mid-way through
+ * something and might not know it.
  */
 export const SiteHeader = async () => {
   const identity = await sessionIdentity();
@@ -30,38 +26,29 @@ export const SiteHeader = async () => {
           <span aria-hidden>{PRODUCT_NAME}</span>
         </Link>
 
-        <div className="site-header__who">
+        <nav className="site-header__who" aria-label="Account">
           {open ? (
             /* An unconfigured server says so on every page, not just at home. */
-            <span>No sign-in on this server</span>
+            <span className="ui-chip ui-chip--warn">No sign-in on this server</span>
           ) : identity?.email !== null && identity?.email !== undefined ? (
             <>
-              <span>{identity.email}</span>
-              <span aria-hidden>·</span>
-              <Link href="/account/password" className="btn btn--quiet">
-                Password
+              <Link href="/" className="site-header__link">
+                Your films
               </Link>
-              <SignOutButton />
+              <Link href="/account" className="site-header__avatar" aria-label={`Your account (${identity.email})`}>
+                <Avatar name={identity.email} size={34} />
+              </Link>
             </>
           ) : identity?.pendingEmail !== null && identity?.pendingEmail !== undefined ? (
-            <>
-              <span>Confirm {identity.pendingEmail}</span>
-              <SignOutButton />
-            </>
+            <Link href="/account" className="site-header__link">
+              Confirm your email
+            </Link>
           ) : (
-            /**
-             * An anonymous session is the ordinary case — pressing Start makes
-             * one — and the honest thing to say is where the films are kept,
-             * because clearing this browser really does lose them.
-             */
-            <>
-              <span>Kept in this browser</span>
-              <Link href="/signin" className="btn btn--quiet">
-                Sign in
-              </Link>
-            </>
+            <Button variant="secondary" asChild className="site-header__signin">
+              <Link href="/signin">Sign in</Link>
+            </Button>
           )}
-        </div>
+        </nav>
       </div>
     </header>
   );
