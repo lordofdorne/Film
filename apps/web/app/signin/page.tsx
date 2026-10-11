@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { authConfigured, sessionIdentity } from "../../src/server/auth.js";
 import { safeNext } from "../../src/server/origin.js";
+import { AuthShell } from "../AuthShell.js";
 import { LinkTrouble } from "./LinkTrouble.js";
 import { SignInForm } from "./SignInForm.js";
 
@@ -20,14 +21,12 @@ export default async function SignInPage({
 
   if (!authConfigured()) {
     return (
-      <main className="page page--narrow stack-4">
-        <h1 className="title">Sign-in is not configured</h1>
-        <p className="lede">
-          This server is running without Supabase, so there is nobody to sign in as and
-          every film is open to anyone who has its link. That is the development
-          arrangement, and it is not safe for anything real.
-        </p>
-      </main>
+      <AuthShell
+        title="Sign-in is not configured"
+        lede="This server is running without Supabase, so there is nobody to sign in as and every film is open to anyone who has its link. That is the development arrangement, and it is not safe for anything real."
+      >
+        {null}
+      </AuthShell>
     );
   }
 
@@ -44,17 +43,15 @@ export default async function SignInPage({
   if (identity !== null && identity.email !== null) redirect(safeNext(next) ?? "/");
 
   return (
-    <main className="page page--narrow stack-4">
-      <h1 className="title">Sign in</h1>
-      <p className="lede">
-        Use your password if you set one. If you did not — most people have not — we
-        will email you a link instead, and it works just as well.
-      </p>
+    <AuthShell
+      title="Sign in to your films"
+      lede="New here, or never set a password? We will email you a link — it works just as well."
+    >
       {/* Supabase leaves the real reason in the URL fragment, which never
           reaches here — so the server's message is only the fallback. */}
       <LinkTrouble {...(error !== undefined && MESSAGES[error] !== undefined ? { fallback: MESSAGES[error] } : {})} />
       <SignInForm {...(next === undefined ? {} : { next })} />
-    </main>
+    </AuthShell>
   );
 }
 

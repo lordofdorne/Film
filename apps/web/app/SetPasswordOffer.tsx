@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { claimAccount } from "../src/server/passwordActions.js";
+import { Button, Notice, TextField } from "../src/ui/index.js";
 
 /**
  * "…or set a password now" — an offer, and never a gate.
@@ -50,17 +51,17 @@ export const SetPasswordOffer = ({
 
   if (confirmTo !== null) {
     return (
-      <div className="card note--quiet stack">
-        <strong>Almost.</strong> We have sent a note to {confirmTo} to check the address
-        is really yours. Click the link in it and your password works from then on —
-        until you do, the link is still how you get back in.
-      </div>
+      <Notice tone="success" title="Almost">
+        We have sent a note to {confirmTo} to check the address is really yours. Open the link
+        in it and your password works from then on — until you do, the link is still how you
+        get back in.
+      </Notice>
     );
   }
 
   if (!open) {
     return (
-      <p className="muted">
+      <p>
         <button type="button" onClick={() => { setOpen(true); }} className="linklike">
           {prompt}
         </button>
@@ -69,42 +70,35 @@ export const SetPasswordOffer = ({
   }
 
   return (
-    <form onSubmit={submit} className="stack-4">
-      <label className="field">
-        <span className="field__label">Email address</span>
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          defaultValue={defaultEmail}
-          className="input"
-        />
-      </label>
-      <label className="field">
-        <span className="field__label">Password</span>
-        <input
-          name="password"
-          type="password"
-          required
-          minLength={8}
-          autoComplete="new-password"
-          className="input"
-        />
-        <span className="field__hint">
-          At least 8 characters, with a capital letter, a small one and a number.
-        </span>
-      </label>
+    <form onSubmit={submit} className="auth__body" style={{ marginTop: 0 }}>
+      <TextField
+        id="offer-email"
+        name="email"
+        type="email"
+        label="Email address"
+        required
+        autoComplete="email"
+        defaultValue={defaultEmail}
+      />
+      <TextField
+        id="offer-password"
+        name="password"
+        type="password"
+        label="Password"
+        required
+        minLength={8}
+        autoComplete="new-password"
+        hint="At least 8 characters, with a capital letter, a small one and a number."
+      />
       <div className="row">
-        <button type="submit" disabled={pending} className="btn btn--primary">
+        <Button type="submit" disabled={pending}>
           {pending ? "Setting up…" : "Set a password"}
-        </button>
-        <button type="button" onClick={() => { setOpen(false); setError(null); }} className="linklike">
+        </Button>
+        <Button variant="quiet" onClick={() => { setOpen(false); setError(null); }}>
           Not now
-        </button>
+        </Button>
       </div>
-      {error !== null && <p className="note note--error">{error}</p>}
+      {error !== null && <Notice tone="error">{error}</Notice>}
     </form>
   );
 };
-

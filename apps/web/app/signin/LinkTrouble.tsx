@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 
+import { Notice } from "../../src/ui/index.js";
+
 /**
  * Say what actually happened to the link.
  *
@@ -41,6 +43,6 @@ export const LinkTrouble = ({ fallback }: { readonly fallback?: string }) => {
   }, []);
 
   if (reason === null) return null;
-  return <p className="note note--warn">{reason}</p>;
+  return <Notice tone="warn">{reason}</Notice>;
 };
 

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 
 import { saveFilm } from "../../../src/server/captureActions.js";
+import { Button, Icon, TextField } from "../../../src/ui/index.js";
 import { SetPasswordOffer } from "../../SetPasswordOffer.js";
 
 /**
@@ -52,7 +53,10 @@ export const SaveFilmSheet = ({
 
   if (sentTo !== null) {
     return (
-      <section className="card stack-4" aria-live="polite">
+      <section className="save-film sent" aria-live="polite">
+        <span className="sent__icon" aria-hidden>
+          <Icon name="mail" size={26} />
+        </span>
         <h2 className="title">Check your email</h2>
         <p className="lede">
           We sent a link to <strong>{sentTo}</strong>. Open it in this browser and{" "}
@@ -61,17 +65,21 @@ export const SaveFilmSheet = ({
             : "your film is yours to watch and download."}
         </p>
         <p className="muted">
-          Nothing there?{" "}
+          Nothing there after a minute? Look in spam, or{" "}
           <button type="button" className="linklike" onClick={() => { setSentTo(null); }}>
-            Send it again, or use a different address
+            send it again
           </button>
+          .
         </p>
       </section>
     );
   }
 
   return (
-    <section className="card stack-4">
+    <section className="save-film">
+      <span className="sent__icon" aria-hidden>
+        <Icon name="lock" size={26} />
+      </span>
       <h2 className="title">
         {purpose === "make" ? "Save your film to make it" : "Save your film to watch it"}
       </h2>
@@ -80,22 +88,20 @@ export const SaveFilmSheet = ({
           ? "Everything you recorded is kept. Confirm your email and we will start on the film — and only you will be able to watch it."
           : "This film was made without an account, so it is locked to keep it private. Confirm your email and it is yours to watch and download."}
       </p>
-      <form onSubmit={submit} className="stack-4">
-        <label className="field">
-          <span className="field__label">Email address</span>
-          <input
-            name="email"
-            type="email"
-            required
-            autoComplete="email"
-            defaultValue={suggestedEmail}
-            className="input"
-          />
-        </label>
-        <button type="submit" disabled={pending} className="btn btn--primary btn--wide">
+      <form onSubmit={submit} className="auth__body" style={{ marginTop: 0 }}>
+        <TextField
+          id="save-film-email"
+          name="email"
+          type="email"
+          label="Email address"
+          required
+          autoComplete="email"
+          defaultValue={suggestedEmail}
+        />
+        <Button type="submit" size="lg" block disabled={pending}>
           {pending ? "Sending…" : "Email me a link"}
-        </button>
-        {error !== null && <p className="note note--error">{error}</p>}
+        </Button>
+        {error !== null && <p className="note note--error" role="alert">{error}</p>}
       </form>
       <SetPasswordOffer defaultEmail={suggestedEmail} prompt="…or set a password instead" />
     </section>

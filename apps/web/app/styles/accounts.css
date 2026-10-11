@@ -1,0 +1,50 @@
+/* Account screens: sign in, save your film, password, the account page. Tokens from globals.css. */
+
+/* ── account screens ────────────────────────────────────────────────── */
+
+.auth { flex: 1; width: 100%; padding: var(--s-6) var(--s-4) var(--s-8); display: flex; justify-content: center; }
+.auth__card { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: var(--s-3); }
+@media (min-width: 640px) {
+  .auth { padding-top: var(--s-8); background: var(--surface-2); }
+  .auth__card { padding: var(--s-6); border-radius: var(--radius-lg); background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-2); }
+}
+.auth__title { margin-top: var(--s-2); }
+.auth__body { display: flex; flex-direction: column; gap: var(--s-4); margin-top: var(--s-3); }
+.auth__alt { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--t-small); }
+
+/* Two ways in, side by side: a segmented control. */
+.segmented { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: var(--radius-md); background: var(--surface-2); }
+.segmented__option {
+  min-height: 40px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--ink-3);
+  font: 600 var(--t-small) / 1 var(--font);
+  cursor: pointer;
+}
+.segmented__option[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow-1); }
+
+.sent { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s-3); }
+.sent__icon { width: 56px; height: 56px; border-radius: var(--radius-pill); background: var(--accent-soft); color: var(--accent-soft-ink); display: inline-flex; align-items: center; justify-content: center; }
+
+.account-row { display: flex; align-items: center; gap: var(--s-3); padding: var(--s-4) 0; border-top: 1px solid var(--line); }
+.account-row__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.account-row__text span { font-size: var(--t-small); color: var(--ink-3); overflow-wrap: anywhere; }
+
+/* Save your film: a card in the overview's footer, a whole page for a
+   locked film. */
+.save-film {
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-3);
+  padding: var(--s-6);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-3);
+}
+.save-film > .sent__icon { align-self: flex-start; }

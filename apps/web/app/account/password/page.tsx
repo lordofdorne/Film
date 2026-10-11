@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { authConfigured, sessionIdentity } from "../../../src/server/auth.js";
+import { AuthShell } from "../../AuthShell.js";
 import { NewPasswordForm } from "./NewPasswordForm.js";
 
 /**
@@ -22,12 +23,12 @@ export default async function PasswordPage({
 
   if (!authConfigured()) {
     return (
-      <main className="page page--narrow stack-4">
-        <h1 className="title">Accounts are not configured</h1>
-        <p className="lede">
-          This server runs without Supabase, so there is nobody to have a password.
-        </p>
-      </main>
+      <AuthShell
+        title="Accounts are not configured"
+        lede="This server runs without Supabase, so there is nobody to have a password."
+      >
+        {null}
+      </AuthShell>
     );
   }
 
@@ -40,22 +41,22 @@ export default async function PasswordPage({
   }
 
   return (
-    <main className="page page--narrow stack-4">
-      <h1 className="title">{fromReset ? "Choose a new password" : "Change your password"}</h1>
-      <p className="lede">
-        {fromReset
-          ? "You are signed in. Pick something you will have to hand next time — or close this and carry on; the link in your email works for signing in either way."
-          : "You are signed in as "}
-        {!fromReset && <strong>{identity.email}</strong>}
-        {!fromReset && "."}
-      </p>
+    <AuthShell
+      title={fromReset ? "Choose a new password" : "Change your password"}
+      lede={
+        fromReset ? (
+          "You are signed in. Pick something you will have to hand next time — or skip it; the link in your email works for signing in either way."
+        ) : (
+          <>
+            For <strong>{identity.email}</strong>.
+          </>
+        )
+      }
+    >
       <NewPasswordForm />
-      <p className="step-nav">
-        <Link href="/" className="btn btn--quiet">
-          Back to your films
-        </Link>
-      </p>
-    </main>
+      <Link href="/account" className="linklike">
+        Back to your account
+      </Link>
+    </AuthShell>
   );
 }
-
