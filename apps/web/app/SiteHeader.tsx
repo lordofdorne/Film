@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { PRODUCT_NAME } from "../src/product.js";
 import { authConfigured, sessionIdentity } from "../src/server/auth.js";
+import { Logo } from "../src/ui/index.js";
 import { SignOutButton } from "./SignOutButton.js";
 
 /**
@@ -24,8 +25,9 @@ export const SiteHeader = async () => {
   return (
     <header className="site-header">
       <div className="site-header__inner">
-        <Link href="/" className="site-header__mark">
-          {PRODUCT_NAME}
+        <Link href="/" className="site-header__mark" aria-label={`${PRODUCT_NAME} — home`}>
+          <Logo />
+          <span aria-hidden>{PRODUCT_NAME}</span>
         </Link>
 
         <div className="site-header__who">
