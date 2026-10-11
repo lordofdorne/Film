@@ -293,3 +293,52 @@ export const ownsProject = async (
     .limit(1);
   return rows.length > 0;
 };
+
+/**
+ * What this user may do with this project: everything, nothing, or — the case
+ * this exists for — "it is yours, but prove an address first".
+ *
+ * Capture is anonymous on purpose: pressing Start must not ask for anything.
+ * But the moment a film is handed over, an identity that lives only in one
+ * browser's cookie is no longer enough. Whoever picks up that browser — a
+ * shared family computer, a phone lent across a table — would get the
+ * finished film with no sign-in at all, and there would be no address to tell
+ * when it is ready. So once a project leaves capture, its owner must be an
+ * identity with a proved address.
+ *
+ * `needs-account` is distinct from `none` because the two are rendered
+ * differently: somebody else's film is a 404, but your own film behind a save
+ * sheet is not something to pretend does not exist.
+ */
+export type FilmAccess = "owner" | "needs-account" | "none";
+
+/** The statuses in which a film is still being made by the person holding
+ *  the phone, and an anonymous owner is enough. */
+const STILL_CAPTURING: ReadonlySet<string> = new Set(["draft", "capturing"]);
+
+export const accessToFilm = async (
+  db: Db,
+  user: Pick<AppUser, "id" | "email">,
+  projectId: string,
+): Promise<FilmAccess> => {
+  if (!isProjectId(projectId) || !isProjectId(user.id)) return "none";
+  const rows = await db
+    .select({ status: projects.status })
+    .from(projects)
+    .where(and(eq(projects.id, projectId), eq(projects.ownerId, user.id)))
+    .limit(1);
+  const status = rows[0]?.status;
+  if (status === undefined) return "none";
+  if (STILL_CAPTURING.has(status) || hasAccount(user)) return "owner";
+  return "needs-account";
+};
+
+/**
+ * Whether this user may hand a film over to be made, and later watch it.
+ *
+ * A proved address is the whole test. The application row only ever holds an
+ * address the auth server has verified — a typed-but-unconfirmed one waits in
+ * Supabase's `new_email` and never reaches `users.email` — so "has an email"
+ * and "has an account" are the same fact here.
+ */
+export const hasAccount = (user: Pick<AppUser, "email">): boolean => user.email !== null;
