@@ -151,10 +151,27 @@ export type TextConfig = {
 export type CaptionPolicy = "all-speech" | "interview-only" | "emphasis-only";
 export type QuestionPromptMode = "live-interviewer" | "recorded-interviewer" | "text-only";
 
+/**
+ * How a template introduces itself on the chooser, before anybody starts.
+ *
+ * Data, like everything else a customer reads: a second film type brings its
+ * own pitch and the chooser draws it with no React changing. Optional, so a
+ * template without one still gets a card — just a plainer one.
+ */
+export type TemplatePitch = {
+  /** One or two sentences: what this film is. */
+  readonly summary: string;
+  /** Who it suits, in a phrase — "a grandparent, a parent, a mentor". */
+  readonly bestFor: string;
+  /** What somebody needs to have to hand before pressing Start. */
+  readonly youWillNeed: readonly string[];
+};
+
 export type Template = {
   readonly id: string;
   readonly version: number;
   readonly displayName: string;
+  readonly pitch?: TemplatePitch;
   readonly formatIds: readonly string[];
   readonly defaultFormatId: string;
   readonly targetDurationMs: { readonly min: number; readonly max: number };

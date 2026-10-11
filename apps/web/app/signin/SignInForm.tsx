@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 
 import { sendMagicLink } from "../../src/server/authActions.js";
 import { sendPasswordReset, signInWithPassword } from "../../src/server/passwordActions.js";
+import { Button, Icon, Notice, TextField } from "../../src/ui/index.js";
 
 /**
  * One page, two ways in, and no second door.
@@ -55,62 +56,74 @@ export const SignInForm = ({ next }: { readonly next?: string }) => {
 
   if (reset !== null) {
     return (
-      <Done title="Check your email">
-        If there is an account for <strong>{reset}</strong>, a link to choose a new
-        password is on its way. It is good for one use.
-      </Done>
+      <Sent title="Check your email">
+        If there is an account for <strong>{reset}</strong>, a link to choose a new password
+        is on its way. It is good for one use.
+      </Sent>
     );
   }
 
   if (sent !== null) {
     return (
-      <Done title="Check your email">
+      <Sent title="Check your email">
         {sent.already ? (
           <>
             There is already a link waiting in <strong>{sent.email}</strong> — the one we
-            sent when you set a password. Open that one; a second would make a second
-            account and leave your film behind.
+            sent when you set a password. Open that one; a second would make a second account
+            and leave your film behind.
           </>
         ) : (
           <>
-            A link is on its way to <strong>{sent.email}</strong>. Open it on whichever
-            device you would like to carry on with — it works on any of them.
+            A link is on its way to <strong>{sent.email}</strong>. Open it in this browser to
+            sign in.
           </>
         )}
-      </Done>
+      </Sent>
     );
   }
 
-  return (
-    <form onSubmit={go} className="stack-4 signin-form">
-      <label className="field">
-        <span className="field__label">Your email address</span>
-        <input
-          name="email"
-          type="email"
-          required
-          autoComplete="email"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(event) => { setEmail(event.target.value); }}
-          className="input"
-        />
-      </label>
+  const switchTo = (to: Mode) => () => {
+    setMode(to);
+    setError(null);
+  };
 
-      {mode === "password" && (
-        <label className="field">
-          <span className="field__label">Password</span>
-          <input
-            name="password"
-            type="password"
-            required
-            autoComplete="current-password"
-            className="input"
-          />
-        </label>
+  return (
+    <form onSubmit={go} className="auth__body" style={{ marginTop: 0 }}>
+      {mode !== "forgot" && (
+        <div className="segmented" role="group" aria-label="How to sign in">
+          <button type="button" className="segmented__option" aria-pressed={mode === "password"} onClick={switchTo("password")}>
+            Password
+          </button>
+          <button type="button" className="segmented__option" aria-pressed={mode === "link"} onClick={switchTo("link")}>
+            Email me a link
+          </button>
+        </div>
       )}
 
-      <button type="submit" disabled={pending} className="btn btn--primary btn--wide">
+      <TextField
+        id="signin-email"
+        name="email"
+        type="email"
+        label="Email address"
+        required
+        autoComplete="email"
+        placeholder="you@example.com"
+        value={email}
+        onChange={(event) => { setEmail(event.target.value); }}
+      />
+
+      {mode === "password" && (
+        <TextField
+          id="signin-password"
+          name="password"
+          type="password"
+          label="Password"
+          required
+          autoComplete="current-password"
+        />
+      )}
+
+      <Button type="submit" size="lg" block disabled={pending}>
         {pending
           ? "One moment…"
           : mode === "password"
@@ -118,48 +131,36 @@ export const SignInForm = ({ next }: { readonly next?: string }) => {
             : mode === "forgot"
               ? "Email me a reset link"
               : "Email me a link"}
-      </button>
+      </Button>
 
-      {error !== null && <p className="note note--error">{error}</p>}
+      {error !== null && <Notice tone="error">{error}</Notice>}
 
-      <p className="muted">
-        {mode === "password" ? (
-          <>
-            <Quiet onClick={() => { setMode("link"); setError(null); }}>
-              Email me a link instead
-            </Quiet>
-            {" · "}
-            <Quiet onClick={() => { setMode("forgot"); setError(null); }}>
-              Forgot your password?
-            </Quiet>
-          </>
-        ) : (
-          <Quiet onClick={() => { setMode("password"); setError(null); }}>
-            Use a password instead
-          </Quiet>
+      <p className="auth__alt">
+        {mode === "password" && (
+          <button type="button" className="linklike" onClick={switchTo("forgot")}>
+            Forgot your password?
+          </button>
+        )}
+        {mode === "forgot" && (
+          <button type="button" className="linklike" onClick={switchTo("password")}>
+            Back to signing in
+          </button>
+        )}
+        {mode === "link" && (
+          <span className="muted">No password needed. Open the link in this browser to sign in.</span>
         )}
       </p>
-
-      {mode === "link" && (
-        <p className="tiny">
-          No password needed. The link signs you in on whichever device you open it on.
-        </p>
-      )}
     </form>
   );
 };
 
-const Done = ({ title, children }: { readonly title: string; readonly children: React.ReactNode }) => (
-  <div className="card note--quiet stack">
+const Sent = ({ title, children }: { readonly title: string; readonly children: React.ReactNode }) => (
+  <div className="sent" role="status">
+    <span className="sent__icon" aria-hidden>
+      <Icon name="mail" size={26} />
+    </span>
     <h2 className="heading">{title}</h2>
     <p className="lede">{children}</p>
     <p className="tiny">Nothing after a minute or two? Look in spam.</p>
   </div>
 );
-
-const Quiet = ({ onClick, children }: { readonly onClick: () => void; readonly children: React.ReactNode }) => (
-  <button type="button" onClick={onClick} className="linklike">
-    {children}
-  </button>
-);
-

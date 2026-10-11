@@ -578,6 +578,33 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Every screen is Porch now — Phase 7, Blocks 4, 5 and 6
+
+- **Home** is a landing page signed out (hero with the product drawn in its
+  own components, how it works, three promises, FAQ from `product.ts`) and a
+  library with films (a Continue / Ready-to-make card, then film cards with a
+  poster thumbnail and a status in words). The #20 rule stands: anyone
+  without an account still gets the explanation.
+- **The chooser** draws each template as a feature card from data, including
+  a new optional `Template.pitch` (summary, best for, you will need).
+- **After capture:** a plain-words "making the first cut" page, the preview
+  with the player as the hero and "Approve and make my film", notes named
+  after their step and worded like the overview, a success card with
+  Download, a failure page that no longer mentions an email nobody sends,
+  and branded not-found and error pages.
+- **Accounts:** one `AuthShell` frame for sign in (Password / Email me a
+  link as a segmented control), a new `/account` page behind the header
+  avatar, the password screens and the save sheet.
+- Screen styles for parts 5 and 6 live in `app/styles/`.
+
+Walked end to end on 2026-10-11 against local GoTrue and the real worker:
+sign in by link, a film filled from a complete film's rows, Make, the making
+page turning into the preview on its own, notes, Approve, "Making your film"
+without a reload, delivered, "Your film is ready", download 206.
+
+**Storage is R2 here, not local disk** (`R2_*` is set in `.env`), so test
+films leave objects in the `films` bucket — see "A second R2 bucket" in Next.
+
 ### Capture is a wizard now, wearing Porch — Phase 7, Blocks 2 and 3
 
 The owner chose the **Porch** brand (white, Ember #D92B4B, Plus Jakarta Sans)

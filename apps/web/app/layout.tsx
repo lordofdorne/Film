@@ -1,10 +1,13 @@
 import "./globals.css";
 import "../src/ui/ui.css";
+import "./styles/after-capture.css";
+import "./styles/accounts.css";
 
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { PRODUCT_NAME, PRODUCT_SUB } from "../src/product.js";
 import { OutsideTheWizard } from "./OutsideTheWizard.js";
+import { SiteFooter } from "./SiteFooter.js";
 import { SiteHeader } from "./SiteHeader.js";
 
 /**
@@ -44,6 +47,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <SiteHeader />
           </OutsideTheWizard>
           {children}
+          <OutsideTheWizard>
+            <SiteFooter />
+          </OutsideTheWizard>
         </div>
       </body>
     </html>

@@ -52,7 +52,7 @@ export default async function ProjectPage({
    */
   if (guard.needsAccount) {
     return (
-      <main className="page page--narrow">
+      <main className="auth">
         <SaveFilmSheet
           projectId={id}
           purpose="watch"
@@ -99,7 +99,7 @@ export default async function ProjectPage({
     <PreviewClient
       summary={loaded.summary}
       props={loaded.props}
-      delivery={<DeliveryPanel projectId={id} initial={delivery} />}
+      delivery={<DeliveryPanel key={delivery.kind} projectId={id} initial={delivery} />}
     />
   );
 }

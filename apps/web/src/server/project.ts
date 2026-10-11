@@ -1,6 +1,6 @@
 import "server-only";
 
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import {
   approvals,
   assets,
@@ -27,7 +27,9 @@ import { EdlSchema, type EDL } from "@film/edl";
 import { retryProject } from "@film/pipeline/retry";
 import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
 import { storeFromEnv, usingLocalStore, type ObjectStore } from "@film/storage";
-import type { SubjectData } from "@film/templates";
+import { getTemplate, resolveCaptureSteps, type SubjectData } from "@film/templates";
+
+import { wordedWarning } from "./capture.js";
 // From "./props", not "./composition".
 //
 // The composition entry pulls in React and Remotion, and importing it for a
@@ -96,9 +98,17 @@ export type ProjectSummary = {
  * directory of other people's recordings. `ownerId` undefined means auth is not
  * configured — the development arrangement, which the page says out loud.
  */
-export const listProjects = async (
-  ownerId?: string,
-): Promise<{ id: string; status: string; subjectName: string }[]> => {
+export type FilmListing = {
+  readonly id: string;
+  readonly status: string;
+  /** What the person calls them — "Tim" — falling back to the full name. */
+  readonly name: string | null;
+  /** A small still for the card: the thumbnail of a photograph if there is
+   *  one, else of anything. Never an original. */
+  readonly posterKey: string | null;
+};
+
+export const listProjects = async (ownerId?: string): Promise<FilmListing[]> => {
   const rows = await db()
     .select({ id: projects.id, status: projects.status, subjectData: projects.subjectData })
     .from(projects)
@@ -106,11 +116,40 @@ export const listProjects = async (
     .orderBy(desc(projects.createdAt))
     .limit(50);
 
-  return rows.map((r) => ({
-    id: r.id,
-    status: r.status,
-    subjectName: (r.subjectData as { subjectName?: string }).subjectName ?? "Untitled",
-  }));
+  /**
+   * One query for every card's picture, not one per card. Photographs first,
+   * because a film's card should show the person rather than a frame of an
+   * interview mid-blink.
+   */
+  const posters = new Map<string, string>();
+  if (rows.length > 0) {
+    const stills = await db()
+      .select({ projectId: assets.projectId, key: assets.thumbnailKey, kind: assets.kind })
+      .from(assets)
+      .where(
+        and(
+          inArray(
+            assets.projectId,
+            rows.map((r) => r.id),
+          ),
+          isNotNull(assets.thumbnailKey),
+        ),
+      )
+      .orderBy(sql`case when ${assets.kind} = 'photo' then 0 else 1 end`, assets.createdAt);
+    for (const still of stills) {
+      if (still.key !== null && !posters.has(still.projectId)) posters.set(still.projectId, still.key);
+    }
+  }
+
+  return rows.map((r) => {
+    const subject = r.subjectData as { subjectName?: string; displayName?: string };
+    return {
+      id: r.id,
+      status: r.status,
+      name: subject.displayName ?? subject.subjectName ?? null,
+      posterKey: posters.get(r.id) ?? null,
+    };
+  });
 };
 
 /**
@@ -176,13 +215,25 @@ export const loadProjectForPreview = async (
   }
 
   const bed = assetRows.find(isMusicBed);
+  /**
+   * Named the way the walk-through named them — "Add a photo of the person
+   * from another time", not `photo_early` — and worded the way the overview
+   * worded them. A slot id and a pixel count were what the approval screen
+   * used to show the one person it exists for.
+   */
+  const askOf = new Map(
+    resolveCaptureSteps(getTemplate(project.templateId, project.templateVersion), subject).map(
+      (step) => [step.id, step.ask] as const,
+    ),
+  );
   const warnings: AssetWarning[] = assetRows.flatMap((asset) => {
     const list = (asset.warnings ?? []) as { code?: string; message?: string }[];
+    const id = asset.questionId ?? asset.slotId;
     return list.map((w) => ({
       assetId: asset.id,
-      label: asset.questionId ?? asset.slotId ?? asset.kind,
+      label: (id === null ? undefined : askOf.get(id)) ?? "One of your recordings",
       code: w.code ?? "WARNING",
-      message: w.message ?? "",
+      message: wordedWarning(w.code ?? "", w.message ?? ""),
     }));
   });
 

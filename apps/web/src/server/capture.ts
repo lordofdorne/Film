@@ -142,7 +142,7 @@ const mediaUrl = async (key: string): Promise<string> =>
  */
 const THUMBNAIL_URL_STABLE_SECONDS = 300;
 
-const thumbnailUrl = async (key: string): Promise<string> =>
+export const thumbnailUrl = async (key: string): Promise<string> =>
   usingLocalStore()
     ? `/api/media/${key}`
     : storeFromEnv().signedGetUrl(key, {
@@ -160,6 +160,10 @@ const thumbnailUrl = async (key: string): Promise<string> =>
 const WORDED: Readonly<Record<string, string>> = {
   LOW_RESOLUTION: "This looks a little soft on a big screen — a phone recording would be sharper.",
 };
+
+/** A QC warning in the customer's words where there are some, else as raised.
+ *  Shared with the preview, so the same fault reads the same on both. */
+export const wordedWarning = (code: string, raised: string): string => WORDED[code] ?? raised;
 
 const qcNoteOf = (
   asset: NonNullable<CaptureStepState["asset"]>,

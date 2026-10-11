@@ -12,6 +12,18 @@ const config: Template = {
   id: "life-advice",
   version: 1,
   displayName: "Life Advice",
+  pitch: {
+    summary:
+      "Someone you love answers ten questions about what life has taught them. " +
+      "We cut their answers together with photographs and short clips into a " +
+      "four-minute film.",
+    bestFor: "A grandparent, a parent, a mentor — anyone whose voice you want to keep",
+    youWillNeed: [
+      "The person, and about twenty minutes together",
+      "A phone or laptop with a camera",
+      "Three photographs from different times in their life",
+    ],
+  },
 
   formatIds: ["landscape-classic"],
   defaultFormatId: "landscape-classic",

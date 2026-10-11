@@ -3,18 +3,18 @@
 import { useTransition } from "react";
 
 import { signOut } from "../src/server/authActions.js";
+import { Button } from "../src/ui/index.js";
 
-export const SignOutButton = () => {
+export const SignOutButton = ({ block = false }: { readonly block?: boolean }) => {
   const [pending, startTransition] = useTransition();
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      block={block}
       disabled={pending}
       onClick={() => { startTransition(async () => { await signOut(); }); }}
-      className="linklike"
     >
       {pending ? "Signing out…" : "Sign out"}
-    </button>
+    </Button>
   );
 };
-

@@ -2,9 +2,11 @@
 
 import { Player } from "@remotion/player";
 import { FilmComposition, msToFrame, type FilmProps } from "@film/render/composition";
+import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
+import { Button, Chip, Icon, Notice } from "../../../src/ui/index.js";
 
 /**
  * The preview is the SAME composition the render worker uses.
@@ -31,6 +33,7 @@ export const PreviewClient = ({
    */
   readonly delivery: ReactNode;
 }) => {
+  const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [approved, setApproved] = useState(summary.approved);
@@ -48,24 +51,38 @@ export const PreviewClient = ({
     startTransition(async () => {
       // Who is approving, and under which template, is the server's to know.
       const result = await approveEdlVersion(summary.id, summary.edlVersionId);
-      if (result.ok) setApproved(true);
-      else setError(result.error);
+      if (result.ok) {
+        setApproved(true);
+        // The server now has a render to report on; the delivery panel it
+        // draws replaces the note below as soon as the page re-renders.
+        router.refresh();
+      } else setError(result.error);
     });
-  }, [summary.edlVersionId, summary.id]);
+  }, [router, summary.edlVersionId, summary.id]);
+
+  const name = summary.subject.displayName ?? summary.subject.subjectName;
 
   return (
-    <main className="page stack-5">
-      <header className="stack">
-        <h1 className="title">{summary.subject.subjectName}</h1>
-        <p className="muted">
-          {summary.templateId}@{String(summary.templateVersion)} · cut v
-          {String(summary.edlVersion)} ·{" "}
-          {formatDuration(props.edl.totalDurationMs)} · {props.format.width}×
-          {props.format.height}
-        </p>
+    <main className="page film-page">
+      <header className="film-page__head">
+        <p className="eyebrow">{approved ? "Your film" : "Your first cut"}</p>
+        <h1 className="display">{name}’s film</h1>
+        <div className="row">
+          <Chip>
+            <Icon name="clock" size={14} />
+            {formatDuration(props.edl.totalDurationMs)}
+          </Chip>
+          {approved ? <Chip tone="success">Approved</Chip> : <Chip tone="accent">Waiting for you</Chip>}
+        </div>
       </header>
 
-      {delivery}
+      {approved && !summary.approved ? (
+        <Notice tone="success" title="Approved">
+          We are making the full-quality film now. It usually takes a few minutes.
+        </Notice>
+      ) : (
+        delivery
+      )}
 
       <div className="player-frame">
         <Player
@@ -89,72 +106,67 @@ export const PreviewClient = ({
         conclude the mix is broken.
       */}
       <p className="tiny">
-        Picture and timing here are exactly what will be delivered. Audio levels are
-        close but not final — the delivered file is mastered to −14 LUFS after rendering.
+        Picture and timing are exactly what you will get. Sound levels are evened out in the
+        final file, so they may differ a little from what you hear here.
       </p>
 
-      <section className="card stack-4">
-        <h2 className="heading">
-          Before you approve
-          {outstanding.length > 0 && (
-            <span className="badge">{outstanding.length}</span>
+      {!approved && (
+        <div className="film-page__review">
+          {summary.warnings.length > 0 && (
+            <section className="ui-card stack-4" aria-labelledby="warnings-title">
+              <div>
+                <h2 id="warnings-title" className="heading">
+                  Worth knowing before you approve
+                  {outstanding.length > 0 && <span className="badge">{outstanding.length}</span>}
+                </h2>
+                <p className="muted">These never stop you — you just have to see them first.</p>
+              </div>
+              <ul className="list film-warnings">
+                {summary.warnings.map((w) => {
+                  const key = warningKey(w);
+                  const done = acknowledged.has(key);
+                  return (
+                    <li key={key} className={done ? "film-warning film-warning--done" : "film-warning"}>
+                      <Icon name={done ? "check" : "alert"} size={20} className="film-warning__icon" />
+                      <div className="film-warning__text">
+                        <strong>{w.label}</strong>
+                        <span>{w.message}</span>
+                      </div>
+                      <Button
+                        variant={done ? "quiet" : "ghost"}
+                        onClick={() => { acknowledge(w); }}
+                        disabled={done}
+                      >
+                        {done ? "Seen" : "Got it"}
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </section>
           )}
-        </h2>
 
-        {summary.warnings.length === 0 ? (
-          <p className="muted">No quality warnings were raised on this project.</p>
-        ) : (
-          <ul className="list">
-            {summary.warnings.map((w) => {
-              const key = warningKey(w);
-              const done = acknowledged.has(key);
-              return (
-                <li key={key} className={done ? "warning warning--done" : "warning"}>
-                  <div>
-                    <strong className="warning__label">{w.label}</strong>
-                    <span className="warning__text">{w.message}</span>
-                  </div>
-                  {/* Warnings never block after acknowledgement — they inform. */}
-                  <button
-                    type="button"
-                    onClick={() => { acknowledge(w); }}
-                    disabled={done}
-                    className="btn btn--secondary"
-                  >
-                    {done ? "Acknowledged" : "I understand"}
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section className="card stack-4">
-        {approved ? (
-          <p className="note note--quiet">
-            Approved. This cut is cleared for delivery-quality rendering.
-          </p>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={approve}
-              disabled={pending || outstanding.length > 0}
-              className="btn btn--primary"
-            >
-              {pending ? "Approving…" : "Approve this film"}
-            </button>
-            {outstanding.length > 0 && (
+          <section className="ui-card film-approve" aria-labelledby="approve-title">
+            <div>
+              <h2 id="approve-title" className="title">Happy with it?</h2>
               <p className="muted">
-                {outstanding.length} warning{outstanding.length === 1 ? "" : "s"} still to
-                read. They will not stop you — you just have to see them first.
+                Approving makes the full-quality film for you to download. It takes a few
+                minutes, and you can close the page while it does.
+              </p>
+            </div>
+            <Button size="lg" onClick={approve} disabled={pending || outstanding.length > 0}>
+              {pending ? "Approving…" : "Approve and make my film"}
+            </Button>
+            {outstanding.length > 0 && (
+              <p className="tiny">
+                {outstanding.length === 1 ? "One note" : `${String(outstanding.length)} notes`} above
+                still to read first.
               </p>
             )}
-            {error !== null && <p className="note note--error">{error}</p>}
-          </>
-        )}
-      </section>
+            {error !== null && <Notice tone="error">{error}</Notice>}
+          </section>
+        </div>
+      )}
     </main>
   );
 };

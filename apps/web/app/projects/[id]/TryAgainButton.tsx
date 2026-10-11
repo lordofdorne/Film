@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { tryAgain } from "../../../src/server/captureActions.js";
+import { Button, Notice } from "../../../src/ui/index.js";
 
 /**
  * The one thing a person could not do about a film that would not finish.
@@ -41,20 +42,19 @@ export const TryAgainButton = ({ projectId }: { readonly projectId: string }) =>
 
   if (outcome === "started") {
     return (
-      <p className="note note--quiet">
-        We are trying again now. This page will change on its own when there is
-        something to see — it usually takes a few minutes, and you can close it.
-      </p>
+      <Notice tone="info" title="Trying again now">
+        This page will change on its own when there is something to see. It usually takes a
+        few minutes, and you can close it.
+      </Notice>
     );
   }
 
   return (
     <>
-      <button type="button" onClick={press} disabled={pending} className="btn btn--primary">
+      <Button size="lg" onClick={press} disabled={pending}>
         {pending ? "Starting…" : "Try making it again"}
-      </button>
-      {outcome !== null && <p className="note note--error">{outcome}</p>}
+      </Button>
+      {outcome !== null && <Notice tone="error">{outcome}</Notice>}
     </>
   );
 };
-
