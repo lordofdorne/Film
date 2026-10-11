@@ -437,7 +437,7 @@ const config: Template = {
           "Somewhere quiet, sitting down",
           "Light from a window in front of them, not behind",
           "The phone held sideways",
-          "About fifteen minutes together",
+          "Time to talk, without rushing",
         ],
         blurb:
           "Ten questions, answered to camera. Landscape, somewhere quiet, and " +
