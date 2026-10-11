@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { submitDetail } from "../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../src/server/capture.js";
@@ -33,6 +33,9 @@ export const DetailStepClient = ({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
+
+  // The next screen is known; fetch it now so Continue feels instant.
+  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
 
   const inputType =
     step.field?.kind === "number" ? "number" : step.field?.kind === "email" ? "email" : "text";
@@ -110,9 +113,11 @@ export const DetailStepClient = ({
     <>
       <main className="wz-body">
         <p className="eyebrow wz-eyebrow">{step.chapterTitle}</p>
-        <label htmlFor={inputId} className="wz-ask">
-          {step.ask}
-        </label>
+        {/* The page's heading and the field's label at once: a screen reader
+            lands on the question, and the input is named by it. */}
+        <h1 className="wz-ask">
+          <label htmlFor={inputId}>{step.ask}</label>
+        </h1>
         {step.coaching !== undefined && <Tip>{step.coaching}</Tip>}
         {step.examples !== undefined && step.examples.length > 0 && (
           <div className="wz-examples">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { OutlineChapter, Progress } from "../../../src/server/wizard.js";
+import { OfflineNotice } from "./OfflineNotice.js";
 import {
   Button,
   ChapterProgress,
@@ -68,6 +69,7 @@ export const WizardFrame = ({
         </p>
       </div>
     </header>
+    <OfflineNotice />
     {children}
   </div>
 );

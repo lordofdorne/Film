@@ -55,7 +55,7 @@ export default function DesignPage() {
       <header className="ds__head">
         <div className="ds__brand">
           <Logo size={44} />
-          <span className="ds__name">{PRODUCT_NAME}</span>
+          <h1 className="ds__name">{PRODUCT_NAME} design system</h1>
         </div>
         <p className="lede">{PRODUCT_LINE}</p>
         <p className="muted">

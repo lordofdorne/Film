@@ -35,7 +35,38 @@ const supportedType = (): string | null => {
   return VIDEO_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) ?? null;
 };
 
-type Saving = { readonly state: "idle" | "saving" | "saved" | "failed"; readonly error?: string };
+type Saving = {
+  readonly state: "idle" | "saving" | "saved" | "failed";
+  readonly error?: string;
+  /** 0–1 while bytes are going up, when the browser can tell us. */
+  readonly progress?: number;
+};
+
+/**
+ * PUT with upload progress.
+ *
+ * `fetch` cannot report upload progress, and a take is hundreds of megabytes
+ * on a phone connection — "Saving…" with no number for two minutes reads as
+ * stuck, and stuck is when people close the tab. XMLHttpRequest can.
+ */
+const putWithProgress = (
+  url: string,
+  body: Blob,
+  contentType: string,
+  onProgress: (fraction: number) => void,
+): Promise<boolean> =>
+  new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", url);
+    xhr.setRequestHeader("content-type", contentType);
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
+    };
+    xhr.onload = () => { resolve(xhr.status >= 200 && xhr.status < 300); };
+    xhr.onerror = () => { resolve(false); };
+    xhr.onabort = () => { resolve(false); };
+    xhr.send(body);
+  });
 
 export const StepClient = ({
   projectId,
@@ -82,6 +113,21 @@ export const StepClient = ({
   }, []);
 
   useEffect(() => stopStream, [stopStream]);
+
+  // The next screen is known; fetch it now so Keep and Skip feel instant.
+  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
+
+  /**
+   * Closing the tab mid-upload loses the take, and nothing else on the page
+   * can say so in time. The browser's own "leave site?" is the one warning
+   * that arrives before it is too late.
+   */
+  useEffect(() => {
+    if (saving.state !== "saving") return;
+    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
+    window.addEventListener("beforeunload", warn);
+    return () => { window.removeEventListener("beforeunload", warn); };
+  }, [saving.state]);
 
   /**
    * Show the person what the camera can see.
@@ -131,13 +177,11 @@ export const StepClient = ({
        * local development cannot reproduce, because the local upload route
        * does not check a signature at all.
        */
-      const put = await fetch(uploadUrl, {
-        method: "PUT",
-        body: blob,
-        headers: { "content-type": signedType },
-      }).catch(() => null);
+      const landed = await putWithProgress(uploadUrl, blob, signedType, (fraction) => {
+        setSaving({ state: "saving", progress: fraction });
+      });
 
-      if (put === null || !put.ok) {
+      if (!landed) {
         setSaving({ state: "failed", error: "That did not reach us. Try again?" });
         return;
       }
@@ -459,7 +503,9 @@ export const StepClient = ({
               disabled={saving.state === "saving" || saving.state === "failed"}
               onClick={() => { router.push(nextHref); }}
             >
-              {saving.state === "saving" ? "Saving…" : "Keep and continue"}
+              {saving.state === "saving"
+                ? `Saving${saving.progress === undefined ? "…" : ` ${String(Math.round(saving.progress * 100))}%`}`
+                : "Keep and continue"}
               {saving.state !== "saving" && <Icon name="forward" size={18} />}
             </Button>
           </div>
@@ -504,11 +550,17 @@ export const StepClient = ({
  */
 const Reassurance = ({ saving, saved }: { readonly saving: Saving; readonly saved: boolean }) => {
   if (saving.state === "saving") {
+    const percent = saving.progress === undefined ? null : Math.round(saving.progress * 100);
     return (
-      <p className="wz-foot__status" role="status">
-        <span className="spinner" aria-hidden />
-        Saving — keep this page open for a moment.
-      </p>
+      <div className="wz-uploading" role="status">
+        <p>
+          {percent === null || percent >= 100 ? "Saving" : `Saving — ${String(percent)}%`}
+          <span className="muted"> · keep this page open until it is done</span>
+        </p>
+        <span className="wz-uploading__track" aria-hidden>
+          <span className="wz-uploading__fill" style={{ width: `${String(percent ?? 8)}%` }} />
+        </span>
+      </div>
     );
   }
   if (saving.state === "failed") {

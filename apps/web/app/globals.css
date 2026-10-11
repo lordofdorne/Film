@@ -173,6 +173,23 @@ a {
   display: flex;
   flex-direction: column;
 }
+.shell__content { flex: 1; display: flex; flex-direction: column; }
+.shell__content:focus { outline: none; }
+
+.skip-link {
+  position: absolute;
+  top: var(--s-2);
+  left: var(--s-2);
+  z-index: 100;
+  padding: var(--s-3) var(--s-4);
+  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus { transform: none; }
 
 .site-header {
   border-bottom: 1px solid var(--line);
@@ -238,7 +255,8 @@ a {
   color: var(--ink-3);
 }
 .site-footer__brand { display: flex; align-items: center; gap: var(--s-2); }
-.site-footer__brand strong { color: var(--accent); }
+/* Ember Deep, not Ember: Ember on Mist is 4.45:1, a hair under AA for small text. */
+.site-footer__brand strong { color: var(--accent-hover); }
 .site-footer__links { display: flex; flex-wrap: wrap; gap: var(--s-5); }
 .site-footer__links a { color: var(--ink-2); text-decoration: none; font-weight: 500; }
 .site-footer__links a:hover { text-decoration: underline; }
@@ -1161,3 +1179,11 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
   border-style: dashed;
   box-shadow: none;
 }
+
+/* Upload progress, the offline banner, and the "Got it" beat. */
+.wz-uploading { display: flex; flex-direction: column; gap: var(--s-2); font-weight: 600; }
+.wz-uploading__track { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; }
+.wz-uploading__fill { display: block; height: 100%; border-radius: inherit; background: var(--accent); transition: width var(--dur-2) linear; }
+.wz-offline { width: 100%; max-width: 640px; margin: var(--s-4) auto 0; padding: 0 var(--s-5); }
+.wz-saved > svg { animation: wz-pop 420ms var(--ease-out); }
+@keyframes wz-pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }

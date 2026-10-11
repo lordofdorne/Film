@@ -41,12 +41,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={jakarta.variable}>
       <body>
+        {/* First thing a keyboard reaches: straight past the header. */}
+        <a href="#content" className="skip-link">
+          Skip to content
+        </a>
         <div className="shell">
           {/* The capture wizard is full screen: its own top bar replaces this. */}
           <OutsideTheWizard>
             <SiteHeader />
           </OutsideTheWizard>
-          {children}
+          <div id="content" tabIndex={-1} className="shell__content">
+            {children}
+          </div>
           <OutsideTheWizard>
             <SiteFooter />
           </OutsideTheWizard>
