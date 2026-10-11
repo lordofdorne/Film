@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 
 import { submitDetail } from "../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../src/server/capture.js";
@@ -33,6 +33,9 @@ export const DetailStepClient = ({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
+
+  // The next screen is known; fetch it now so Continue feels instant.
+  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
 
   const inputType =
     step.field?.kind === "number" ? "number" : step.field?.kind === "email" ? "email" : "text";
