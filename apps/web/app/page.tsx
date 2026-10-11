@@ -1,47 +1,60 @@
 import Link from "next/link";
 
 import { HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../src/product.js";
-import { authConfigured, currentUser } from "../src/server/auth.js";
+import { authConfigured, currentUser, sessionIdentity } from "../src/server/auth.js";
 import { listProjects } from "../src/server/project.js";
 
 /**
- * Two pages at one address, and which one you get is the honest question
- * "does this person have films here?"
+ * Films first when there are films; what this is, for anybody who might still
+ * need telling.
  *
- * Somebody arriving with nothing needs to know what this is and what they are
- * agreeing to before they press anything. Somebody with films in progress
- * needs those films, immediately, and nothing else — telling them again what
- * the product does would be noise on the screen they see most.
+ * The first version chose between the two on "does this person have films?"
+ * and that was wrong in a way only visible on a real browser: pressing Start
+ * once, months ago, and abandoning it leaves one "Untitled" row — and from
+ * then on the page explaining the product is UNREACHABLE. There is no other
+ * route to it. The owner hit exactly that and reasonably concluded nothing
+ * had changed.
+ *
+ * So the list is the answer to "where are my films", and the introduction
+ * stays below it for anyone who has not yet proved an address — which is the
+ * honest test of "might still be working out what this is". Somebody with an
+ * account has decided, and gets their films and nothing else.
  */
 export default async function Home() {
   const open = !authConfigured();
   const user = await currentUser();
   const projects = user === null && !open ? [] : await listProjects(user?.id);
+  const identity = await sessionIdentity();
+  const settled = identity?.email !== null && identity?.email !== undefined;
 
   if (projects.length === 0) return <Introduction open={open} />;
 
   return (
-    <main className="page stack-5">
-      <h1 className="title">Your films</h1>
+    <main className="page stack-6">
+      <section className="stack-5">
+        <h1 className="title">Your films</h1>
 
-      {open && <DevelopmentWarning />}
+        {open && <DevelopmentWarning />}
 
-      <ul className="list">
-        {projects.map((p) => (
-          <li key={p.id}>
-            <Link href={`/projects/${p.id}`} className="card film-row">
-              <span className="film-row__name">{p.subjectName ?? "Untitled"}</span>
-              <span className="muted">{worded(p.status)}</span>
-            </Link>
-          </li>
-        ))}
-      </ul>
+        <ul className="list">
+          {projects.map((p) => (
+            <li key={p.id}>
+              <Link href={`/projects/${p.id}`} className="card film-row">
+                <span className="film-row__name">{p.subjectName ?? "Untitled"}</span>
+                <span className="muted">{worded(p.status)}</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
 
-      <div className="row">
-        <Link href="/make" className="btn btn--secondary">
-          Start another
-        </Link>
-      </div>
+        <div className="row">
+          <Link href="/make" className="btn btn--secondary">
+            Start another
+          </Link>
+        </div>
+      </section>
+
+      {!settled && <HowItWorks />}
     </main>
   );
 }
@@ -78,23 +91,31 @@ const Introduction = ({ open }: { readonly open: boolean }) => (
 
     {open && <DevelopmentWarning />}
 
-    <section className="stack-4">
-      <h2 className="eyebrow">How it works</h2>
-      <ol className="list steps">
-        {HOW_IT_WORKS.map((step, i) => (
-          <li key={step.title} className="card step">
-            <span className="step__number" aria-hidden>
-              {i + 1}
-            </span>
-            <span className="step__text">
-              <span className="heading">{step.title}</span>
-              <span className="lede">{step.body}</span>
-            </span>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <HowItWorks />
   </main>
+);
+
+/**
+ * Shared by both surfaces, so the explanation cannot drift into two versions
+ * of itself depending on whether you happen to have a film.
+ */
+const HowItWorks = () => (
+  <section className="stack-4">
+    <h2 className="eyebrow">How it works</h2>
+    <ol className="list steps">
+      {HOW_IT_WORKS.map((step, i) => (
+        <li key={step.title} className="card step">
+          <span className="step__number" aria-hidden>
+            {i + 1}
+          </span>
+          <span className="step__text">
+            <span className="heading">{step.title}</span>
+            <span className="lede">{step.body}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
+  </section>
 );
 
 /**
