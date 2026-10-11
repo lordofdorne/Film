@@ -9,9 +9,9 @@
   },
   "scripts": {
     "build": "pnpm -r run build",
-    "//build:packages": "Everything a script needs, and NOT the web app. `pnpm build` runs `next build`, which writes apps/web/.next — the directory a running `pnpm web` is serving out of. It has taken the dev server down three times, always from a command whose name said nothing about Next: worker, bed:upload, intake. None of them needs the web app built.",
+    "//build:packages": "Everything a script needs, and NOT the web app. `pnpm build` runs `next build`, which writes apps/web/.next \u2014 the directory a running `pnpm web` is serving out of. It has taken the dev server down three times, always from a command whose name said nothing about Next: worker, bed:upload, intake. None of them needs the web app built.",
     "build:packages": "pnpm -r --filter=!@film/web run build",
-    "//typecheck": "apps/web is NOT a project reference — Next owns its own tsconfig — so `tsc -b` never looked at it, and every web change since the app was built has been typechecked only by `next dev` as it happened to compile a route. Checked explicitly here.",
+    "//typecheck": "apps/web is NOT a project reference \u2014 Next owns its own tsconfig \u2014 so `tsc -b` never looked at it, and every web change since the app was built has been typechecked only by `next dev` as it happened to compile a route. Checked explicitly here.",
     "typecheck": "tsc -b --pretty && tsc -p tsconfig.test.json --pretty && pnpm --filter @film/web exec tsc --noEmit --pretty",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -32,7 +32,9 @@
     "intake": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/intake.ts",
     "bed:upload": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/upload-bed.ts",
     "worker": "pnpm build:packages && tsx --env-file-if-exists=.env apps/worker/src/main.ts",
-    "thumbs:backfill": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/backfill-thumbnails.ts"
+    "thumbs:backfill": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/backfill-thumbnails.ts",
+    "//screens": "Every screen at phone and laptop width into out/screens/, against a running `pnpm web`, using the installed Chrome. Presses Start once per viewport, so it leaves two anonymous films in the dev database.",
+    "screens": "tsx scripts/screens.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
@@ -59,6 +61,7 @@
     "pg": "^8.22.0",
     "pg-boss": "^12.27.0",
     "pixelmatch": "^7.2.0",
+    "playwright-core": "1.49.1",
     "pngjs": "^7.0.0",
     "server-only": "^0.0.1",
     "tslib": "^2.8.1",

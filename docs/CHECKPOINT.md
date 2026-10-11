@@ -578,6 +578,26 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Polish and proof — Phase 7, Block 7
+
+- **Accessibility:** axe-core 4.10 run in a real browser on every screen that
+  does not need a finished film; the three findings (footer contrast, an
+  unnamed progressbar, typed steps with no h1) are fixed and re-run clean.
+  A "Skip to content" link is first in the tab order everywhere.
+- **Phone states:** uploads report progress ("Saving — 62%") via
+  XMLHttpRequest; closing the tab mid-upload raises the browser's own
+  warning; the wizard says "You are offline" when it is; the next step is
+  prefetched.
+- **`pnpm screens`** writes every screen at 375px and 1280px to
+  `out/screens/`, driving the installed Chrome through playwright-core. It is
+  a review surface, not a test — nothing is compared. It presses Start once
+  per viewport, so each run leaves two anonymous films in the dev database.
+- **iOS Safari** renders the landing page correctly on an iPhone 17
+  simulator (iOS 26.2). The walk-through itself was not driven: the simulator
+  tool needs the owner's "Let Claude use it", and the simulator was showing an
+  Apple Account password prompt that is the owner's to answer. Live camera
+  recording on a real iPhone is still unproven.
+
 ### Every screen is Porch now — Phase 7, Blocks 4, 5 and 6
 
 - **Home** is a landing page signed out (hero with the product drawn in its
