@@ -63,7 +63,11 @@ export default async function Home() {
       {open && <DevelopmentWarning />}
 
       {resume !== undefined && resumeView !== null && (
-        <ResumeCard film={resume} progress={progressOf(resumeView.steps)} />
+        <ResumeCard
+          film={resume}
+          progress={progressOf(resumeView.steps)}
+          ready={resumeView.missing.length === 0}
+        />
       )}
 
       {!settled && !open && (
@@ -90,25 +94,30 @@ export default async function Home() {
 const ResumeCard = ({
   film,
   progress,
+  ready,
 }: {
   readonly film: FilmListing;
   readonly progress: ReturnType<typeof progressOf>;
+  /** Nothing required is left: the next thing is making it, not more steps. */
+  readonly ready: boolean;
 }) => (
   <Card className="lib-resume">
     <div className="lib-resume__text">
-      <p className="eyebrow">Pick up where you left off</p>
+      <p className="eyebrow">{ready ? "Ready to make" : "Pick up where you left off"}</p>
       <h2 className="title">{film.name === null ? "Your film" : `${film.name}’s film`}</h2>
       <ChapterProgress
         chapters={progress.segments}
         label={`${String(progress.done)} of ${String(progress.total)} done`}
       />
       <p className="muted">
-        {progress.done} of {progress.total} done · {progress.timeLeft}
+        {ready
+          ? "Everything it needs is here. Have a last look, then make it."
+          : `${String(progress.done)} of ${String(progress.total)} done · ${progress.timeLeft}`}
       </p>
     </div>
     <Button size="lg" asChild>
-      <Link href={`/projects/${film.id}/continue`}>
-        Continue
+      <Link href={ready ? `/projects/${film.id}` : `/projects/${film.id}/continue`}>
+        {ready ? "Review and make" : "Continue"}
         <Icon name="forward" size={18} />
       </Link>
     </Button>
