@@ -41,12 +41,21 @@ export default async function Home() {
 
   if (projects.length === 0) return <Landing open={open} />;
 
-  const posters = new Map<string, string>();
-  for (const p of projects) {
-    if (p.posterKey !== null) posters.set(p.id, await thumbnailUrl(p.posterKey));
-  }
+  /**
+   * The posters and the film to resume, together rather than one after the
+   * other: none of them waits on any other, and in a loop each signing waited
+   * for the one before it.
+   */
   const resume = projects.find((p) => p.status === "capturing");
-  const resumeView = resume === undefined ? null : await loadWalkthroughView(resume.id);
+  const [signed, resumeView] = await Promise.all([
+    Promise.all(
+      projects.flatMap((p) =>
+        p.posterKey === null ? [] : [thumbnailUrl(p.posterKey).then((url) => [p.id, url] as const)],
+      ),
+    ),
+    resume === undefined ? null : loadWalkthroughView(resume.id),
+  ]);
+  const posters = new Map<string, string>(signed);
 
   return (
     <main className="page page--wide home">
