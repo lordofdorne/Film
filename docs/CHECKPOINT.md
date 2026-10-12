@@ -752,6 +752,27 @@ upload queue for the whole film, above the overview and the wizard:
 - **Not yet proven on a phone:** a real camera's bitrate, Safari's handling
   of a stream kept between screens, and a phone being locked mid-take.
 
+### The film is made while they watch — Phase 8, Block 4
+
+- **Render when the cut exists.** Compose calls `requestDeliveryRender`, so
+  the full-quality film is made while the customer watches the preview;
+  approval reuses that render (never a second row: a render's identity is
+  the cut). Delivery still waits for approval, and a render that gives up on
+  an unapproved cut does not fail the film. "Being made" on the film page is
+  asked of the approvals, not the renders.
+- **`RENDER_CONCURRENCY`**, default a third of the cores (3 here): identical
+  picture (MD5 of every decoded frame), and on a real full-HD film 30 s of
+  film in 80–86 s against 104–119 s. Past a third of the cores the x264 `slow`
+  encoder starves and it gets slower. Media pulled four at a time.
+- **The waiting screen estimates time left** from the last twenty renders,
+  less how long this one has run; "handing it over now" once rendered.
+- Checked on a real film: rendered before any approval and stayed awaiting
+  approval with nothing deliverable. A 2:11 film took 347 s; anybody who
+  spends that long with the preview and its notes approves a film that is
+  already made.
+- Owed: email when it is ready (needs SMTP); measuring the default
+  concurrency on the production worker.
+
 ### Moving through the site is fast now — Phase 8, Block 1
 
 Proposal and measurements: `docs/proposal/phase-8-performance.md`. Every tap
