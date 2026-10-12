@@ -216,6 +216,22 @@ export const planProject = async (
     .where(eq(edlVersions.projectId, projectId))
     .orderBy(desc(renders.createdAt));
 
+  /**
+   * Which cuts the customer approved. A render can now exist before approval
+   * (compose requests it so the film is made while they watch), and one that
+   * gives up on an UNAPPROVED cut must not mark the film failed: the customer
+   * is still looking at a perfectly good preview, and approving will try it
+   * again. Only a render the customer is waiting for is critical.
+   */
+  const approvedVersions = new Set(
+    (
+      await db
+        .select({ edlVersionId: approvals.edlVersionId })
+        .from(approvals)
+        .where(eq(approvals.projectId, projectId))
+    ).map((a) => a.edlVersionId),
+  );
+
   for (const render of requested) {
     if (render.quality !== "delivery") continue;
     const identity = renderIdentity({
@@ -225,7 +241,8 @@ export const planProject = async (
       formatId: render.formatId,
       quality: "delivery",
     });
-    const verdict = consider(identity, `render ${render.id.slice(0, 8)}`);
+    const approvedCut = approvedVersions.has(render.edlVersionId);
+    const verdict = consider(identity, `render ${render.id.slice(0, 8)}`, approvedCut);
     if (verdict === "dispatch") {
       jobs.push(payload(identity, { renderId: render.id }));
       continue;
@@ -233,17 +250,7 @@ export const planProject = async (
     if (verdict !== "done" || project.status === "delivered") continue;
 
     /* ── 6. deliver, once the film exists and the cut was approved ──── */
-    const approved = await db
-      .select({ id: approvals.id })
-      .from(approvals)
-      .where(
-        and(
-          eq(approvals.projectId, projectId),
-          eq(approvals.edlVersionId, render.edlVersionId),
-        ),
-      )
-      .limit(1);
-    if (approved.length === 0) continue;
+    if (!approvedCut) continue;
 
     const deliver = deliverIdentity({ projectId, renderId: render.id });
     if (consider(deliver, `deliver ${render.id.slice(0, 8)}`) === "dispatch") {

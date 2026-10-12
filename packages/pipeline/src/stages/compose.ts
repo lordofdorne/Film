@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { editorFor, type IngestedAnswer, type StillAsset } from "@film/editors";
-import { edlVersions, hashInputs, projects, type Db, type StageIdentity } from "@film/db";
+import { edlVersions, hashInputs, projects, requestDeliveryRender, type Db, type StageIdentity } from "@film/db";
 import { validateEdl, type MusicTrackInfo } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { resolveTrack } from "@film/music";
@@ -205,7 +205,15 @@ export const runCompose = async (ctx: StageContext): Promise<string | null> => {
   }
 
   const doc = result.edl;
-  const version = await appendVersion(ctx.db, project.id, doc);
+  const { version, id: versionId } = await appendVersion(ctx.db, project.id, doc);
+
+  /**
+   * Start making the full-quality film now, while the customer watches the
+   * preview, rather than when they press Approve. Delivery still waits for
+   * the approval; this only means the film is usually made by then. Asked
+   * again for an unchanged cut, it finds the render it already requested.
+   */
+  await requestDeliveryRender(ctx.db, versionId, format.id);
 
   await ctx.db
     .update(projects)
@@ -232,9 +240,13 @@ export const runCompose = async (ctx: StageContext): Promise<string | null> => {
  * supersede a cut the customer is looking at — and the approval flow would
  * refuse their click as stale for no reason at all.
  */
-const appendVersion = async (db: Db, projectId: string, doc: unknown): Promise<number> => {
+const appendVersion = async (
+  db: Db,
+  projectId: string,
+  doc: unknown,
+): Promise<{ version: number; id: string }> => {
   const latest = await db
-    .select({ version: edlVersions.version, doc: edlVersions.doc })
+    .select({ id: edlVersions.id, version: edlVersions.version, doc: edlVersions.doc })
     .from(edlVersions)
     .where(eq(edlVersions.projectId, projectId))
     .orderBy(desc(edlVersions.version))
@@ -242,12 +254,17 @@ const appendVersion = async (db: Db, projectId: string, doc: unknown): Promise<n
 
   const previous = latest[0];
   if (previous !== undefined && JSON.stringify(previous.doc) === JSON.stringify(doc)) {
-    return previous.version;
+    return { version: previous.version, id: previous.id };
   }
 
   const version = (previous?.version ?? 0) + 1;
-  await db.insert(edlVersions).values({ projectId, version, doc, author: "compose" });
-  return version;
+  const inserted = await db
+    .insert(edlVersions)
+    .values({ projectId, version, doc, author: "compose" })
+    .returning({ id: edlVersions.id });
+  const row = inserted[0];
+  if (row === undefined) throw new Error("edl version insert returned no row");
+  return { version, id: row.id };
 };
 
 /** The subject data the template interpolates, parsed out of the project row. */

@@ -496,6 +496,53 @@ describe("planProject — render and deliver", () => {
     expect((await planProject(db, projectId)).jobs).toEqual([]);
   });
 
+  /**
+   * Made while they watch. Compose requests the render the moment a cut
+   * exists, so it is planned before anybody approves — and delivery is what
+   * waits, as above.
+   */
+  it("renders a cut before it is approved, so it is made while they watch", async () => {
+    needsDb();
+    const { renderId } = await seedApprovedCut({ approve: false });
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ stage: "render", renderId });
+  });
+
+  it("does not fail a film when a render nobody has approved yet gives up", async () => {
+    needsDb();
+    const { renderId, edlVersionId } = await seedApprovedCut({ approve: false });
+    await record(
+      renderIdentity({ projectId, renderId, edlVersionId, formatId: FORMAT.id, quality: "delivery" }),
+      { status: "failed", failureClass: "permanent", error: "out of memory" },
+    );
+    expect((await planProject(db, projectId)).blocked).toEqual([]);
+  });
+
+  it("does fail it once the customer is waiting for that render", async () => {
+    needsDb();
+    const { renderId, edlVersionId } = await seedApprovedCut();
+    await record(
+      renderIdentity({ projectId, renderId, edlVersionId, formatId: FORMAT.id, quality: "delivery" }),
+      { status: "failed", failureClass: "permanent", error: "out of memory" },
+    );
+    expect((await planProject(db, projectId)).blocked).toHaveLength(1);
+  });
+
+  it("delivers at once when the film was already made before they approved", async () => {
+    needsDb();
+    const { renderId, edlVersionId } = await seedApprovedCut({ approve: false });
+    await record(
+      renderIdentity({ projectId, renderId, edlVersionId, formatId: FORMAT.id, quality: "delivery" }),
+    );
+    expect((await planProject(db, projectId)).jobs).toEqual([]);
+
+    await db.insert(approvals).values({ projectId, edlVersionId, approvedBy: userId });
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs).toHaveLength(1);
+    expect(jobs[0]).toMatchObject({ stage: "deliver", renderId });
+  });
+
   it("plans nothing more once the project is delivered", async () => {
     needsDb();
     const { renderId, edlVersionId } = await seedApprovedCut();
