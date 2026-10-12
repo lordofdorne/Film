@@ -283,6 +283,13 @@ progress.
   and restart. The scripts that used to cause it — `worker`, `intake`,
   `bed:upload` — now run `pnpm build:packages` instead, which filters out
   `@film/web`; `pnpm build` itself is still unsafe beside a dev server.
+- **No `loading.tsx` above a wizard step.** With one there — site-wide or
+  the wizard's own — a save that revalidates the film intermittently left the
+  router unable to move on, on a production build only: Continue saved and
+  stayed on the same screen for good, by `router.push` and by a redirect from
+  the action alike. Bisected over production builds (Phase 8, Block 1). The
+  dev server never prefetches, so it cannot show this; check navigation
+  changes with `pnpm perf` against `next build && next start`.
 - **The database-backed tests share one development Postgres, and now run one
   file at a time.** They flaked twice — `dispatch.test.ts`, then a 120-SECOND
   timeout in `runStage.test.ts` — and both passed immediately when run alone.
@@ -577,6 +584,32 @@ rather type one.
 Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
+
+### Moving through the site is fast now — Phase 8, Block 1
+
+Proposal and measurements: `docs/proposal/phase-8-performance.md`. Every tap
+in the wizard lands in about 30–110 ms on a production build, from 160–780 ms
+on `main` (`pnpm perf`, the two run alternately).
+
+- **Auth is verified locally.** `getClaims()` checks the session token's ES256
+  signature against the cached public key; `getUser()` asked the auth server
+  and waited 200–535 ms, up to three times per tap. `sessionClaims`,
+  `currentUser`, `sessionIdentity`, `accessToProject` and `loadWalkthroughView`
+  are cached per request. Only a pending address still goes to the auth
+  server, and only for an identity with no proved one. Trade-off accepted by
+  the owner: a revoked token stays valid until it expires (≤ 1 hour). It needs
+  asymmetric signing keys on the hosted project; with a shared secret
+  `getClaims` quietly falls back to `getUser`.
+- **The wizard frame is a layout**, `projects/[id]/(wizard)/layout.tsx`. It
+  works out the bar for every screen (`frameMapOf`) and `WizardFrame` picks
+  its entry from the URL, because a layout is not re-rendered between its
+  pages. Saves revalidate the film's path, which refreshes it.
+- **Continue redirects from the save action** (`submitDetail(…, then)`, only
+  ever within the same film).
+- **The film player is loaded only on the preview** (`FilmPlayer`, via
+  `next/dynamic`): the film page went from 224 KB to 128 KB first load.
+- **`pnpm perf`** times each wizard tap against a running server. Point it at
+  a production build: `next dev` never prefetches.
 
 ### Polish and proof — Phase 7, Block 7
 
