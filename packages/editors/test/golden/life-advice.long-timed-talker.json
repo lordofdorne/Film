@@ -1,0 +1,3895 @@
+{
+ "edl": {
+  "version": "1.0",
+  "projectId": "11111111-1111-4111-8111-111111111111",
+  "templateId": "life-advice",
+  "templateVersion": 1,
+  "fps": 30,
+  "totalDurationMs": 241800,
+  "audio": {
+   "musicTrackId": "temp",
+   "musicStartMs": 0,
+   "musicGainDb": -6,
+   "duckDb": -12,
+   "beatGridMs": [
+    0,
+    2000,
+    4000,
+    6000,
+    8000,
+    10000,
+    12000,
+    14000,
+    16000,
+    18000,
+    20000,
+    22000,
+    24000,
+    26000,
+    28000,
+    30000,
+    32000,
+    34000,
+    36000,
+    38000,
+    40000,
+    42000,
+    44000,
+    46000,
+    48000,
+    50000,
+    52000,
+    54000,
+    56000,
+    58000,
+    60000,
+    62000,
+    64000,
+    66000,
+    68000,
+    70000,
+    72000,
+    74000,
+    76000,
+    78000,
+    80000,
+    82000,
+    84000,
+    86000,
+    88000,
+    90000,
+    92000,
+    94000,
+    96000,
+    98000,
+    100000,
+    102000,
+    104000,
+    106000,
+    108000,
+    110000,
+    112000,
+    114000,
+    116000,
+    118000,
+    120000,
+    122000,
+    124000,
+    126000,
+    128000,
+    130000,
+    132000,
+    134000,
+    136000,
+    138000,
+    140000,
+    142000,
+    144000,
+    146000,
+    148000,
+    150000,
+    152000,
+    154000,
+    156000,
+    158000,
+    160000,
+    162000,
+    164000,
+    166000,
+    168000,
+    170000,
+    172000,
+    174000,
+    176000,
+    178000,
+    180000,
+    182000,
+    184000,
+    186000,
+    188000,
+    190000,
+    192000,
+    194000,
+    196000,
+    198000,
+    200000,
+    202000,
+    204000,
+    206000,
+    208000,
+    210000,
+    212000,
+    214000,
+    216000,
+    218000,
+    220000,
+    222000,
+    224000,
+    226000,
+    228000,
+    230000,
+    232000,
+    234000,
+    236000,
+    238000,
+    240000,
+    242000,
+    244000,
+    246000,
+    248000,
+    250000,
+    252000,
+    254000,
+    256000,
+    258000,
+    260000,
+    262000,
+    264000,
+    266000,
+    268000,
+    270000,
+    272000,
+    274000,
+    276000,
+    278000,
+    280000,
+    282000,
+    284000,
+    286000,
+    288000,
+    290000,
+    292000,
+    294000,
+    296000,
+    298000,
+    300000,
+    302000,
+    304000,
+    306000,
+    308000,
+    310000,
+    312000,
+    314000,
+    316000,
+    318000,
+    320000,
+    322000,
+    324000,
+    326000,
+    328000,
+    330000,
+    332000,
+    334000,
+    336000,
+    338000,
+    340000,
+    342000,
+    344000,
+    346000,
+    348000,
+    350000,
+    352000,
+    354000,
+    356000,
+    358000,
+    360000,
+    362000,
+    364000,
+    366000,
+    368000,
+    370000,
+    372000,
+    374000,
+    376000,
+    378000,
+    380000,
+    382000,
+    384000,
+    386000,
+    388000,
+    390000,
+    392000,
+    394000,
+    396000,
+    398000
+   ]
+  },
+  "visualSegments": [
+   {
+    "id": "v_open",
+    "kind": "broll",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "overlayTextKey": "opening",
+    "assetId": "broll-video_personality",
+    "slotId": "video_personality",
+    "sourceInMs": 1000,
+    "sourceOutMs": 6000,
+    "startMs": 0
+   },
+   {
+    "id": "v_cold_open",
+    "kind": "interview",
+    "durationMs": 7000,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 500,
+    "sourceOutMs": 7500,
+    "scale": 1,
+    "startMs": 4400
+   },
+   {
+    "id": "v_main_title",
+    "kind": "title",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "textKey": "mainTitle",
+    "reveal": "sequential",
+    "startMs": 10600
+   },
+   {
+    "id": "v_identity_name_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "assetId": "asset-identity_name",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1,
+    "startMs": 14800
+   },
+   {
+    "id": "v_identity_age_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-identity_age",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.06,
+    "startMs": 18100
+   },
+   {
+    "id": "v_identity_birth_year_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-identity_birth_year",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1,
+    "startMs": 21400
+   },
+   {
+    "id": "v_longevity_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.1,
+    "startMs": 24700
+   },
+   {
+    "id": "v_longevity_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1,
+    "startMs": 28000
+   },
+   {
+    "id": "v_longevity_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1.06,
+    "startMs": 32200
+   },
+   {
+    "id": "v_longevity_3_required",
+    "kind": "photo",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-photo_early",
+    "slotId": "photo_early",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.45
+    },
+    "motion": "in",
+    "intensity": 0.2,
+    "entry": "cut",
+    "startMs": 41900
+   },
+   {
+    "id": "v_longevity_4",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1,
+    "startMs": 46900
+   },
+   {
+    "id": "v_greatest_lesson_main_1",
+    "kind": "interview",
+    "durationMs": 7100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 4000,
+    "sourceOutMs": 11100,
+    "scale": 1.1,
+    "startMs": 50800
+   },
+   {
+    "id": "v_greatest_lesson_main_2",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1,
+    "startMs": 57900
+   },
+   {
+    "id": "v_greatest_lesson_main_2_required",
+    "kind": "broll",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "broll-video_group",
+    "slotId": "video_group",
+    "sourceInMs": 0,
+    "sourceOutMs": 6000,
+    "startMs": 67600
+   },
+   {
+    "id": "v_greatest_lesson_main_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 25800,
+    "sourceOutMs": 36100,
+    "scale": 1.06,
+    "startMs": 73600
+   },
+   {
+    "id": "v_greatest_lesson_main_4",
+    "kind": "interview",
+    "durationMs": 6500,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 38300,
+    "sourceOutMs": 44800,
+    "scale": 1,
+    "startMs": 83900
+   },
+   {
+    "id": "v_greatest_lesson_main_5",
+    "kind": "interview",
+    "durationMs": 2100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 55200,
+    "sourceOutMs": 57300,
+    "scale": 1.1,
+    "startMs": 90400
+   },
+   {
+    "id": "v_greatest_lesson_main_6",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1,
+    "startMs": 92500
+   },
+   {
+    "id": "v_advice_for_young_people_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.06,
+    "startMs": 96400
+   },
+   {
+    "id": "v_advice_for_young_people_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1,
+    "startMs": 99700
+   },
+   {
+    "id": "v_advice_for_young_people_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1.1,
+    "startMs": 103900
+   },
+   {
+    "id": "v_advice_for_young_people_3_required",
+    "kind": "photo",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-photo_personality",
+    "slotId": "photo_personality",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.45
+    },
+    "motion": "in",
+    "intensity": 0.2,
+    "entry": "cut",
+    "startMs": 113600
+   },
+   {
+    "id": "v_advice_for_young_people_4",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1,
+    "startMs": 118600
+   },
+   {
+    "id": "v_meaning_of_group_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.06,
+    "startMs": 122500
+   },
+   {
+    "id": "v_meaning_of_group_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1,
+    "startMs": 125800
+   },
+   {
+    "id": "v_meaning_of_group_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1.1,
+    "startMs": 130000
+   },
+   {
+    "id": "v_meaning_of_group_3_required",
+    "kind": "photo",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-photo_group",
+    "slotId": "photo_group",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.45
+    },
+    "motion": "in",
+    "intensity": 0.2,
+    "entry": "cut",
+    "startMs": 139700
+   },
+   {
+    "id": "v_meaning_of_group_4",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1,
+    "startMs": 144700
+   },
+   {
+    "id": "v_love_lesson_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.06,
+    "startMs": 148600
+   },
+   {
+    "id": "v_love_lesson_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1,
+    "startMs": 151900
+   },
+   {
+    "id": "v_love_lesson_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1.1,
+    "startMs": 156100
+   },
+   {
+    "id": "v_love_lesson_4",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1,
+    "startMs": 166400
+   },
+   {
+    "id": "v_closing_message_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1.06,
+    "startMs": 170300
+   },
+   {
+    "id": "v_closing_message_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1,
+    "startMs": 173600
+   },
+   {
+    "id": "v_closing_message_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1.1,
+    "startMs": 177800
+   },
+   {
+    "id": "v_closing_message_4",
+    "kind": "interview",
+    "durationMs": 7100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 25800,
+    "sourceOutMs": 32900,
+    "scale": 1,
+    "startMs": 188100
+   },
+   {
+    "id": "v_closing_message_5",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1.06,
+    "startMs": 195200
+   },
+   {
+    "id": "v_keepsake",
+    "kind": "photo",
+    "durationMs": 5600,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-keepsake",
+    "slotId": "keepsake",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "motion": "still",
+    "intensity": 0,
+    "entry": "insetExpand",
+    "startMs": 198500
+   },
+   {
+    "id": "v_group_still",
+    "kind": "photo",
+    "durationMs": 5600,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-photo_group",
+    "slotId": "photo_group",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "motion": "in",
+    "intensity": 0.25,
+    "entry": "cut",
+    "startMs": 203500
+   },
+   {
+    "id": "v_black_beat",
+    "kind": "black",
+    "durationMs": 2400,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "startMs": 208300
+   },
+   {
+    "id": "v_end_title",
+    "kind": "title",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "textKey": "endTitle",
+    "reveal": "sequential",
+    "startMs": 210700
+   },
+   {
+    "id": "v_bonus_interviewer_1",
+    "kind": "interview",
+    "durationMs": 3300,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 500,
+    "sourceOutMs": 3800,
+    "scale": 1,
+    "startMs": 214900
+   },
+   {
+    "id": "v_bonus_interviewer_2",
+    "kind": "interview",
+    "durationMs": 4200,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 6900,
+    "sourceOutMs": 11100,
+    "scale": 1.1,
+    "startMs": 218200
+   },
+   {
+    "id": "v_bonus_interviewer_3",
+    "kind": "interview",
+    "durationMs": 10300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 13300,
+    "sourceOutMs": 23600,
+    "scale": 1,
+    "startMs": 222400
+   },
+   {
+    "id": "v_bonus_interviewer_4",
+    "kind": "interview",
+    "durationMs": 3900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 79300,
+    "sourceOutMs": 83200,
+    "scale": 1.06,
+    "startMs": 232700
+   },
+   {
+    "id": "v_dedication",
+    "kind": "title",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "textKey": "closing",
+    "reveal": "fade",
+    "startMs": 235800
+   }
+  ],
+  "promptSegments": [],
+  "speechSegments": [
+   {
+    "id": "s_cold_open",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 4500,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_identity_name_1",
+    "questionId": "identity_name",
+    "assetId": "asset-identity_name",
+    "startMs": 14900,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_identity_age_1",
+    "questionId": "identity_age",
+    "assetId": "asset-identity_age",
+    "startMs": 18200,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_identity_birth_year_1",
+    "questionId": "identity_birth_year",
+    "assetId": "asset-identity_birth_year",
+    "startMs": 21500,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_longevity_1",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 24800,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_longevity_2",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 28100,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_longevity_3",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 32300,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_longevity_4",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 47000,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_1",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 50900,
+    "durationMs": 6800,
+    "sourceInMs": 4100,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "Um,",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "you",
+      "startMs": 298,
+      "endMs": 575
+     },
+     {
+      "text": "know,",
+      "startMs": 595,
+      "endMs": 873
+     },
+     {
+      "text": "I",
+      "startMs": 893,
+      "endMs": 1170
+     },
+     {
+      "text": "mean,",
+      "startMs": 1190,
+      "endMs": 1468
+     },
+     {
+      "text": "like,",
+      "startMs": 1488,
+      "endMs": 1765
+     },
+     {
+      "text": "it",
+      "startMs": 1785,
+      "endMs": 2063
+     },
+     {
+      "text": "was.",
+      "startMs": 2083,
+      "endMs": 2360
+     },
+     {
+      "text": "My",
+      "startMs": 2900,
+      "endMs": 3178
+     },
+     {
+      "text": "mother",
+      "startMs": 3198,
+      "endMs": 3477
+     },
+     {
+      "text": "kept",
+      "startMs": 3497,
+      "endMs": 3775
+     },
+     {
+      "text": "the",
+      "startMs": 3795,
+      "endMs": 4074
+     },
+     {
+      "text": "kettle",
+      "startMs": 4094,
+      "endMs": 4372
+     },
+     {
+      "text": "on",
+      "startMs": 4392,
+      "endMs": 4671
+     },
+     {
+      "text": "all",
+      "startMs": 4691,
+      "endMs": 4969
+     },
+     {
+      "text": "day",
+      "startMs": 4989,
+      "endMs": 5268
+     },
+     {
+      "text": "long",
+      "startMs": 5288,
+      "endMs": 5566
+     },
+     {
+      "text": "for",
+      "startMs": 5586,
+      "endMs": 5865
+     },
+     {
+      "text": "anyone",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "who",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "came.",
+      "startMs": 6482,
+      "endMs": 6760
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_2",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 58000,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_3",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 73700,
+    "durationMs": 10000,
+    "sourceInMs": 25900,
+    "sourceOutMs": 35900,
+    "captions": [
+     {
+      "text": "But",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "the",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "city",
+      "startMs": 596,
+      "endMs": 873
+     },
+     {
+      "text": "taught",
+      "startMs": 893,
+      "endMs": 1171
+     },
+     {
+      "text": "me",
+      "startMs": 1191,
+      "endMs": 1469
+     },
+     {
+      "text": "how",
+      "startMs": 1489,
+      "endMs": 1767
+     },
+     {
+      "text": "to",
+      "startMs": 1787,
+      "endMs": 2064
+     },
+     {
+      "text": "work",
+      "startMs": 2084,
+      "endMs": 2362
+     },
+     {
+      "text": "hard.",
+      "startMs": 2382,
+      "endMs": 2660
+     },
+     {
+      "text": "Every",
+      "startMs": 3200,
+      "endMs": 3476
+     },
+     {
+      "text": "job",
+      "startMs": 3496,
+      "endMs": 3772
+     },
+     {
+      "text": "I",
+      "startMs": 3792,
+      "endMs": 4068
+     },
+     {
+      "text": "ever",
+      "startMs": 4088,
+      "endMs": 4364
+     },
+     {
+      "text": "had,",
+      "startMs": 4384,
+      "endMs": 4660
+     },
+     {
+      "text": "I",
+      "startMs": 5600,
+      "endMs": 5875
+     },
+     {
+      "text": "gave",
+      "startMs": 5895,
+      "endMs": 6170
+     },
+     {
+      "text": "it",
+      "startMs": 6190,
+      "endMs": 6465
+     },
+     {
+      "text": "everything.",
+      "startMs": 6485,
+      "endMs": 6760
+     },
+     {
+      "text": "That",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "is",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "thing",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "I",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "would",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "tell",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "anyone",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "listening.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_4",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 84000,
+    "durationMs": 6200,
+    "sourceInMs": 38400,
+    "sourceOutMs": 44600,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "it",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "everything,",
+      "startMs": 596,
+      "endMs": 873
+     },
+     {
+      "text": "and",
+      "startMs": 893,
+      "endMs": 1171
+     },
+     {
+      "text": "be",
+      "startMs": 1191,
+      "endMs": 1469
+     },
+     {
+      "text": "kind",
+      "startMs": 1489,
+      "endMs": 1767
+     },
+     {
+      "text": "while",
+      "startMs": 1787,
+      "endMs": 2064
+     },
+     {
+      "text": "you",
+      "startMs": 2084,
+      "endMs": 2362
+     },
+     {
+      "text": "do.",
+      "startMs": 2382,
+      "endMs": 2660
+     },
+     {
+      "text": "We",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "grew",
+      "startMs": 3498,
+      "endMs": 3776
+     },
+     {
+      "text": "up",
+      "startMs": 3796,
+      "endMs": 4074
+     },
+     {
+      "text": "in",
+      "startMs": 4094,
+      "endMs": 4372
+     },
+     {
+      "text": "a",
+      "startMs": 4392,
+      "endMs": 4670
+     },
+     {
+      "text": "small",
+      "startMs": 4690,
+      "endMs": 4968
+     },
+     {
+      "text": "house",
+      "startMs": 4988,
+      "endMs": 5266
+     },
+     {
+      "text": "by",
+      "startMs": 5286,
+      "endMs": 5564
+     },
+     {
+      "text": "the",
+      "startMs": 5584,
+      "endMs": 5862
+     },
+     {
+      "text": "river.",
+      "startMs": 5882,
+      "endMs": 6160
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_5",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 90500,
+    "durationMs": 1800,
+    "sourceInMs": 55300,
+    "sourceOutMs": 57100,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 277
+     },
+     {
+      "text": "ever",
+      "startMs": 297,
+      "endMs": 573
+     },
+     {
+      "text": "left",
+      "startMs": 593,
+      "endMs": 870
+     },
+     {
+      "text": "that",
+      "startMs": 890,
+      "endMs": 1167
+     },
+     {
+      "text": "kitchen",
+      "startMs": 1187,
+      "endMs": 1463
+     },
+     {
+      "text": "hungry.",
+      "startMs": 1483,
+      "endMs": 1760
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main_6",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 92600,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_advice_for_young_people_1",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 96500,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_advice_for_young_people_2",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 99800,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_advice_for_young_people_3",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 104000,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_advice_for_young_people_4",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 118700,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group_1",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 122600,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group_2",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 125900,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group_3",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 130100,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group_4",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 144800,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_1",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 148700,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_2",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 152000,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_3",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 156200,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_4",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 166500,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message_1",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 170400,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message_2",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 173700,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message_3",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 177900,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message_4",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 188200,
+    "durationMs": 6800,
+    "sourceInMs": 25900,
+    "sourceOutMs": 32700,
+    "captions": [
+     {
+      "text": "But",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "the",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "city",
+      "startMs": 596,
+      "endMs": 873
+     },
+     {
+      "text": "taught",
+      "startMs": 893,
+      "endMs": 1171
+     },
+     {
+      "text": "me",
+      "startMs": 1191,
+      "endMs": 1469
+     },
+     {
+      "text": "how",
+      "startMs": 1489,
+      "endMs": 1767
+     },
+     {
+      "text": "to",
+      "startMs": 1787,
+      "endMs": 2064
+     },
+     {
+      "text": "work",
+      "startMs": 2084,
+      "endMs": 2362
+     },
+     {
+      "text": "hard.",
+      "startMs": 2382,
+      "endMs": 2660
+     },
+     {
+      "text": "Every",
+      "startMs": 3200,
+      "endMs": 3476
+     },
+     {
+      "text": "job",
+      "startMs": 3496,
+      "endMs": 3772
+     },
+     {
+      "text": "I",
+      "startMs": 3792,
+      "endMs": 4068
+     },
+     {
+      "text": "ever",
+      "startMs": 4088,
+      "endMs": 4364
+     },
+     {
+      "text": "had,",
+      "startMs": 4384,
+      "endMs": 4660
+     },
+     {
+      "text": "I",
+      "startMs": 5600,
+      "endMs": 5875
+     },
+     {
+      "text": "gave",
+      "startMs": 5895,
+      "endMs": 6170
+     },
+     {
+      "text": "it",
+      "startMs": 6190,
+      "endMs": 6465
+     },
+     {
+      "text": "everything.",
+      "startMs": 6485,
+      "endMs": 6760
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message_5",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 195300,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer_1",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 215000,
+    "durationMs": 3000,
+    "sourceInMs": 600,
+    "sourceOutMs": 3600,
+    "captions": [
+     {
+      "text": "We",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "grew",
+      "startMs": 298,
+      "endMs": 576
+     },
+     {
+      "text": "up",
+      "startMs": 596,
+      "endMs": 874
+     },
+     {
+      "text": "in",
+      "startMs": 894,
+      "endMs": 1172
+     },
+     {
+      "text": "a",
+      "startMs": 1192,
+      "endMs": 1470
+     },
+     {
+      "text": "small",
+      "startMs": 1490,
+      "endMs": 1768
+     },
+     {
+      "text": "house",
+      "startMs": 1788,
+      "endMs": 2066
+     },
+     {
+      "text": "by",
+      "startMs": 2086,
+      "endMs": 2364
+     },
+     {
+      "text": "the",
+      "startMs": 2384,
+      "endMs": 2662
+     },
+     {
+      "text": "river.",
+      "startMs": 2682,
+      "endMs": 2960
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer_2",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 218300,
+    "durationMs": 3900,
+    "sourceInMs": 7000,
+    "sourceOutMs": 10900,
+    "captions": [
+     {
+      "text": "My",
+      "startMs": 0,
+      "endMs": 278
+     },
+     {
+      "text": "mother",
+      "startMs": 298,
+      "endMs": 577
+     },
+     {
+      "text": "kept",
+      "startMs": 597,
+      "endMs": 875
+     },
+     {
+      "text": "the",
+      "startMs": 895,
+      "endMs": 1174
+     },
+     {
+      "text": "kettle",
+      "startMs": 1194,
+      "endMs": 1472
+     },
+     {
+      "text": "on",
+      "startMs": 1492,
+      "endMs": 1771
+     },
+     {
+      "text": "all",
+      "startMs": 1791,
+      "endMs": 2069
+     },
+     {
+      "text": "day",
+      "startMs": 2089,
+      "endMs": 2368
+     },
+     {
+      "text": "long",
+      "startMs": 2388,
+      "endMs": 2666
+     },
+     {
+      "text": "for",
+      "startMs": 2686,
+      "endMs": 2965
+     },
+     {
+      "text": "anyone",
+      "startMs": 2985,
+      "endMs": 3263
+     },
+     {
+      "text": "who",
+      "startMs": 3283,
+      "endMs": 3562
+     },
+     {
+      "text": "came.",
+      "startMs": 3582,
+      "endMs": 3860
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer_3",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 222500,
+    "durationMs": 10000,
+    "sourceInMs": 13400,
+    "sourceOutMs": 23400,
+    "captions": [
+     {
+      "text": "Nobody",
+      "startMs": 0,
+      "endMs": 275
+     },
+     {
+      "text": "ever",
+      "startMs": 295,
+      "endMs": 570
+     },
+     {
+      "text": "left",
+      "startMs": 590,
+      "endMs": 865
+     },
+     {
+      "text": "that",
+      "startMs": 885,
+      "endMs": 1160
+     },
+     {
+      "text": "kitchen",
+      "startMs": 2100,
+      "endMs": 2370
+     },
+     {
+      "text": "hungry.",
+      "startMs": 2390,
+      "endMs": 2660
+     },
+     {
+      "text": "When",
+      "startMs": 3200,
+      "endMs": 3478
+     },
+     {
+      "text": "I",
+      "startMs": 3498,
+      "endMs": 3777
+     },
+     {
+      "text": "was",
+      "startMs": 3797,
+      "endMs": 4075
+     },
+     {
+      "text": "twelve",
+      "startMs": 4095,
+      "endMs": 4373
+     },
+     {
+      "text": "we",
+      "startMs": 4393,
+      "endMs": 4672
+     },
+     {
+      "text": "moved",
+      "startMs": 4692,
+      "endMs": 4970
+     },
+     {
+      "text": "to",
+      "startMs": 4990,
+      "endMs": 5268
+     },
+     {
+      "text": "the",
+      "startMs": 5288,
+      "endMs": 5567
+     },
+     {
+      "text": "city",
+      "startMs": 5587,
+      "endMs": 5865
+     },
+     {
+      "text": "and",
+      "startMs": 5885,
+      "endMs": 6163
+     },
+     {
+      "text": "everything",
+      "startMs": 6183,
+      "endMs": 6462
+     },
+     {
+      "text": "changed.",
+      "startMs": 6482,
+      "endMs": 6760
+     },
+     {
+      "text": "I",
+      "startMs": 7300,
+      "endMs": 7578
+     },
+     {
+      "text": "missed",
+      "startMs": 7598,
+      "endMs": 7876
+     },
+     {
+      "text": "the",
+      "startMs": 7896,
+      "endMs": 8173
+     },
+     {
+      "text": "river",
+      "startMs": 8193,
+      "endMs": 8471
+     },
+     {
+      "text": "more",
+      "startMs": 8491,
+      "endMs": 8769
+     },
+     {
+      "text": "than",
+      "startMs": 8789,
+      "endMs": 9067
+     },
+     {
+      "text": "I",
+      "startMs": 9087,
+      "endMs": 9364
+     },
+     {
+      "text": "can",
+      "startMs": 9384,
+      "endMs": 9662
+     },
+     {
+      "text": "say.",
+      "startMs": 9682,
+      "endMs": 9960
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer_4",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 232800,
+    "durationMs": 3600,
+    "sourceInMs": 79400,
+    "sourceOutMs": 83000,
+    "captions": [
+     {
+      "text": "Give",
+      "startMs": 0,
+      "endMs": 276
+     },
+     {
+      "text": "it",
+      "startMs": 296,
+      "endMs": 572
+     },
+     {
+      "text": "everything,",
+      "startMs": 592,
+      "endMs": 868
+     },
+     {
+      "text": "and",
+      "startMs": 888,
+      "endMs": 1164
+     },
+     {
+      "text": "be",
+      "startMs": 1184,
+      "endMs": 1460
+     },
+     {
+      "text": "kind",
+      "startMs": 2400,
+      "endMs": 2675
+     },
+     {
+      "text": "while",
+      "startMs": 2695,
+      "endMs": 2970
+     },
+     {
+      "text": "you",
+      "startMs": 2990,
+      "endMs": 3265
+     },
+     {
+      "text": "do.",
+      "startMs": 3285,
+      "endMs": 3560
+     }
+    ]
+   }
+  ]
+ },
+ "notes": [
+  "\"identity_name\": 82 s shaped to 3 s (share 5 s): kept 1 of 20 sentences",
+  "\"identity_age\": 82 s shaped to 3 s (share 5 s): kept 1 of 20 sentences",
+  "\"identity_birth_year\": 82 s shaped to 3 s (share 5 s): kept 1 of 20 sentences",
+  "\"longevity\" too short (10300ms) for an insert; kept on the subject",
+  "\"photo_early\" is required, so it gets a beat of its own",
+  "\"longevity\": 82 s shaped to 22 s (share 22 s): kept 6 of 20 sentences",
+  "\"greatest_lesson\" too short (10300ms) for an insert; kept on the subject",
+  "\"video_group\" is required, so it gets a beat of its own",
+  "\"greatest_lesson\": 79 s shaped to 40 s (share 42 s): kept 12 of 19 sentences",
+  "\"advice_for_young_people\" too short (10300ms) for an insert; kept on the subject",
+  "\"photo_personality\" is required, so it gets a beat of its own",
+  "\"advice_for_young_people\": 82 s shaped to 22 s (share 22 s): kept 6 of 20 sentences",
+  "\"meaning_of_group\" too short (10300ms) for an insert; kept on the subject",
+  "\"photo_group\" is required, so it gets a beat of its own",
+  "\"meaning_of_group\": 82 s shaped to 22 s (share 22 s): kept 6 of 20 sentences",
+  "\"love_lesson\" too short (10300ms) for an insert; kept on the subject",
+  "\"love_lesson\": 82 s shaped to 22 s (share 22 s): kept 6 of 20 sentences",
+  "\"closing_message\": 82 s shaped to 29 s (share 30 s): kept 8 of 20 sentences",
+  "\"bonus_interviewer\": 82 s shaped to 22 s (share 22 s): kept 6 of 20 sentences",
+  "the \"video_environment\" clip was supplied but does not appear in the film"
+ ]
+}

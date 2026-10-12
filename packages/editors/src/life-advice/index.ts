@@ -15,7 +15,12 @@ export const LIFE_ADVICE_EDITOR: Editor = {
    * Block 2). Answers without timed words are cut exactly as by 4 — every
    * existing film, since transcription never overwrites words it already
    * wrote — so re-composing them yields the same cut and no new version.
+   *
+   * 6: answers over their share of the film are shaped to fit (Phase 9,
+   * Block 3) — long pauses out, then the strongest whole sentences. Only
+   * answers with word times can be shaped, so again every film made before
+   * is cut exactly as by 5.
    */
-  version: 5,
+  version: 6,
   edit: editLifeAdvice,
 };

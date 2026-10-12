@@ -5,7 +5,7 @@
   "templateId": "life-advice",
   "templateVersion": 1,
   "fps": 30,
-  "totalDurationMs": 232800,
+  "totalDurationMs": 189900,
   "audio": {
    "musicTrackId": "temp",
    "musicStartMs": 0,
@@ -257,46 +257,46 @@
     "startMs": 10600
    },
    {
-    "id": "v_identity_name",
+    "id": "v_identity_name_1",
     "kind": "interview",
-    "durationMs": 20000,
+    "durationMs": 5700,
     "transitionIn": {
      "type": "fade",
      "durationMs": 800
     },
     "assetId": "asset-identity_name",
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5700,
     "scale": 1,
     "startMs": 14800
    },
    {
-    "id": "v_identity_age",
+    "id": "v_identity_age_1",
     "kind": "interview",
-    "durationMs": 20000,
+    "durationMs": 5700,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-identity_age",
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5700,
     "scale": 1.06,
-    "startMs": 34800
+    "startMs": 20500
    },
    {
-    "id": "v_identity_birth_year",
+    "id": "v_identity_birth_year_1",
     "kind": "interview",
-    "durationMs": 20000,
+    "durationMs": 5700,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-identity_birth_year",
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5700,
     "scale": 1,
-    "startMs": 54800
+    "startMs": 26200
    },
    {
     "id": "v_longevity_a",
@@ -310,7 +310,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 8400,
     "scale": 1.1,
-    "startMs": 74800
+    "startMs": 31900
    },
    {
     "id": "v_longevity_insert",
@@ -329,7 +329,7 @@
     "motion": "in",
     "intensity": 0.35,
     "entry": "insetExpand",
-    "startMs": 83200
+    "startMs": 40300
    },
    {
     "id": "v_longevity_b",
@@ -343,7 +343,7 @@
     "sourceInMs": 14400,
     "sourceOutMs": 20000,
     "scale": 1.1,
-    "startMs": 89200
+    "startMs": 46300
    },
    {
     "id": "v_greatest_lesson_main_a",
@@ -357,7 +357,7 @@
     "sourceInMs": 3000,
     "sourceOutMs": 10000,
     "scale": 1,
-    "startMs": 94800
+    "startMs": 51900
    },
    {
     "id": "v_greatest_lesson_main_insert",
@@ -371,7 +371,7 @@
     "slotId": "video_group",
     "sourceInMs": 1500,
     "sourceOutMs": 9500,
-    "startMs": 101800
+    "startMs": 58900
    },
    {
     "id": "v_greatest_lesson_main_b",
@@ -385,7 +385,7 @@
     "sourceInMs": 18000,
     "sourceOutMs": 20000,
     "scale": 1,
-    "startMs": 109800
+    "startMs": 66900
    },
    {
     "id": "v_advice_for_young_people_a",
@@ -399,7 +399,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 8400,
     "scale": 1.06,
-    "startMs": 111800
+    "startMs": 68900
    },
    {
     "id": "v_advice_for_young_people_insert",
@@ -418,7 +418,7 @@
     "motion": "panRight",
     "intensity": 0.35,
     "entry": "cut",
-    "startMs": 120200
+    "startMs": 77300
    },
    {
     "id": "v_advice_for_young_people_b",
@@ -432,7 +432,7 @@
     "sourceInMs": 14400,
     "sourceOutMs": 20000,
     "scale": 1.06,
-    "startMs": 126200
+    "startMs": 83300
    },
    {
     "id": "v_meaning_of_group_a",
@@ -446,7 +446,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 8400,
     "scale": 1,
-    "startMs": 131800
+    "startMs": 88900
    },
    {
     "id": "v_meaning_of_group_insert",
@@ -465,7 +465,7 @@
     "motion": "out",
     "intensity": 0.35,
     "entry": "insetExpand",
-    "startMs": 140200
+    "startMs": 97300
    },
    {
     "id": "v_meaning_of_group_b",
@@ -479,7 +479,7 @@
     "sourceInMs": 14400,
     "sourceOutMs": 20000,
     "scale": 1,
-    "startMs": 146200
+    "startMs": 103300
    },
    {
     "id": "v_love_lesson_a",
@@ -493,7 +493,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 8400,
     "scale": 1.1,
-    "startMs": 151800
+    "startMs": 108900
    },
    {
     "id": "v_love_lesson_insert",
@@ -507,7 +507,7 @@
     "slotId": "video_environment",
     "sourceInMs": 1500,
     "sourceOutMs": 9500,
-    "startMs": 160200
+    "startMs": 117300
    },
    {
     "id": "v_love_lesson_b",
@@ -521,7 +521,7 @@
     "sourceInMs": 16400,
     "sourceOutMs": 20000,
     "scale": 1.1,
-    "startMs": 168200
+    "startMs": 125300
    },
    {
     "id": "v_closing_message",
@@ -535,7 +535,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 20000,
     "scale": 1,
-    "startMs": 171800
+    "startMs": 128900
    },
    {
     "id": "v_keepsake",
@@ -554,7 +554,7 @@
     "motion": "still",
     "intensity": 0,
     "entry": "insetExpand",
-    "startMs": 191200
+    "startMs": 148300
    },
    {
     "id": "v_group_still",
@@ -573,7 +573,7 @@
     "motion": "in",
     "intensity": 0.25,
     "entry": "cut",
-    "startMs": 196200
+    "startMs": 153300
    },
    {
     "id": "v_black_beat",
@@ -583,7 +583,7 @@
      "type": "fade",
      "durationMs": 800
     },
-    "startMs": 201000
+    "startMs": 158100
    },
    {
     "id": "v_end_title",
@@ -595,7 +595,7 @@
     },
     "textKey": "endTitle",
     "reveal": "sequential",
-    "startMs": 203400
+    "startMs": 160500
    },
    {
     "id": "v_bonus_interviewer",
@@ -609,7 +609,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 20000,
     "scale": 1.06,
-    "startMs": 207600
+    "startMs": 164700
    },
    {
     "id": "v_dedication",
@@ -621,7 +621,7 @@
     },
     "textKey": "closing",
     "reveal": "fade",
-    "startMs": 226800
+    "startMs": 183900
    }
   ],
   "promptSegments": [],
@@ -678,13 +678,13 @@
     ]
    },
    {
-    "id": "s_identity_name",
+    "id": "s_identity_name_1",
     "questionId": "identity_name",
     "assetId": "asset-identity_name",
     "startMs": 14800,
-    "durationMs": 20000,
+    "durationMs": 5500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5500,
     "captions": [
      {
       "text": "The",
@@ -745,157 +745,17 @@
       "text": "window.",
       "startMs": 5083,
       "endMs": 5492
-     },
-     {
-      "text": "Talking",
-      "startMs": 5954,
-      "endMs": 6316
-     },
-     {
-      "text": "about",
-      "startMs": 6336,
-      "endMs": 6954
-     },
-     {
-      "text": "nothing",
-      "startMs": 6974,
-      "endMs": 7287
-     },
-     {
-      "text": "in",
-      "startMs": 7307,
-      "endMs": 7532
-     },
-     {
-      "text": "particular",
-      "startMs": 7552,
-      "endMs": 7953
-     },
-     {
-      "text": "while",
-      "startMs": 7973,
-      "endMs": 8248
-     },
-     {
-      "text": "the",
-      "startMs": 8268,
-      "endMs": 8571
-     },
-     {
-      "text": "rain.",
-      "startMs": 8591,
-      "endMs": 9169
-     },
-     {
-      "text": "Came",
-      "startMs": 9694,
-      "endMs": 10005
-     },
-     {
-      "text": "down",
-      "startMs": 10025,
-      "endMs": 10098
-     },
-     {
-      "text": "over",
-      "startMs": 10118,
-      "endMs": 10386
-     },
-     {
-      "text": "the",
-      "startMs": 10406,
-      "endMs": 10666
-     },
-     {
-      "text": "garden",
-      "startMs": 10686,
-      "endMs": 10980
-     },
-     {
-      "text": "and",
-      "startMs": 11000,
-      "endMs": 11175
-     },
-     {
-      "text": "the.",
-      "startMs": 11195,
-      "endMs": 11794
-     },
-     {
-      "text": "Dog",
-      "startMs": 11814,
-      "endMs": 12125
-     },
-     {
-      "text": "slept.",
-      "startMs": 12145,
-      "endMs": 13100
-     },
-     {
-      "text": "By",
-      "startMs": 13120,
-      "endMs": 13524
-     },
-     {
-      "text": "the",
-      "startMs": 13544,
-      "endMs": 14058
-     },
-     {
-      "text": "door.",
-      "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
-     {
-      "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
-     },
-     {
-      "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
-     },
-     {
-      "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
-     },
-     {
-      "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
-     },
-     {
-      "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
      }
     ]
    },
    {
-    "id": "s_identity_age",
+    "id": "s_identity_age_1",
     "questionId": "identity_age",
     "assetId": "asset-identity_age",
-    "startMs": 34800,
-    "durationMs": 20000,
+    "startMs": 20500,
+    "durationMs": 5500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5500,
     "captions": [
      {
       "text": "The",
@@ -956,157 +816,17 @@
       "text": "window.",
       "startMs": 5083,
       "endMs": 5492
-     },
-     {
-      "text": "Talking",
-      "startMs": 5954,
-      "endMs": 6316
-     },
-     {
-      "text": "about",
-      "startMs": 6336,
-      "endMs": 6954
-     },
-     {
-      "text": "nothing",
-      "startMs": 6974,
-      "endMs": 7287
-     },
-     {
-      "text": "in",
-      "startMs": 7307,
-      "endMs": 7532
-     },
-     {
-      "text": "particular",
-      "startMs": 7552,
-      "endMs": 7953
-     },
-     {
-      "text": "while",
-      "startMs": 7973,
-      "endMs": 8248
-     },
-     {
-      "text": "the",
-      "startMs": 8268,
-      "endMs": 8571
-     },
-     {
-      "text": "rain.",
-      "startMs": 8591,
-      "endMs": 9169
-     },
-     {
-      "text": "Came",
-      "startMs": 9694,
-      "endMs": 10005
-     },
-     {
-      "text": "down",
-      "startMs": 10025,
-      "endMs": 10098
-     },
-     {
-      "text": "over",
-      "startMs": 10118,
-      "endMs": 10386
-     },
-     {
-      "text": "the",
-      "startMs": 10406,
-      "endMs": 10666
-     },
-     {
-      "text": "garden",
-      "startMs": 10686,
-      "endMs": 10980
-     },
-     {
-      "text": "and",
-      "startMs": 11000,
-      "endMs": 11175
-     },
-     {
-      "text": "the.",
-      "startMs": 11195,
-      "endMs": 11794
-     },
-     {
-      "text": "Dog",
-      "startMs": 11814,
-      "endMs": 12125
-     },
-     {
-      "text": "slept.",
-      "startMs": 12145,
-      "endMs": 13100
-     },
-     {
-      "text": "By",
-      "startMs": 13120,
-      "endMs": 13524
-     },
-     {
-      "text": "the",
-      "startMs": 13544,
-      "endMs": 14058
-     },
-     {
-      "text": "door.",
-      "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
-     {
-      "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
-     },
-     {
-      "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
-     },
-     {
-      "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
-     },
-     {
-      "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
-     },
-     {
-      "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
      }
     ]
    },
    {
-    "id": "s_identity_birth_year",
+    "id": "s_identity_birth_year_1",
     "questionId": "identity_birth_year",
     "assetId": "asset-identity_birth_year",
-    "startMs": 54800,
-    "durationMs": 20000,
+    "startMs": 26200,
+    "durationMs": 5500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 5500,
     "captions": [
      {
       "text": "The",
@@ -1167,146 +887,6 @@
       "text": "window.",
       "startMs": 5083,
       "endMs": 5492
-     },
-     {
-      "text": "Talking",
-      "startMs": 5954,
-      "endMs": 6316
-     },
-     {
-      "text": "about",
-      "startMs": 6336,
-      "endMs": 6954
-     },
-     {
-      "text": "nothing",
-      "startMs": 6974,
-      "endMs": 7287
-     },
-     {
-      "text": "in",
-      "startMs": 7307,
-      "endMs": 7532
-     },
-     {
-      "text": "particular",
-      "startMs": 7552,
-      "endMs": 7953
-     },
-     {
-      "text": "while",
-      "startMs": 7973,
-      "endMs": 8248
-     },
-     {
-      "text": "the",
-      "startMs": 8268,
-      "endMs": 8571
-     },
-     {
-      "text": "rain.",
-      "startMs": 8591,
-      "endMs": 9169
-     },
-     {
-      "text": "Came",
-      "startMs": 9694,
-      "endMs": 10005
-     },
-     {
-      "text": "down",
-      "startMs": 10025,
-      "endMs": 10098
-     },
-     {
-      "text": "over",
-      "startMs": 10118,
-      "endMs": 10386
-     },
-     {
-      "text": "the",
-      "startMs": 10406,
-      "endMs": 10666
-     },
-     {
-      "text": "garden",
-      "startMs": 10686,
-      "endMs": 10980
-     },
-     {
-      "text": "and",
-      "startMs": 11000,
-      "endMs": 11175
-     },
-     {
-      "text": "the.",
-      "startMs": 11195,
-      "endMs": 11794
-     },
-     {
-      "text": "Dog",
-      "startMs": 11814,
-      "endMs": 12125
-     },
-     {
-      "text": "slept.",
-      "startMs": 12145,
-      "endMs": 13100
-     },
-     {
-      "text": "By",
-      "startMs": 13120,
-      "endMs": 13524
-     },
-     {
-      "text": "the",
-      "startMs": 13544,
-      "endMs": 14058
-     },
-     {
-      "text": "door.",
-      "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
-     {
-      "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
-     },
-     {
-      "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
-     },
-     {
-      "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
-     },
-     {
-      "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
-     },
-     {
-      "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
      }
     ]
    },
@@ -1314,7 +894,7 @@
     "id": "s_longevity",
     "questionId": "longevity",
     "assetId": "asset-longevity",
-    "startMs": 74800,
+    "startMs": 31900,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -1525,7 +1105,7 @@
     "id": "s_greatest_lesson_main",
     "questionId": "greatest_lesson",
     "assetId": "asset-greatest_lesson",
-    "startMs": 95000,
+    "startMs": 52100,
     "durationMs": 16800,
     "sourceInMs": 3200,
     "sourceOutMs": 20000,
@@ -1696,7 +1276,7 @@
     "id": "s_advice_for_young_people",
     "questionId": "advice_for_young_people",
     "assetId": "asset-advice_for_young_people",
-    "startMs": 111800,
+    "startMs": 68900,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -1907,7 +1487,7 @@
     "id": "s_meaning_of_group",
     "questionId": "meaning_of_group",
     "assetId": "asset-meaning_of_group",
-    "startMs": 131800,
+    "startMs": 88900,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -2118,7 +1698,7 @@
     "id": "s_love_lesson",
     "questionId": "love_lesson",
     "assetId": "asset-love_lesson",
-    "startMs": 151800,
+    "startMs": 108900,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -2329,7 +1909,7 @@
     "id": "s_closing_message",
     "questionId": "closing_message",
     "assetId": "asset-closing_message",
-    "startMs": 171800,
+    "startMs": 128900,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -2540,7 +2120,7 @@
     "id": "s_bonus_interviewer",
     "questionId": "bonus_interviewer",
     "assetId": "asset-bonus_interviewer",
-    "startMs": 207600,
+    "startMs": 164700,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -2749,5 +2329,9 @@
    }
   ]
  },
- "notes": []
+ "notes": [
+  "\"identity_name\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences",
+  "\"identity_age\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences",
+  "\"identity_birth_year\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences"
+ ]
 }

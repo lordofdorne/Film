@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import { getTemplate, TEMPLATE_REGISTRY, type Template } from "@film/templates";
 
 import { editorFor, type ComposeInput } from "../src/index.js";
+import { talk } from "./talk.js";
+import { validate } from "./validate.js";
 
 /**
  * The life-advice editor's cut of six films, checked in.
@@ -98,6 +100,25 @@ const timedFilm = (): ComposeInput => {
   };
 };
 
+/**
+ * Every answer a long, timed take — about seventy seconds of somebody who
+ * pauses to think, restarts, and keeps going. The film shaping exists for.
+ */
+const longTimedFilm = (): ComposeInput => {
+  const base = film([], 80_000, 40_000, []);
+  return {
+    ...base,
+    answers: base.answers.map((a) => {
+      const t = talk(20);
+      return { ...a, durationMs: t.durationMs, runs: t.runs, spoken: t.text, words: t.words };
+    }),
+    assetDurationMs: {
+      ...base.assetDurationMs,
+      ...Object.fromEntries(base.answers.map((a) => [a.assetId, talk(20).durationMs] as const)),
+    },
+  };
+};
+
 const FILMS: Record<string, ComposeInput> = {
   "everything-average": film([], 30_000, 40_000, []),
   "short-talker": film([], 6_000, 40_000, []),
@@ -106,6 +127,7 @@ const FILMS: Record<string, ComposeInput> = {
   "short-clips": film([], 30_000, 2_500, []),
   "with-question-cards": film([], 30_000, 40_000, QUESTION_IDS),
   "timed-words": timedFilm(),
+  "long-timed-talker": longTimedFilm(),
 };
 
 const goldenPath = (name: string): URL => new URL(`./golden/life-advice.${name}.json`, import.meta.url);
@@ -134,5 +156,39 @@ describe("every template", () => {
 
   it("names the editor in the error when one does not exist", () => {
     expect(() => editorFor({ ...template, editor: "no-such-editor" })).toThrow(/no-such-editor/);
+  });
+});
+
+describe("a film from long answers, shaped", () => {
+  const input = longTimedFilm();
+  const { edl, notes } = editorFor(template).edit(input);
+
+  it("is a film the validator accepts", () => {
+    const result = validate({ ...input, template }, edl);
+    if (!result.ok) throw new Error(JSON.stringify(result.errors.slice(0, 3)));
+    expect(result.ok).toBe(true);
+  });
+
+  it("gives every answer no more than its share, give or take its opening thought", () => {
+    // A unit is kept whole even when the first one alone is over; in this
+    // talk no unit is longer than about four seconds.
+    const TOLERANCE_MS = 4_000;
+    for (const q of template.questions) {
+      if (q.shareSeconds === undefined) continue;
+      const spoken = edl.speechSegments
+        .filter((s) => s.questionId === q.id)
+        .reduce((t, s) => t + s.durationMs, 0);
+      expect(spoken, q.id).toBeLessThanOrEqual(q.shareSeconds * 1000 + TOLERANCE_MS);
+    }
+  });
+
+  it("lands near the template's length instead of the length of what was said", () => {
+    const said = input.answers.reduce((t, a) => t + a.durationMs, 0);
+    expect(said).toBeGreaterThan(10 * 60_000);
+    expect(edl.totalDurationMs).toBeLessThanOrEqual(template.targetDurationMs.max + 30_000);
+  });
+
+  it("says what it shaped", () => {
+    expect(notes.filter((n) => n.includes("shaped to")).length).toBeGreaterThan(5);
   });
 });
