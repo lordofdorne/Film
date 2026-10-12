@@ -45,7 +45,7 @@ export type StageContext = {
 
 export type StageOutcome =
   | { readonly status: "succeeded"; readonly outputHash: string | null }
-  | { readonly status: "skipped"; readonly reason: "already_done" | "in_flight" }
+  | { readonly status: "skipped"; readonly reason: "already_done" | "in_flight" | "gone" }
   | { readonly status: "deferred"; readonly reason: "insufficient_disk" }
   | {
       readonly status: "failed";

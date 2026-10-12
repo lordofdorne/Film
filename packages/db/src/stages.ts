@@ -37,7 +37,20 @@ export const hashInputs = (inputs: Record<string, unknown>): string => {
 
 export type ClaimResult =
   | { readonly claimed: true; readonly executionId: string; readonly attempt: number }
-  | { readonly claimed: false; readonly reason: "already_done" | "in_flight"; readonly executionId: string };
+  | { readonly claimed: false; readonly reason: "already_done" | "in_flight"; readonly executionId: string }
+  /** The project or asset was deleted after this job was queued. Nothing to do. */
+  | { readonly claimed: false; readonly reason: "gone" };
+
+/** Postgres's code for an error, whether or not Drizzle wrapped it. */
+const pgCode = (error: unknown): string | undefined => {
+  for (let e = error; e instanceof Error || (typeof e === "object" && e !== null); ) {
+    const code = (e as { code?: unknown }).code;
+    if (typeof code === "string") return code;
+    e = (e as { cause?: unknown }).cause;
+    if (e === undefined) return undefined;
+  }
+  return undefined;
+};
 
 /**
  * Claim a stage, then do the work — never the other way round.
@@ -54,19 +67,31 @@ export type ClaimResult =
 export const claimStage = async (db: Db, identity: StageIdentity): Promise<ClaimResult> => {
   const assetId = identity.assetId ?? null;
 
-  const inserted = await db
-    .insert(stageExecutions)
-    .values({
-      projectId: identity.projectId,
-      assetId,
-      stage: identity.stage,
-      inputHash: identity.inputHash,
-      status: "running",
-      attempt: 1,
-      startedAt: new Date(),
-    })
-    .onConflictDoNothing()
-    .returning({ id: stageExecutions.id, attempt: stageExecutions.attempt });
+  /**
+   * A film deleted while its jobs were still queued (deleteFilm) leaves those
+   * jobs pointing at nothing. The insert's foreign key says so; skipping is the
+   * whole of the right response, where throwing would spend every retry on a
+   * film that no longer exists.
+   */
+  let inserted: { id: string; attempt: number }[];
+  try {
+    inserted = await db
+      .insert(stageExecutions)
+      .values({
+        projectId: identity.projectId,
+        assetId,
+        stage: identity.stage,
+        inputHash: identity.inputHash,
+        status: "running",
+        attempt: 1,
+        startedAt: new Date(),
+      })
+      .onConflictDoNothing()
+      .returning({ id: stageExecutions.id, attempt: stageExecutions.attempt });
+  } catch (error: unknown) {
+    if (pgCode(error) === "23503") return { claimed: false, reason: "gone" };
+    throw error;
+  }
 
   const won = inserted[0];
   if (won !== undefined) {

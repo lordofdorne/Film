@@ -188,6 +188,16 @@ describe("stage execution against Postgres", () => {
     if (!second.claimed) expect(second.reason).toBe("in_flight");
   });
 
+  it("skips a stage whose film was deleted after the job was queued", async () => {
+    skipIfNoDb();
+    const identity = {
+      projectId: "44444444-4444-4444-8444-444444444444",
+      stage: "compose" as const,
+      inputHash: hashInputs({ v: "gone" }),
+    };
+    expect(await claimStage(db, identity)).toEqual({ claimed: false, reason: "gone" });
+  });
+
   it("refuses to redo work that already succeeded", async () => {
     skipIfNoDb();
     const identity = { projectId, assetId, stage: "qc" as const, inputHash: hashInputs({ v: 2 }) };
