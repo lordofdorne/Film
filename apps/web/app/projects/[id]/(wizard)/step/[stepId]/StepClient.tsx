@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { discardStep, finishUpload, mintUploadFor } from "../../../../../src/server/captureActions.js";
-import type { StepView } from "../../../../../src/server/capture.js";
-import { Button, Chip, Icon, Tip } from "../../../../../src/ui/index.js";
+import { discardStep, finishUpload, mintUploadFor } from "../../../../../../src/server/captureActions.js";
+import type { StepView } from "../../../../../../src/server/capture.js";
+import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 
 /**
  * One capture, one screen of the wizard: record it, look at it, do it again,

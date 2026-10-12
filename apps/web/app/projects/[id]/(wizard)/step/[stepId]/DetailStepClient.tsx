@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 
-import { submitDetail } from "../../../../../src/server/captureActions.js";
-import type { StepView } from "../../../../../src/server/capture.js";
-import { Button, Chip, Icon, Tip } from "../../../../../src/ui/index.js";
-import { SetPasswordOffer } from "../../../../SetPasswordOffer.js";
+import { submitDetail } from "../../../../../../src/server/captureActions.js";
+import type { StepView } from "../../../../../../src/server/capture.js";
+import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
+import { SetPasswordOffer } from "../../../../../SetPasswordOffer.js";
 
 /**
  * A typed answer, dressed exactly like a capture: the ask, the coaching, one

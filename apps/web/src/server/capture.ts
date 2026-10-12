@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createHmac, randomBytes } from "node:crypto";
+import { cache } from "react";
 
 import { createDb, type Db } from "@film/db";
 import {
@@ -205,7 +206,8 @@ const qcNoteOf = (
   return "We could hear this clearly.";
 };
 
-export const loadWalkthroughView = async (projectId: string): Promise<WalkthroughView | null> => {
+/** Cached per request: the wizard's layout and its page both read it. */
+export const loadWalkthroughView = cache(async (projectId: string): Promise<WalkthroughView | null> => {
   const walkthrough = await loadWalkthrough(deps(), projectId);
   if (walkthrough === null) return null;
 
@@ -243,7 +245,7 @@ export const loadWalkthroughView = async (projectId: string): Promise<Walkthroug
     };
   });
   return { ...walkthrough, steps, spokenSecondsSoFar };
-};
+});
 
 /**
  * Every card's thumbnail, and nothing else.

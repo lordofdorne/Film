@@ -262,7 +262,7 @@ export type Access =
  * Every route that serves a film's media or its file asks this and treats
  * every refusal as a 404, so `needs-account` closes them too.
  */
-export const accessToProject = async (projectId: string): Promise<Access> => {
+export const accessToProject = cache(async (projectId: string): Promise<Access> => {
   // Nobody to check against, and nothing to check. Development only, and every
   // page says so.
   if (!authConfigured()) return { allowed: true, user: null };
@@ -273,7 +273,7 @@ export const accessToProject = async (projectId: string): Promise<Access> => {
   const access = await accessToFilm(db(), user, projectId);
   if (access === "owner") return { allowed: true, user };
   return { allowed: false, reason: access === "needs-account" ? "needs-account" : "not-yours" };
-};
+});
 
 export type Guarded =
   | { readonly needsAccount: false; readonly user: AppUser | null }

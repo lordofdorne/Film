@@ -179,3 +179,51 @@ export const outlineOf = (projectId: string, steps: readonly MapStep[]): readonl
       href: stepHref(projectId, step.id),
     })),
   }));
+
+/** What the bar shows on one screen of the wizard. */
+export type FrameStop = {
+  /** "Their story · 5 of 10", or "Part 2 of 4". */
+  readonly where: string;
+  readonly backHref: string;
+  readonly chapterId: string;
+};
+
+/**
+ * Everything the wizard's bar needs, for every screen at once.
+ *
+ * The bar lives in a layout so it stays on screen while the middle changes —
+ * and a layout is not re-rendered when you move between the pages inside it.
+ * So rather than each page telling the bar where it is, the layout works out
+ * the bar for every step and every chapter intro in one go, and the bar picks
+ * its entry from the URL. It is a few dozen short strings; the alternative was
+ * rebuilding the bar, the progress and the All steps sheet on every tap.
+ *
+ * Keyed `step:<id>` and `chapter:<id>`, the two kinds of screen there are.
+ */
+export type FrameMap = {
+  readonly stops: Readonly<Record<string, FrameStop>>;
+  /** With no chapter marked current: the bar marks the one it is in. */
+  readonly progress: Progress;
+  readonly outline: readonly OutlineChapter[];
+};
+
+export const frameMapOf = (projectId: string, steps: readonly MapStep[]): FrameMap => {
+  const chapters = chaptersOf(steps);
+  const stops: Record<string, FrameStop> = {};
+  for (const chapter of chapters) {
+    const first = chapter.steps[0];
+    stops[`chapter:${chapter.id}`] = {
+      where: `Part ${String(chapter.number)} of ${String(chapters.length)}`,
+      backHref: first === undefined ? `/projects/${projectId}` : backHref(projectId, steps, first.id),
+      chapterId: chapter.id,
+    };
+    chapter.steps.forEach((step, index) => {
+      stops[`step:${step.id}`] = {
+        where: `${chapter.title} · ${String(index + 1)} of ${String(chapter.steps.length)}`,
+        backHref: backHref(projectId, steps, step.id),
+        chapterId: chapter.id,
+      };
+    });
+  }
+  return { stops, progress: progressOf(steps), outline: outlineOf(projectId, steps) };
+};

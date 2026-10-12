@@ -1,20 +1,16 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { guardProject } from "../../../../../src/server/auth.js";
-import { loadWalkthroughView } from "../../../../../src/server/capture.js";
+import { guardProject } from "../../../../../../src/server/auth.js";
+import { loadWalkthroughView } from "../../../../../../src/server/capture.js";
 import {
-  backHref,
   beginHref,
   chaptersOf,
   durationOf,
   isDone,
-  outlineOf,
-  progressOf,
   skipChapterHref,
-} from "../../../../../src/server/wizard.js";
-import { Button, Chip, Icon } from "../../../../../src/ui/index.js";
-import { WizardFrame } from "../../WizardFrame.js";
+} from "../../../../../../src/server/wizard.js";
+import { Button, Chip, Icon } from "../../../../../../src/ui/index.js";
 
 /**
  * A chapter's front door: what is coming, how long it takes, and what to set
@@ -43,18 +39,11 @@ export default async function ChapterPage({
   const chapter = chapters.find((c) => c.id === chapterId);
   if (chapter === undefined) notFound();
 
-  const first = chapter.steps[0];
   const remaining = chapter.steps.filter((step) => !isDone(step)).length;
   const started = remaining < chapter.steps.length;
 
   return (
-    <WizardFrame
-      projectId={id}
-      backHref={first === undefined ? `/projects/${id}` : backHref(id, view.steps, first.id)}
-      where={`Part ${String(chapter.number)} of ${String(chapters.length)}`}
-      progress={progressOf(view.steps, chapter.id)}
-      outline={outlineOf(id, view.steps)}
-    >
+    <>
       <main className="wz-body">
         <p className="eyebrow wz-intro__part">
           Part {chapter.number} of {chapters.length}
@@ -104,6 +93,6 @@ export default async function ChapterPage({
           </Button>
         </div>
       </footer>
-    </WizardFrame>
+    </>
   );
 }
