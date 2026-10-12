@@ -115,7 +115,7 @@ export const StepClient = ({
 
   useEffect(() => stopStream, [stopStream]);
 
-  // The next screen is known; fetch all of it now so Keep and Skip feel instant.
+  // The next screen is known; fetch it now so Keep and Skip feel instant.
   usePrefetchNext(nextHref);
 
   /**

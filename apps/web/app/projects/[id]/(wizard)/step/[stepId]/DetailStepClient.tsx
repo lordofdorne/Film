@@ -35,7 +35,7 @@ export const DetailStepClient = ({
   const [error, setError] = useState<string | null>(null);
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
-  // The next screen is known; fetch all of it now so Continue feels instant.
+  // The next screen is known; fetch it now so Continue feels instant.
   usePrefetchNext(nextHref);
 
   const inputType =

@@ -3,26 +3,29 @@
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-type PrefetchKind = NonNullable<Parameters<ReturnType<typeof useRouter>["prefetch"]>[1]>["kind"];
-
 /**
- * Fetch the next screen, all of it, while this one is open.
+ * Fetch the next screen while this one is open.
  *
  * The wizard always knows where Keep, Continue and Skip lead, and they lead to
- * the same place. A plain `router.prefetch` on a dynamic page fetches only as
- * far as its loading screen — so the tap would show the skeleton, then the
- * step. `full` fetches the page itself, and the tap shows the real next
- * screen straight away.
+ * the same place, so it is fetched as soon as this screen is up.
  *
- * One page ahead and no further: it is the only one somebody is likely to
- * want, and each prefetch is a real render on the server.
+ * Deliberately the default kind, not `full`. A full prefetch would bring the
+ * whole next page and make the tap show it outright — and on a production
+ * build it broke navigation: once the next step had been fetched in full, a
+ * save's `revalidatePath` left the router unable to go there at all, whether
+ * by `router.push` or by a redirect from the action. Typing a name and
+ * pressing Continue stayed on the same screen for good. Reproduced with
+ * Playwright; blocking only that one prefetch made it work again. The dev
+ * server never prefetches, which is why it looked fine there.
  *
- * `PrefetchKind` is an enum Next does not export from a public path; its
- * values are the strings, so the string is spelled here and typed as theirs.
+ * The default prefetch brings the route down to its loading screen, and the
+ * wizard has one, so the tap still changes the screen at once — the frame
+ * stays and the step's skeleton shows (after 120 ms, so a fast answer never
+ * flashes it) until the page arrives.
  */
 export const usePrefetchNext = (href: string): void => {
   const router = useRouter();
   useEffect(() => {
-    router.prefetch(href, { kind: "full" as unknown as PrefetchKind });
+    router.prefetch(href);
   }, [router, href]);
 };

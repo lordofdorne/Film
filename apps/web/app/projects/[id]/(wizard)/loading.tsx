@@ -4,8 +4,9 @@ import { Loading, Skeleton } from "../../../../src/ui/index.js";
  * A wizard screen on its way, inside a frame that never left.
  *
  * The bar is the layout's, so it stays put with the right step already named;
- * only the middle is a placeholder, and only until the page arrives. Usually
- * that is never: the next step is prefetched in full while this one is open.
+ * only the middle is a placeholder, and only until the page arrives. The next
+ * step's route is prefetched down to this screen while the current one is
+ * open, which is what lets a tap show it at once.
  */
 export default function StepLoading() {
   return (
