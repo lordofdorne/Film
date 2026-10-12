@@ -8,6 +8,8 @@ import {
   runCompose,
   runDeliver,
   runIngest,
+  previewRequiresFreeBytes,
+  runPreview,
   runRender,
   runStage,
   runThumbnail,
@@ -36,6 +38,7 @@ export const IMPLEMENTED: readonly QueueName[] = [
   "ingest",
   "transcribe",
   "thumbnail",
+  "preview",
   "compose",
   "render",
   "deliver",
@@ -81,6 +84,14 @@ export const handleJob = async (deps: HandlerDeps, raw: unknown): Promise<StageO
         identity,
         { ...common, requiresFreeBytes: thumbnailRequiresFreeBytes() },
         runThumbnail,
+      );
+
+    case "preview":
+      return runStage(
+        deps,
+        identity,
+        { ...common, requiresFreeBytes: previewRequiresFreeBytes() },
+        runPreview,
       );
 
     case "compose":

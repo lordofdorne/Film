@@ -1,6 +1,7 @@
-import { Audio, Sequence } from "remotion";
+import { Audio } from "remotion";
 import { resolveSrc } from "../assets/resolveSrc.js";
 import { assetPath, type FilmProps } from "../props.js";
+import { MediaSequence } from "../timing/MediaSequence.js";
 import { msToFrame, speechWindows } from "../timing/windows.js";
 
 /**
@@ -22,19 +23,21 @@ export const SpeechTrack = ({ props }: { readonly props: FilmProps }) => {
   return (
     <>
       {speechWindows(props.edl).map(({ segment, fromFrame, durationInFrames }) => (
-        <Sequence
+        <MediaSequence
           key={segment.id}
           from={fromFrame}
           durationInFrames={durationInFrames}
-          layout="none"
           name={`speech:${segment.id}`}
         >
           <Audio
             src={resolveSrc(assetPath(props, segment.assetId))}
             trimBefore={msToFrame(segment.sourceInMs, fps)}
             trimAfter={msToFrame(segment.sourceOutMs, fps)}
+            // In the Player, wait for the answer rather than play on without
+            // it: a pause is noticed less than words out of step with lips.
+            pauseWhenBuffering
           />
-        </Sequence>
+        </MediaSequence>
       ))}
     </>
   );

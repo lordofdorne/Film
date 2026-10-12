@@ -18,6 +18,7 @@ export const QUEUES = [
   "render",
   "deliver",
   "thumbnail",
+  "preview",
 ] as const;
 
 export type QueueName = (typeof QUEUES)[number];
@@ -74,6 +75,8 @@ export const STAGE_POLICY: Readonly<Record<QueueName, StagePolicy>> = {
   // One frame and a downscale. The only slow part is fetching the media it
   // reads from, which is why several run at once.
   thumbnail: { retryLimit: 3, retryDelaySeconds: 30, expireInSeconds: 300, concurrency: 4 },
+  // A fast 720p encode: a few seconds per take. Two at a time, as ingest.
+  preview: { retryLimit: 3, retryDelaySeconds: 30, expireInSeconds: 900, concurrency: 2 },
 };
 
 /**

@@ -16,6 +16,7 @@ export const ObjectKindSchema = z.enum([
   "selection",
   "render",
   "still",
+  "preview",
 ]);
 export type ObjectKind = z.infer<typeof ObjectKindSchema>;
 
