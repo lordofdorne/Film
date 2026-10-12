@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@film/db": "workspace:*",
+    "@film/editors": "workspace:*",
     "@film/edl": "workspace:*",
     "@film/formats": "workspace:*",
     "@film/music": "workspace:*",

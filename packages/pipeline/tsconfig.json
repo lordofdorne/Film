@@ -4,6 +4,7 @@
   "include": ["src/**/*"],
   "references": [
     { "path": "../edl" },
+    { "path": "../editors" },
     { "path": "../formats" },
     { "path": "../music" },
     { "path": "../templates" },

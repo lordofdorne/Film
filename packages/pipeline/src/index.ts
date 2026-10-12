@@ -12,7 +12,6 @@
 export * from "./media/ffmpeg.js";
 export * from "./media/loudness.js";
 export * from "./media/musicBed.js";
-export * from "./compose/plan.js";
 export * from "./render/webpack.js";
 export * from "./runtime/errors.js";
 export * from "./runtime/log.js";

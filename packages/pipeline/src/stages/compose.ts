@@ -1,11 +1,11 @@
 import { desc, eq } from "drizzle-orm";
+import { editorFor, type IngestedAnswer, type StillAsset } from "@film/editors";
 import { edlVersions, hashInputs, projects, type Db, type StageIdentity } from "@film/db";
 import { validateEdl, type MusicTrackInfo } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { resolveTrack } from "@film/music";
 import { getTemplate, questionCardIds, toConformance, type SubjectData } from "@film/templates";
 
-import { composeFilm, type IngestedAnswer, type StillAsset } from "../compose/plan.js";
 import { permanent } from "../runtime/errors.js";
 import type { StageContext } from "../runtime/runStage.js";
 import {
@@ -21,7 +21,12 @@ import {
 import { loadAssets, loadProject } from "./context.js";
 
 /**
- * Bump when the layout compose produces changes for the same inputs.
+ * Compose no longer has a recipe number of its own: the template's editor has
+ * a version (`@film/editors`), and that is what goes in the hash below, under
+ * the same `recipe` key. Life-advice's editor started at 4 — this constant's
+ * last value — so moving the editor out of this file re-cut no film.
+ *
+ * What the old numbers meant, kept because each was a lesson:
  *
  * 2: the cold open falls back to the opening of the answer when nobody typed
  * one. Without the bump, every film that already failed compose for want of
@@ -39,7 +44,6 @@ import { loadAssets, loadProject } from "./context.js";
  * Same reason as 3 for the bump: those films did not fail, they were simply
  * missing something nobody could see was missing.
  */
-export const COMPOSE_RECIPE = 4;
 
 /**
  * Unlicensed music is refused unless someone has explicitly said otherwise.
@@ -77,12 +81,12 @@ export const composeIdentity = (
     templateVersion: project.templateVersion,
     subject: project.subjectData,
     config: project.config,
-    recipe: COMPOSE_RECIPE,
+    recipe: editorFor(getTemplate(project.templateId, project.templateVersion)).version,
   }),
 });
 
 /**
- * Lay the template's beats out over what was actually recorded.
+ * Cut the film from what was actually recorded, with the template's editor.
  *
  * Pure given its inputs: the same assets and the same config produce the same
  * document, byte for byte. That is what makes the input hash meaningful and
@@ -145,7 +149,12 @@ export const runCompose = async (ctx: StageContext): Promise<string | null> => {
   if (track === null) throw permanent("the project has no music bed");
   const config = parseProjectConfig(project.config);
 
-  const { edl, notes } = composeFilm({
+  /**
+   * The template's editor makes the cut. This stage gathers what was
+   * recorded, hands it over, validates what comes back and stores it — and
+   * knows nothing about which film it is.
+   */
+  const { edl, notes } = editorFor(template).edit({
     projectId: project.id,
     template,
     answers,

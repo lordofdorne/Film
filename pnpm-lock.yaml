@@ -20,6 +20,9 @@ importers:
       '@film/db':
         specifier: workspace:*
         version: link:packages/db
+      '@film/editors':
+        specifier: workspace:*
+        version: link:packages/editors
       '@film/edl':
         specifier: workspace:*
         version: link:packages/edl
@@ -195,6 +198,15 @@ importers:
         specifier: ^3.25.76
         version: 3.25.76
 
+  packages/editors:
+    dependencies:
+      '@film/edl':
+        specifier: workspace:*
+        version: link:../edl
+      '@film/templates':
+        specifier: workspace:*
+        version: link:../templates
+
   packages/edl:
     dependencies:
       zod:
@@ -214,6 +226,9 @@ importers:
       '@film/db':
         specifier: workspace:*
         version: link:../db
+      '@film/editors':
+        specifier: workspace:*
+        version: link:../editors
       '@film/edl':
         specifier: workspace:*
         version: link:../edl
