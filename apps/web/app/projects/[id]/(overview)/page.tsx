@@ -1,13 +1,13 @@
 import { notFound } from "next/navigation";
-import { guardProject, sessionIdentity } from "../../../src/server/auth.js";
-import { loadWalkthroughView, withThumbnails } from "../../../src/server/capture.js";
-import { loadDelivery, loadProjectForPreview } from "../../../src/server/project.js";
-import { DeliveryPanel } from "./DeliveryPanel.js";
-import { FailedNote } from "./FailedNote.js";
-import { Hub, ownerEmailOf } from "./Hub.js";
-import { PreviewClient } from "./PreviewClient.js";
-import { SaveFilmSheet } from "./SaveFilmSheet.js";
-import { WorkingNote } from "./WorkingNote.js";
+import { guardProject, sessionIdentity } from "../../../../src/server/auth.js";
+import { loadWalkthroughView, withThumbnails } from "../../../../src/server/capture.js";
+import { loadDelivery, loadProjectForPreview } from "../../../../src/server/project.js";
+import { DeliveryPanel } from "../DeliveryPanel.js";
+import { FailedNote } from "../FailedNote.js";
+import { Hub, ownerEmailOf } from "../Hub.js";
+import { PreviewClient } from "../PreviewClient.js";
+import { SaveFilmSheet } from "../SaveFilmSheet.js";
+import { WorkingNote } from "../WorkingNote.js";
 
 /**
  * One URL for a film, whatever state it is in.
