@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { HubStep, HubView } from "../../../src/server/capture.js";
 import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
+import { UploadStatus } from "./UploadStatus.js";
 import { chaptersOf, isDone, progressOf } from "../../../src/server/wizard.js";
 import { Button, Card, ChapterProgress, Icon, StatusMark } from "../../../src/ui/index.js";
 
@@ -68,6 +69,7 @@ export const Hub = ({
             </>
           )}
         </p>
+        <UploadStatus />
       </header>
 
       {!ready && (

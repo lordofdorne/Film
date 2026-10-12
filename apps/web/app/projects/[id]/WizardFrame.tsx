@@ -6,6 +6,7 @@ import { useEffect, useRef } from "react";
 
 import type { FrameMap, OutlineChapter, Progress } from "../../../src/server/wizard.js";
 import { OfflineNotice } from "./OfflineNotice.js";
+import { UploadStatus } from "./UploadStatus.js";
 import {
   Button,
   ChapterProgress,
@@ -101,6 +102,7 @@ export const WizardFrame = ({
             </span>
             <span>{progress.timeLeft}</span>
           </p>
+          <UploadStatus />
         </div>
       </header>
       <OfflineNotice />

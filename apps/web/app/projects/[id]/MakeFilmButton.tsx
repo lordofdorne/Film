@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { startTheFilm } from "../../../src/server/captureActions.js";
+import { useCapture } from "./CaptureProvider.js";
 import { SaveFilmSheet } from "./SaveFilmSheet.js";
 
 /**
@@ -26,7 +27,13 @@ export const MakeFilmButton = ({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [needsAccount, setNeedsAccount] = useState(false);
-  const ready = stillMissing === 0;
+  /**
+   * Takes still going up are not in the film yet. Handing it over now would
+   * cut it without them, so the button waits and says why.
+   */
+  const { uploads } = useCapture();
+  const saving = uploads.pending - uploads.failed;
+  const ready = stillMissing === 0 && saving === 0;
 
   // Made anonymously: the film is not handed over until there is an address
   // to keep it behind. The sheet's link hands it over when it is opened.
@@ -57,9 +64,13 @@ export const MakeFilmButton = ({
         }}
         className="btn btn--primary"
       >
-        {pending ? "Handing it over…" : "Make my film"}
+        {pending
+          ? "Handing it over…"
+          : saving > 0
+            ? `Saving ${saving === 1 ? "1 take" : `${String(saving)} takes`}…`
+            : "Make my film"}
       </button>
-      {!ready && (
+      {stillMissing > 0 && (
         <span className="muted">
           {stillMissing === 1 ? "1 thing still needed" : `${String(stillMissing)} things still needed`}
         </span>
