@@ -119,23 +119,64 @@ export const approveVersion = async (
       .set({ status: "approved", updatedAt: new Date() })
       .where(eq(projects.id, input.projectId));
 
-    const renderRow = await tx
-      .insert(renders)
-      .values({
-        edlVersionId: input.edlVersionId,
-        formatId: input.formatId,
-        quality: "delivery",
-        status: "queued",
-      })
-      .returning({ id: renders.id });
+    // Usually already requested — compose asks for the render the moment a
+    // cut exists, so it is made while the customer watches (see
+    // requestDeliveryRender). Reused, never duplicated.
+    const renderId = await requestDeliveryRender(tx, input.edlVersionId, input.formatId);
 
     const row = inserted[0];
-    const render = renderRow[0];
-    if (row === undefined || render === undefined) {
-      throw new Error("approval insert returned no row");
-    }
-    return { ok: true, approvalId: row.id, renderId: render.id };
+    if (row === undefined) throw new Error("approval insert returned no row");
+    return { ok: true, approvalId: row.id, renderId };
   });
+};
+
+/**
+ * The delivery render for one cut: the one already requested, or a new one.
+ *
+ * Called twice in a film's life. Compose calls it the moment a cut exists, so
+ * the full-quality film is being made while the customer watches the preview
+ * — a three-minute film and its notes take about as long to watch as to
+ * render, so approving the cut they were shown usually finds the film made.
+ * Approval calls it again and gets the same row back.
+ *
+ * Never two for one cut. A render's stage identity is the cut, the format and
+ * the recipe — not the row — so a second row would find the work "done" under
+ * the first one's identity and be delivered with no file. Reusing the row is
+ * what keeps "the render" one thing.
+ *
+ * Rendering before approval is safe because DELIVERY is what waits for it:
+ * the dispatcher plans deliver only for an approved cut, and the download
+ * joins on the approval. An unapproved render is a file nobody can reach. Its
+ * cost is a render wasted when somebody never approves — today, only a film
+ * abandoned at the preview.
+ */
+export const requestDeliveryRender = async (
+  db: Pick<Db, "select" | "insert">,
+  edlVersionId: string,
+  formatId: string,
+): Promise<string> => {
+  const existing = await db
+    .select({ id: renders.id })
+    .from(renders)
+    .where(
+      and(
+        eq(renders.edlVersionId, edlVersionId),
+        eq(renders.formatId, formatId),
+        eq(renders.quality, "delivery"),
+      ),
+    )
+    .orderBy(desc(renders.createdAt))
+    .limit(1);
+  const found = existing[0];
+  if (found !== undefined) return found.id;
+
+  const inserted = await db
+    .insert(renders)
+    .values({ edlVersionId, formatId, quality: "delivery", status: "queued" })
+    .returning({ id: renders.id });
+  const row = inserted[0];
+  if (row === undefined) throw new Error("render insert returned no row");
+  return row.id;
 };
 
 /** Delivery renders requested for a project, newest first. */

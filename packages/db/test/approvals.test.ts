@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { approveVersion, latestEdlVersion, type Db } from "../src/index.js";
+import { approveVersion, latestEdlVersion, requestDeliveryRender, type Db } from "../src/index.js";
 import { approvals, edlVersions, projects, renders, users } from "../src/schema/tables.js";
 import * as schema from "../src/schema/tables.js";
 
@@ -256,6 +256,24 @@ describe("approval", () => {
     await approveVersion(db, args);
     await approveVersion(db, args);
 
+    const rows = await db.select().from(renders).where(eq(renders.edlVersionId, v1));
+    expect(rows).toHaveLength(1);
+  });
+
+  /**
+   * Compose requests the render the moment a cut exists, so the film is made
+   * while the customer watches. Approving that cut must find that render, not
+   * start a second one: a render's work is keyed by the cut, so a second row
+   * would be "done" with no file and delivery would fail on it.
+   */
+  it("reuses the render compose already requested for the cut", async () => {
+    needsDb();
+    const v1 = await addVersion(1);
+    const early = await requestDeliveryRender(db, v1, FORMAT);
+    expect(await requestDeliveryRender(db, v1, FORMAT)).toBe(early);
+
+    const result = await approveVersion(db, { projectId, edlVersionId: v1, approvedBy: userId, formatId: FORMAT });
+    expect(result.ok && result.renderId).toBe(early);
     const rows = await db.select().from(renders).where(eq(renders.edlVersionId, v1));
     expect(rows).toHaveLength(1);
   });
