@@ -64,13 +64,25 @@ const WATCH = `(() => {
 const timeTap = async (page: Page, tap: () => Promise<void>): Promise<{ feedback: number; ready: number }> => {
   await page.evaluate(WATCH);
   await tap();
-  const result = await (async () => { try { return await page.waitForFunction(
-    "window.__perf.ready === undefined ? null : " +
-      "{ feedback: window.__perf.feedback ?? window.__perf.ready, ready: window.__perf.ready }",
-    undefined,
-    { timeout: 60_000, polling: 50 },
-  ); } catch (e) { console.error("perf state:", await page.evaluate("JSON.stringify({perf: window.__perf, h1: document.querySelector('main h1, .wz-body h1')?.textContent, url: location.pathname})")); throw e; } })();
-  return (await result.jsonValue()) as { feedback: number; ready: number };
+  try {
+    const result = await page.waitForFunction(
+      "window.__perf.ready === undefined ? null : " +
+        "{ feedback: window.__perf.feedback ?? window.__perf.ready, ready: window.__perf.ready }",
+      undefined,
+      { timeout: 60_000, polling: 50 },
+    );
+    return (await result.jsonValue()) as { feedback: number; ready: number };
+  } catch (error) {
+    /**
+     * A tap that never arrives is the finding, not a flaky tool: this is how
+     * the Continue that saved and stayed put was caught. Say where it stuck.
+     */
+    const state: unknown = await page.evaluate(
+      "({ url: location.pathname, heading: document.querySelector('main h1, .wz-body h1')?.textContent })",
+    );
+    process.stderr.write(`stuck after the tap: ${JSON.stringify(state)}\n`);
+    throw error;
+  }
 };
 
 /** Let prefetches the page started on arrival finish, as they would while somebody reads. */
