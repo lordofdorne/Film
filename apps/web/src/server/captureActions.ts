@@ -139,13 +139,13 @@ export const submitDetail = async (
   /**
    * Saved, and nothing to stop for: go on from here.
    *
-   * The client used to `router.push` after this returned, and on a production
-   * build that push was silently dropped — the next step was prefetched in
-   * full, this action's revalidation refreshed the current page, and the
-   * refresh won. The tap saved the name and stayed put, for ever. Redirecting
-   * from the action is the documented "save, then go" and has no race to
-   * lose; it is also one round trip instead of two, because the next page
-   * comes back in this response.
+   * The client used to `router.push` after this returned. Redirecting from the
+   * action is Next's documented "save, then go", and it is one round trip
+   * instead of two: the next page comes back in this response.
+   *
+   * (It was first written to escape a Continue that saved and stayed put on a
+   * production build. That turned out to be a loading screen above the step,
+   * not the push — see usePrefetchNext — but this is still the better shape.)
    *
    * Only within this film, so the parameter cannot send anybody elsewhere.
    */

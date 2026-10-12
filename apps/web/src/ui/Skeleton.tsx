@@ -1,14 +1,14 @@
 import { cx } from "./cx.js";
 
 /**
- * The shape of something on its way.
+ * The shape of something on its way, holding its place so nothing below it
+ * moves when it arrives — the film player while its code loads, for one.
  *
- * Shown by the `loading.tsx` screens, which is what lets a tap change the
- * screen at once instead of freezing it until the server has finished. A
- * spinner says "wait"; a skeleton the shape of the next screen says "here it
- * comes", and the eye has already found where the heading will be.
+ * Not a loading screen. `loading.tsx` screens were tried in Phase 8 and taken
+ * out: any one above a wizard step broke Continue on a production build (see
+ * usePrefetchNext).
  *
- * Decorative: the region holding them carries the one accessible "Loading".
+ * Decorative: whatever it stands in for is announced when it arrives.
  */
 export const Skeleton = ({
   width,
@@ -27,17 +27,4 @@ export const Skeleton = ({
     className={cx("ui-skel", round && "ui-skel--round", className)}
     style={{ width: width ?? "100%", height }}
   />
-);
-
-/** The live region around a screen of skeletons: one "Loading", said once. */
-export const Loading = ({
-  children,
-  className,
-}: {
-  readonly children: React.ReactNode;
-  readonly className?: string;
-}) => (
-  <div role="status" aria-label="Loading" aria-busy className={className}>
-    {children}
-  </div>
 );
