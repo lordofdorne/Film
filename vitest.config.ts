@@ -22,6 +22,7 @@ export default defineConfig({
       "@film/editors": pkg("editors"),
       "@film/formats": pkg("formats"),
       "@film/music": pkg("music"),
+      "@film/templates/take": mod("templates", "take"),
       "@film/templates": pkg("templates"),
       "@film/db": pkg("db"),
       "@film/queue": pkg("queue"),

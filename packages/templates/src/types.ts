@@ -1,5 +1,7 @@
 import type { TemplateConformance } from "@film/edl";
 
+import type { TakeLength } from "./take.js";
+
 /**
  * A question's wording may vary with the subject. The condition is a tiny
  * fixed grammar ("subject.age >= 100"), evaluated by a parser — not by eval,
@@ -57,6 +59,10 @@ export type Question = {
    *  somebody usually wants. Content, not code: the hub sums these to say how
    *  much is left, and a wrong number here is a lie on that screen. */
   readonly estimatedSeconds: number;
+  /** How long a good answer to this is. The recording screen's timer is drawn
+   *  from it, and recording stops at its `max`. Required: every answer is a
+   *  recording. */
+  readonly take: TakeLength;
 };
 
 export type MediaSlot = {
@@ -66,6 +72,9 @@ export type MediaSlot = {
   readonly accepts?: readonly ("photo" | "video")[];
   readonly guidance?: Guidance;
   readonly estimatedSeconds: number;
+  /** For a slot that can be filmed: how long a good clip is. Absent on a
+   *  photo-only slot. */
+  readonly take?: TakeLength;
 };
 
 /**

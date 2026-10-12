@@ -609,6 +609,22 @@ stores; it knows no film type.
   `UPDATE_GOLDEN=1 pnpm test packages/editors`, and review the diff.
 - Still named for life-advice in shared code: the render composition's id
   (`"LifeAdvice"`) and font family. Cosmetic.
+### Every recording has a length now — Phase 8
+
+Each question and filmable slot declares `take: { goodFrom, goodTo, max }`
+(seconds) in its template; `@film/templates/take` holds the type and the zone
+logic, as its own entry point so the browser does not load every template's
+copy. While recording, a timer across the bottom of the picture shows the
+good range and says "Aim for…", "Good length · stop when ready", "Plenty", and
+in the last seconds "Stops in 0:06"; at `max` the recording stops by itself
+and says so. A take under `goodFrom` gets the length that works suggested,
+with Again to hand and Keep still allowed. `validateTemplate` refuses a
+backwards range, and a test requires one on every recorded step.
+
+Life-advice's numbers were proposed by Claude from each step's coaching and
+are the owner's to adjust (`life-advice/v1.ts`, above `questions`). They are
+capture-only, so changing them re-cuts no film. Uploaded files are not
+checked for length yet.
 
 ### Moving through the site is fast now — Phase 8, Block 1
 

@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { discardStep, finishUpload, mintUploadFor } from "../../../../../../src/server/captureActions.js";
+import { clock, spokenRange, takeZone, type TakeLength } from "@film/templates/take";
+
 import type { StepView } from "../../../../../../src/server/capture.js";
 import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
@@ -94,6 +96,10 @@ export const StepClient = ({
   const [live, setLive] = useState<null | "video" | "photo">(null);
   const recording = live === "video";
   const [seconds, setSeconds] = useState(0);
+  /** When this recording started, so the clock is measured, not counted. */
+  const startedAtRef = useRef(0);
+  /** The take just recorded, for what is said about its length. */
+  const [lastTake, setLastTake] = useState<{ seconds: number; atMax: boolean } | null>(null);
   const [saving, setSaving] = useState<Saving>({ state: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
 
@@ -151,9 +157,17 @@ export const StepClient = ({
     void video.play().catch(() => undefined);
   }, [live]);
 
+  /**
+   * The recording clock, read from when it started rather than counted.
+   *
+   * A once-a-second interval drifts, and a phone delays timers when it is
+   * busy — which is exactly while it is recording. Measuring from the start
+   * four times a second keeps the timer and the auto-stop honest.
+   */
   useEffect(() => {
     if (!recording) return;
-    const timer = setInterval(() => { setSeconds((s) => s + 1); }, 1000);
+    const tick = () => { setSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000)); };
+    const timer = setInterval(tick, 250);
     return () => { clearInterval(timer); };
   }, [recording]);
 
@@ -226,7 +240,9 @@ export const StepClient = ({
       };
 
       recorderRef.current = recorder;
+      startedAtRef.current = Date.now();
       setSeconds(0);
+      setLastTake(null);
       setLive("video");
       recorder.start();
     } catch {
@@ -238,11 +254,25 @@ export const StepClient = ({
     }
   }, [stopStream, upload]);
 
-  const stopRecording = useCallback(() => {
+  const stopRecording = useCallback((atMax = false) => {
+    setLastTake({ seconds: (Date.now() - startedAtRef.current) / 1000, atMax });
     setLive(null);
     recorderRef.current?.stop();
     recorderRef.current = null;
   }, []);
+
+  /**
+   * The longest this answer can use, and then it stops by itself.
+   *
+   * Asked for by the owner: a take that runs past what the film can hold is
+   * cut where it would be cut anyway, and saying so beforehand — the timer
+   * counts down for the last fifteen seconds — means nobody is cut off by
+   * surprise. Everything recorded up to here is kept.
+   */
+  const take = step.take;
+  useEffect(() => {
+    if (recording && take !== undefined && seconds >= take.max) stopRecording(true);
+  }, [recording, take, seconds, stopRecording]);
 
   /**
    * A photograph, taken here.
@@ -329,6 +359,7 @@ export const StepClient = ({
         return URL.createObjectURL(file);
       });
       setLocalIsPhoto(file.type.startsWith("image/"));
+      setLastTake(null);
       void upload(file, file.type);
     },
     [upload],
@@ -340,6 +371,7 @@ export const StepClient = ({
    * is no "delete, then record" dance.
    */
   const removeCapture = useCallback(() => {
+    setLastTake(null);
     setLocalUrl((old) => {
       if (old !== null) URL.revokeObjectURL(old);
       return null;
@@ -382,12 +414,15 @@ export const StepClient = ({
               {/* autoPlay as well as the effect: whichever wins, the person
                   sees themselves rather than a black rectangle. */}
               <video ref={liveRef} autoPlay muted playsInline className="vf__media vf__media--live" />
-              {live === "video" && (
-                <span className="vf__badge" aria-live="off">
-                  <span className="vf__dot" aria-hidden />
-                  {formatSeconds(seconds)}
-                </span>
-              )}
+              {live === "video" &&
+                (take === undefined ? (
+                  <span className="vf__badge" aria-live="off">
+                    <span className="vf__dot" aria-hidden />
+                    {clock(seconds)}
+                  </span>
+                ) : (
+                  <TakeTimer seconds={seconds} take={take} />
+                ))}
             </div>
           ) : shownUrl !== null ? (
             <div className="vf vf--filled">
@@ -433,10 +468,16 @@ export const StepClient = ({
                     ? "Record it here, or upload a video you already have."
                     : "Take a photo, or choose one you already have."}
               </p>
+              {take !== undefined && takesVideo && (
+                <p className="vf__aim">A good length is {spokenRange(take)}.</p>
+              )}
             </div>
           )}
         </section>
 
+        {captured && lastTake !== null && localUrl !== null && !localIsPhoto && take !== undefined && (
+          <TakeNote seconds={lastTake.seconds} atMax={lastTake.atMax} take={take} />
+        )}
         {captured && <Reassurance saving={saving} saved={saved} />}
         {cameraError !== null && (
           <p className="note note--error" role="alert">
@@ -459,9 +500,9 @@ export const StepClient = ({
       <footer className="wz-foot">
         {live === "video" ? (
           <div className="wz-foot__row">
-            <Button size="lg" variant="secondary" block onClick={stopRecording}>
+            <Button size="lg" variant="secondary" block onClick={() => { stopRecording(); }}>
               <span className="vf__dot" aria-hidden />
-              Stop recording · {formatSeconds(seconds)}
+              Stop recording · {clock(seconds)}
             </Button>
           </div>
         ) : live === "photo" ? (
@@ -591,6 +632,81 @@ const acceptAttribute = (step: StepView): string => {
   return parts.join(",");
 };
 
-const formatSeconds = (total: number): string =>
-  `${String(Math.floor(total / 60))}:${String(total % 60).padStart(2, "0")}`;
 
+/**
+ * The clock while recording, drawn across the bottom of the picture: how long
+ * so far, where the good range is, and what to do about it.
+ *
+ * The words change only when the zone does — "aim for", then "good length,
+ * stop when ready", then "plenty" — so a screen reader hears four short
+ * sentences, not a second-by-second count. Short enough for one line on a
+ * phone. The last fifteen seconds count
+ * down on screen, and say once that it will stop by itself.
+ */
+const TakeTimer = ({ seconds, take }: { readonly seconds: number; readonly take: TakeLength }) => {
+  const zone = takeZone(seconds, take);
+  const at = (s: number): string => `${String((Math.min(s, take.max) / take.max) * 100)}%`;
+  const said =
+    zone === "short"
+      ? `Aim for ${spokenRange(take)}`
+      : zone === "good"
+        ? "Good length · stop when ready"
+        : zone === "plenty"
+          ? "Plenty · wrap up when ready"
+          : "It will stop by itself soon";
+
+  return (
+    <div className={`take take--${zone}`}>
+      <div className="take__row">
+        <span className="take__clock">
+          <span className="vf__dot" aria-hidden />
+          {clock(seconds)}
+        </span>
+        <span className="take__said" aria-live="polite">
+          {zone === "good" && <Icon name="check" size={16} strokeWidth={2.6} />}
+          {zone === "ending" ? `Stops in ${clock(take.max - seconds)}` : said}
+        </span>
+      </div>
+      <span className="take__track" aria-hidden>
+        <span className="take__good" style={{ left: at(take.goodFrom), width: at(take.goodTo - take.goodFrom) }} />
+        <span className="take__fill" style={{ width: at(seconds) }} />
+      </span>
+    </div>
+  );
+};
+
+/**
+ * What is said about a take once it is recorded — only when there is
+ * something worth saying.
+ *
+ * Short is advice, never a wall: Keep still works, because somebody whose
+ * grandmother said exactly what she meant in twelve seconds should not be
+ * argued with. It says the length that works and leaves "Again" where the
+ * thumb is.
+ */
+const TakeNote = ({
+  seconds,
+  atMax,
+  take,
+}: {
+  readonly seconds: number;
+  readonly atMax: boolean;
+  readonly take: TakeLength;
+}) => {
+  if (atMax) {
+    return (
+      <p className="note note--quiet" role="status">
+        We stopped at {clock(take.max)}, the most this answer can use. Everything up to there is
+        kept.
+      </p>
+    );
+  }
+  if (takeZone(seconds, take) !== "short") return null;
+  return (
+    <p className="note note--warn" role="status">
+      {seconds < 1 ? "That was barely a second." : `That was ${clock(seconds)}.`} About{" "}
+      {spokenRange(take)} gives the film the most to work with —
+      if there is more to say, press Again. Otherwise keep it; it is theirs.
+    </p>
+  );
+};

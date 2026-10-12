@@ -1199,3 +1199,58 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .wz[data-direction="back"] .wz-body { animation: wz-from-left var(--dur-2) var(--ease-out); }
 @keyframes wz-from-right { from { transform: translateX(28px); opacity: 0; } }
 @keyframes wz-from-left { from { transform: translateX(-28px); opacity: 0; } }
+
+/* ── The take timer: across the bottom of the picture while recording ──
+   How long so far, where the good range is, and what to do about it. On the
+   picture itself, so the person holding the phone never looks away from it. */
+.vf__aim { font-size: var(--t-small); opacity: 0.75; }
+
+.take {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: var(--s-6) var(--s-4) var(--s-3);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(0, 0, 0, 0));
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
+}
+.take__row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); }
+.take__clock {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  font-size: 15px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.take__said {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+.take__track {
+  position: relative;
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.28);
+  overflow: hidden;
+}
+/* The good range, marked on the track before the fill reaches it. */
+.take__good { position: absolute; top: 0; bottom: 0; background: rgba(74, 222, 128, 0.45); }
+.take__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: #fff;
+  border-radius: inherit;
+  transition: width 250ms linear, background-color var(--dur-2) ease;
+}
+.take--good .take__fill { background: #4ade80; }
+.take--good .take__said { color: #bbf7d0; }
+.take--plenty .take__fill { background: #fcd34d; }
+.take--ending .take__fill { background: #fb923c; }
+.take--ending .take__said { color: #fed7aa; }
