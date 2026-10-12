@@ -21,7 +21,13 @@ export const LIFE_ADVICE_EDITOR: Editor = {
    * answers with word times can be shaped, so again every film made before
    * is cut exactly as by 5. When the optional bonus answer is given, every
    * share shrinks so the film is no longer for it (`sharesFor`).
+   *
+   * 7: the music ends with the film (Phase 9, Block 4): a music edit on a
+   * downbeat lands the track's ending cue on the end title, and the black
+   * hold before it takes up what a bar line cannot. Only for tracks with a
+   * beat grid and an ending marked; the temp beds every film uses so far have
+   * neither, so those films are cut exactly as by 6.
    */
-  version: 6,
+  version: 7,
   edit: editLifeAdvice,
 };

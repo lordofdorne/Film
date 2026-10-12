@@ -1,4 +1,4 @@
-import { validateEdl, type EDL } from "@film/edl";
+import { validateEdl, type EDL, type MusicTrackInfo } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { toConformance, type Template } from "@film/templates";
 
@@ -9,7 +9,7 @@ import type { ComposeInput } from "../src/material.js";
  * made from the test's own input. An editor's output is not a film until this
  * says so.
  */
-export const validate = (input: ComposeInput & { template: Template }, edl: EDL) =>
+export const validate = (input: ComposeInput & { template: Template }, edl: EDL, track?: MusicTrackInfo) =>
   validateEdl(edl, {
     manifest: {
       assets: [
@@ -34,7 +34,7 @@ export const validate = (input: ComposeInput & { template: Template }, edl: EDL)
     },
     format: getFormat(input.template.defaultFormatId),
     conformance: toConformance(input.template),
-    resolveMusicTrack: () => ({
+    resolveMusicTrack: () => track ?? ({
       id: "temp",
       durationMs: 400_000,
       beatGridMs: [...input.track.beatGridMs],
@@ -48,6 +48,6 @@ export const validate = (input: ComposeInput & { template: Template }, edl: EDL)
       licenseRef: null,
       usage: "fixture-only",
       available: true,
-    }),
+    } satisfies MusicTrackInfo),
     allowPlaceholderMusic: true,
   });

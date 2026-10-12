@@ -51,7 +51,14 @@ export type ComposeInput = {
   readonly track: {
     readonly id: string;
     readonly beatGridMs: readonly number[];
-    readonly cues: { readonly titleMs: number };
+    /** Absent on inputs built before Phase 9, Block 4; without it and an
+     *  ending cue the music is not fitted, and plays straight through. */
+    readonly durationMs?: number;
+    readonly cues: {
+      readonly titleMs: number;
+      readonly resolutionMs?: number;
+      readonly endingMs?: number;
+    };
   };
   readonly promptQuestionIds: readonly string[];
 };
