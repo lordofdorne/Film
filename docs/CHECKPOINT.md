@@ -585,6 +585,23 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Every recording has a length now — Phase 8
+
+Each question and filmable slot declares `take: { goodFrom, goodTo, max }`
+(seconds) in its template; `@film/templates/take` holds the type and the zone
+logic, as its own entry point so the browser does not load every template's
+copy. While recording, a timer across the bottom of the picture shows the
+good range and says "Aim for…", "Good length · stop when ready", "Plenty", and
+in the last seconds "Stops in 0:06"; at `max` the recording stops by itself
+and says so. A take under `goodFrom` gets the length that works suggested,
+with Again to hand and Keep still allowed. `validateTemplate` refuses a
+backwards range, and a test requires one on every recorded step.
+
+Life-advice's numbers were proposed by Claude from each step's coaching and
+are the owner's to adjust (`life-advice/v1.ts`, above `questions`). They are
+capture-only, so changing them re-cuts no film. Uploaded files are not
+checked for length yet.
+
 ### Moving through the site is fast now — Phase 8, Block 1
 
 Proposal and measurements: `docs/proposal/phase-8-performance.md`. Every tap

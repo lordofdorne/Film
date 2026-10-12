@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./take": {
+      "types": "./dist/take.d.ts",
+      "default": "./dist/take.js"
     }
   },
   "scripts": {
