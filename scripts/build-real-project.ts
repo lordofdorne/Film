@@ -26,15 +26,13 @@ import { getFormat } from "@film/formats";
 import { PLACEHOLDER_TRACK, resolveTrack } from "@film/music";
 import { getTemplate, toConformance, type SubjectData } from "@film/templates";
 
+import { editorFor, type IngestedAnswer, type StillAsset } from "@film/editors";
 import {
   buildLoopedBed,
-  composeFilm,
   describeTempTrack,
   detectSpeechRuns,
   ffmpeg,
   probe,
-  type IngestedAnswer,
-  type StillAsset,
   type TempBedConfig,
 } from "@film/pipeline";
 import { generateFixtures, FIXTURES_DIR } from "./generate-fixtures.js";
@@ -264,7 +262,7 @@ const main = async (): Promise<void> => {
   log("\n[1m4/4  Composing[0m");
   const manifest = AssetManifestSchema.parse({ assets });
 
-  const { edl, notes } = composeFilm({
+  const { edl, notes } = editorFor(template).edit({
     projectId: config.projectId,
     template,
     answers,

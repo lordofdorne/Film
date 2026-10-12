@@ -4,7 +4,8 @@ import { validateEdl } from "@film/edl";
 import { getFormat } from "@film/formats";
 import { getTemplate, toConformance } from "@film/templates";
 
-import { composeFilm, type ComposeInput } from "../src/compose/plan.js";
+import { editLifeAdvice } from "../src/life-advice/edit.js";
+import type { ComposeInput } from "../src/material.js";
 
 /**
  * Optional in the template must mean optional in the film.
@@ -113,7 +114,7 @@ const inputWith = (
  */
 describe("the question on screen", () => {
   const asked = (input: ComposeInput) =>
-    composeFilm(input).edl.visualSegments.filter(
+    editLifeAdvice(input).edl.visualSegments.filter(
       (s) => "textStyle" in s && s.textStyle === "question",
     );
 
@@ -169,9 +170,9 @@ describe("the question on screen", () => {
 
   /** The cards lengthen the film, which was the accepted cost of seeing them. */
   it("makes the film longer by roughly the cards it added", () => {
-    const without = composeFilm(withCards([])).edl.totalDurationMs;
+    const without = editLifeAdvice(withCards([])).edl.totalDurationMs;
     const cards = asked(withCards(["greatest_lesson", "love_lesson"]));
-    const with2 = composeFilm(withCards(["greatest_lesson", "love_lesson"])).edl.totalDurationMs;
+    const with2 = editLifeAdvice(withCards(["greatest_lesson", "love_lesson"])).edl.totalDurationMs;
     const added = cards.reduce((t, c) => t + c.durationMs, 0);
     // Transitions overlap, so the film grows by a little less than the sum.
     expect(with2 - without).toBeGreaterThan(added * 0.5);
@@ -206,7 +207,7 @@ describe("a keepsake filmed rather than photographed", () => {
   });
 
   it("puts the filmed object in the film", () => {
-    const { edl } = composeFilm(filmed());
+    const { edl } = editLifeAdvice(filmed());
     const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
     expect(keepsake).toBeDefined();
     expect(keepsake?.kind).toBe("broll");
@@ -214,7 +215,7 @@ describe("a keepsake filmed rather than photographed", () => {
 
   /** The ending keeps its shape: the clip sits where the photograph would. */
   it("closes on it and then the group photograph, in that order", () => {
-    const { edl } = composeFilm(filmed());
+    const { edl } = editLifeAdvice(filmed());
     const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
     // Present FIRST. Without this the ordering assertion passes on -1, which
     // is exactly the broken behaviour this file exists to catch.
@@ -223,7 +224,7 @@ describe("a keepsake filmed rather than photographed", () => {
   });
 
   it("never asks for more of the clip than there is", () => {
-    const { edl } = composeFilm(filmed(3_000));
+    const { edl } = editLifeAdvice(filmed(3_000));
     const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
     expect((keepsake as { sourceOutMs?: number } | undefined)?.sourceOutMs).toBeLessThanOrEqual(
       3_000,
@@ -237,7 +238,7 @@ describe("a keepsake filmed rather than photographed", () => {
    * unrelated "no keepsake was added" note, which is how a vacuous test looks.
    */
   it("skips a clip too short to hold a beat, and says so", () => {
-    const { edl, notes } = composeFilm(filmed(400));
+    const { edl, notes } = editLifeAdvice(filmed(400));
     const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
     expect(slots).not.toContain("keepsake");
     expect(notes.join(" ")).toContain("too short");
@@ -245,8 +246,8 @@ describe("a keepsake filmed rather than photographed", () => {
   });
 
   it("still composes a whole film either way", () => {
-    expect(composeFilm(filmed()).edl.visualSegments.length).toBeGreaterThan(0);
-    expect(composeFilm(inputWith([])).edl.visualSegments.length).toBeGreaterThan(0);
+    expect(editLifeAdvice(filmed()).edl.visualSegments.length).toBeGreaterThan(0);
+    expect(editLifeAdvice(inputWith([])).edl.visualSegments.length).toBeGreaterThan(0);
   });
 
   /**
@@ -260,7 +261,7 @@ describe("a keepsake filmed rather than photographed", () => {
    */
   it("produces an EDL the validator accepts", () => {
     const input = filmed();
-    const { edl } = composeFilm(input);
+    const { edl } = editLifeAdvice(input);
 
     const manifest = {
       assets: [
@@ -336,7 +337,7 @@ describe("a keepsake filmed rather than photographed", () => {
 describe("assets that never reach the film", () => {
   it("says so when a supplied photograph is placed nowhere", () => {
     const base = inputWith([]);
-    const { notes } = composeFilm({
+    const { notes } = editLifeAdvice({
       ...base,
       stills: [...base.stills, { assetId: "still-orphan", slotId: "no_such_slot" }],
     });
@@ -346,7 +347,7 @@ describe("assets that never reach the film", () => {
 
   it("says so when a supplied clip is placed nowhere", () => {
     const base = inputWith([]);
-    const { notes } = composeFilm({
+    const { notes } = editLifeAdvice({
       ...base,
       brollAssetIds: { ...base.brollAssetIds, no_such_slot: "clip-orphan" },
       assetDurationMs: { ...base.assetDurationMs, "clip-orphan": 20_000 },
@@ -359,7 +360,7 @@ describe("assets that never reach the film", () => {
    * on every project and nobody reads it when it matters.
    */
   it("says nothing about a film that used everything it was given", () => {
-    const { notes } = composeFilm(inputWith([]));
+    const { notes } = editLifeAdvice(inputWith([]));
     expect(notes.filter((n) => n.includes("does not appear in the film"))).toEqual([]);
   });
 });
@@ -371,27 +372,27 @@ describe("a film missing what the template said was optional", () => {
   });
 
   it("still composes when every optional slot is empty", () => {
-    const { edl, notes } = composeFilm(inputWith(optionalSlotIds));
+    const { edl, notes } = editLifeAdvice(inputWith(optionalSlotIds));
     expect(edl.visualSegments.length).toBeGreaterThan(0);
     // It says what it did rather than silently dropping a beat.
     expect(notes.join(" ")).toContain("keepsake");
   });
 
   it("closes on the group photograph when there is no keepsake", () => {
-    const { edl } = composeFilm(inputWith(["keepsake"]));
+    const { edl } = editLifeAdvice(inputWith(["keepsake"]));
     const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
     expect(slots).not.toContain("keepsake");
     expect(slots).toContain("photo_group");
   });
 
   it("keeps the keepsake when there is one", () => {
-    const { edl } = composeFilm(inputWith([]));
+    const { edl } = editLifeAdvice(inputWith([]));
     const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
     expect(slots).toContain("keepsake");
   });
 
   it("stays on the subject when an optional b-roll slot is empty", () => {
-    const { edl, notes } = composeFilm(inputWith(["video_environment"]));
+    const { edl, notes } = editLifeAdvice(inputWith(["video_environment"]));
     const slots = edl.visualSegments.map((s) => ("slotId" in s ? s.slotId : undefined));
     expect(slots).not.toContain("video_environment");
     expect(notes.join(" ")).toContain("video_environment");
@@ -403,7 +404,7 @@ describe("a film missing what the template said was optional", () => {
    * loud failure, because capture would never have let it through.
    */
   it("still refuses a film missing something the template requires", () => {
-    expect(() => composeFilm(inputWith(["photo_group"]))).toThrow(/photo_group/);
+    expect(() => editLifeAdvice(inputWith(["photo_group"]))).toThrow(/photo_group/);
   });
 });
 
@@ -420,7 +421,7 @@ describe("a film missing what the template said was optional", () => {
  */
 describe("b-roll shorter than the beat it fills", () => {
   const outsideAsset = (input: ComposeInput): string[] => {
-    const { edl } = composeFilm(input);
+    const { edl } = editLifeAdvice(input);
     return edl.visualSegments
       .filter((s) => "sourceOutMs" in s && s.sourceOutMs !== undefined)
       .filter((s) => {
@@ -444,7 +445,7 @@ describe("b-roll shorter than the beat it fills", () => {
 
   it("opens on what the short clip has, and says so", () => {
     const input = inputWith([], 1_133);
-    const { edl, notes } = composeFilm(input);
+    const { edl, notes } = editLifeAdvice(input);
     const open = edl.visualSegments[0];
     expect(open?.durationMs).toBeLessThanOrEqual(1_133);
     expect(notes.join(" ")).toContain("opening clip");
@@ -469,7 +470,7 @@ describe("b-roll shorter than the beat it fills", () => {
   };
 
   const slotsUsed = (input: ComposeInput): Set<string> => {
-    const { edl } = composeFilm(input);
+    const { edl } = editLifeAdvice(input);
     return new Set(
       edl.visualSegments
         .map((s) => ("slotId" in s ? s.slotId : undefined))
@@ -499,7 +500,7 @@ describe("b-roll shorter than the beat it fills", () => {
   });
 
   it("never stacks more photographs than the template allows", () => {
-    const { edl } = composeFilm(inputWith([], 1_133));
+    const { edl } = editLifeAdvice(inputWith([], 1_133));
     const c = template.conformance as { maxConsecutivePhotos: number };
     let run = 0;
     let worst = 0;
@@ -511,7 +512,7 @@ describe("b-roll shorter than the beat it fills", () => {
   });
 
   it("stays on the subject rather than cutting to a clip too short to hold", () => {
-    const { edl, notes } = composeFilm(inputWith([], 1_133));
+    const { edl, notes } = editLifeAdvice(inputWith([], 1_133));
     // brollMs.min is 2s; a 1.1s clip cannot be an insert, so no answer cuts
     // away to one.
     const inserts = edl.visualSegments.filter((s) => s.id.endsWith("_insert"));

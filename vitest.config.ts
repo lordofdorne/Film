@@ -19,6 +19,7 @@ export default defineConfig({
       "@film/render/project": mod("render", "fixture"),
       "@film/pipeline/model": mod("pipeline", "model"),
       "@film/edl": pkg("edl"),
+      "@film/editors": pkg("editors"),
       "@film/formats": pkg("formats"),
       "@film/music": pkg("music"),
       "@film/templates/take": mod("templates", "take"),

@@ -152,12 +152,13 @@ recovery is exercised constantly instead of being the branch nobody has run.
 | `@film/edl` | **zod only** | Schemas and the validator. 44 rules. |
 | `@film/formats` | — | Format registry (`landscape-classic`). |
 | `@film/music` | zod | Track schema, registry, cue sheets, licensing. |
-| `@film/templates` | edl, formats, music | `LIFE_ADVICE_V1`, text interpolation. |
+| `@film/templates` | edl, formats, music | `LIFE_ADVICE_V1`, text interpolation. Each template names its editor. |
+| `@film/editors` | edl, templates | One editor per film type: what was recorded in, the EDL out. `life-advice`, plus the shared toolkit. |
 | `@film/render` | edl, formats, music, templates | Remotion composition, framing, captions, audio, props builder. |
 | `@film/db` | zod, drizzle, pg | Data model, connections, stage execution, approvals. |
 | `@film/queue` | db, pg-boss | Queue topology, payloads, per-stage policy. |
 | `@film/storage` | zod, aws-sdk | Project-scoped object store: local disk and R2. |
-| `@film/pipeline` | all above | What each stage does, the runner, dispatcher, reconciler, intake. |
+| `@film/pipeline` | all above | What each stage does, the runner, dispatcher, reconciler, intake. Compose asks the template's editor and knows no film type. |
 | `apps/worker` | db, queue, storage, pipeline | The process. ~170 lines. |
 | `apps/web` | db, storage, pipeline subpaths, render/props | The walk-through, preview, approval, download. |
 
@@ -585,6 +586,29 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### An editor per film type — Phase 9, Block 1
+
+Proposal: `docs/proposal/phase-9-editors.md`. The edit that used to be the
+pipeline's (`compose/plan.ts`, ~1,000 lines of life-advice beats) is now
+`@film/editors`: an `Editor` is `{ id, version, edit(input) }`, each template
+names one (`editor: "life-advice"`), and `editorFor(template)` finds it. The
+compose stage gathers what was recorded, asks the editor, validates and
+stores; it knows no film type.
+
+- **Nothing changed in any film.** Five real films in the dev database and six
+  synthetic ones were cut by the old code first and by the new package after:
+  byte-identical. The dispatcher plans no compose for any of them, because the
+  editor's `version` (4) goes into compose's hash under the old `recipe` key
+  with the old value.
+- **`toolkit.ts`** holds what any editor needs: the contiguous timeline,
+  captions over measured speech, grid rounding that never overruns media,
+  question-card timing, unused-asset notes. `life-advice/edit.ts` holds the
+  beats, moved unchanged; more moves to the toolkit as a second editor needs it.
+- **Golden cuts are checked in** (`packages/editors/test/golden/`). A change
+  that alters a film fails the test: bump the editor's version, run
+  `UPDATE_GOLDEN=1 pnpm test packages/editors`, and review the diff.
+- Still named for life-advice in shared code: the render composition's id
+  (`"LifeAdvice"`) and font family. Cosmetic.
 ### Every recording has a length now — Phase 8
 
 Each question and filmable slot declares `take: { goodFrom, goodTo, max }`

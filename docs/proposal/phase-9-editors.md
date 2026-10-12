@@ -1,6 +1,6 @@
 # Phase 9 — An editor per film: shaping what people give us
 
-**Status: audited 2026-10-12, waiting on the owner's approval.**
+**Status: approved 2026-10-12 ("start phase 9 editors"). Block 1 built: `@film/editors`, byte-identical.**
 
 ## What was asked
 

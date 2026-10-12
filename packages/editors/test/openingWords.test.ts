@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { openingWords } from "../src/compose/plan.js";
+import { openingWords } from "../src/toolkit.js";
 
 /**
  * The cold open's words when nobody chose any.

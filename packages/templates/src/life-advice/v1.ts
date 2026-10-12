@@ -12,6 +12,7 @@ const config: Template = {
   id: "life-advice",
   version: 1,
   displayName: "Life Advice",
+  editor: "life-advice",
   pitch: {
     summary:
       "Someone you love answers ten questions about what life has taught them. " +

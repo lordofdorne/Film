@@ -180,6 +180,15 @@ export type Template = {
   readonly id: string;
   readonly version: number;
   readonly displayName: string;
+  /**
+   * Which editor cuts this template's films (`@film/editors`).
+   *
+   * A name rather than a function so this package stays data, and so two
+   * versions of a template can share an editor or part ways. Templates
+   * describe the film; the editor is the judgement that makes one out of
+   * whatever was actually recorded.
+   */
+  readonly editor: string;
   readonly pitch?: TemplatePitch;
   readonly formatIds: readonly string[];
   readonly defaultFormatId: string;
