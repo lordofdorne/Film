@@ -51,7 +51,7 @@ export const TryAgainButton = ({ projectId }: { readonly projectId: string }) =>
 
   return (
     <>
-      <Button size="lg" onClick={press} disabled={pending}>
+      <Button size="lg" onClick={press} pending={pending}>
         {pending ? "Starting…" : "Try making it again"}
       </Button>
       {outcome !== null && <Notice tone="error">{outcome}</Notice>}

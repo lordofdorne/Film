@@ -6,6 +6,7 @@ import "./styles/accounts.css";
 import { Plus_Jakarta_Sans } from "next/font/google";
 
 import { PRODUCT_NAME, PRODUCT_SUB } from "../src/product.js";
+import { NavProgress } from "./NavProgress.js";
 import { OutsideTheWizard } from "./OutsideTheWizard.js";
 import { SiteFooter } from "./SiteFooter.js";
 import { SiteHeader } from "./SiteHeader.js";
@@ -41,6 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={jakarta.variable}>
       <body>
+        <NavProgress />
         {/* First thing a keyboard reaches: straight past the header. */}
         <a href="#content" className="skip-link">
           Skip to content

@@ -91,7 +91,7 @@ export const SetPasswordOffer = ({
         hint="At least 8 characters, with a capital letter, a small one and a number."
       />
       <div className="row">
-        <Button type="submit" disabled={pending}>
+        <Button type="submit" pending={pending}>
           {pending ? "Setting up…" : "Set a password"}
         </Button>
         <Button variant="quiet" onClick={() => { setOpen(false); setError(null); }}>

@@ -123,7 +123,7 @@ export const SignInForm = ({ next }: { readonly next?: string }) => {
         />
       )}
 
-      <Button type="submit" size="lg" block disabled={pending}>
+      <Button type="submit" size="lg" block pending={pending}>
         {pending
           ? "One moment…"
           : mode === "password"

@@ -19,6 +19,12 @@ export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   readonly size?: "md" | "lg";
   readonly block?: boolean;
   readonly asChild?: boolean;
+  /**
+   * Pressed and working: a spinner beside the label, and no second press.
+   * Not `disabled`, which greys it out and says "you cannot", the opposite of
+   * "you did". The spinner waits 120ms, so a quick answer never shows one.
+   */
+  readonly pending?: boolean;
 };
 
 export const Button = ({
@@ -26,8 +32,10 @@ export const Button = ({
   size = "md",
   block = false,
   asChild = false,
+  pending = false,
   className,
   type,
+  onClick,
   ...rest
 }: ButtonProps) => {
   const classes = cx(
@@ -37,10 +45,20 @@ export const Button = ({
     block && "ui-btn--block",
     className,
   );
+  const busy = pending
+    ? { "data-pending": "", "aria-busy": true as const }
+    : {};
   return asChild ? (
-    <Slot className={classes} {...rest} />
+    <Slot className={classes} onClick={onClick} {...busy} {...rest} />
   ) : (
-    <button type={type ?? "button"} className={classes} {...rest} />
+    <button
+      type={type ?? "button"}
+      className={classes}
+      // Pointer events are off while pending; this catches Enter and Space.
+      onClick={pending ? (event) => { event.preventDefault(); } : onClick}
+      {...busy}
+      {...rest}
+    />
   );
 };
 
