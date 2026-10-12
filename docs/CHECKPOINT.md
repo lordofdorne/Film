@@ -729,6 +729,29 @@ are the owner's to adjust (`life-advice/v1.ts`, above `questions`). They are
 capture-only, so changing them re-cuts no film. Uploaded files are not
 checked for length yet.
 
+### The preview plays smoothly — Phase 8, Block 3
+
+- **Preview copies** (`stages/preview.ts`, migration 0008 → `assets.preview_key`):
+  a stage of its own, like thumbnails. From the normalised file: 720p H.264,
+  CRF 26 capped at 2 Mbit/s, a keyframe every second, 96 kbit/s AAC, same
+  frames at the same times; photos at 1600 px. The render never uses them.
+  Dispatched for every ingested asset with a picture, during capture too;
+  never blocks compose. A real film's 17 assets: 111 MB → 13.7 MB, ~1.6 s each.
+- **Player only:** `MediaSequence` premounts picture and sound two seconds
+  early (in a render it is the old `layout="none"` sequence — golden frames
+  unchanged); video, answers, question audio and photos pause the Player
+  while loading. The music bed does not hold the picture.
+- **Preview URLs last three hours** (were fifteen minutes), signed in parallel.
+- **Measured** in headless Chrome at 8 Mbit/s / 40 ms against a production
+  build of main, on a real film: 0 video stalls in 45 s of playback (main 13),
+  8.5 MB downloaded (main 16.1); after a jump to the middle, picture moving in
+  1.8 s, where main showed no picture data for over ten seconds while its
+  clock ran on. The branch's clock restarts ~1 s later than main's after a
+  jump, because it waits for what it is about to show.
+- **Existing films:** the dispatcher makes copies for active projects when the
+  worker runs; delivered films keep playing the normalised files, which still
+  work.
+
 ### Recording without waiting — Phase 8, Block 2
 
 `CaptureProvider` (`projects/[id]/layout.tsx`) owns the camera and the
