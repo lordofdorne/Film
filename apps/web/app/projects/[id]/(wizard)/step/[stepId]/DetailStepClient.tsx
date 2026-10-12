@@ -51,7 +51,8 @@ export const DetailStepClient = ({
     }
     setError(null);
     startTransition(async () => {
-      const result = await submitDetail(projectId, step.id, value);
+      // Saved and nothing to say: the action sends us on (see submitDetail).
+      const result = await submitDetail(projectId, step.id, value, nextHref);
       if (!result.ok) {
         setError(result.error);
         return;

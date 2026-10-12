@@ -100,6 +100,8 @@ export const submitDetail = async (
   projectId: string,
   fieldId: string,
   value: string,
+  /** Where to go once saved; the wizard's next stop, worked out by the page. */
+  then?: string,
 ): Promise<DetailResult> => {
   const refused = await mine(projectId);
   if (refused !== null) return refused;
@@ -133,8 +135,26 @@ export const submitDetail = async (
   }
 
   revalidatePath(`/projects/${projectId}`);
+
+  /**
+   * Saved, and nothing to stop for: go on from here.
+   *
+   * The client used to `router.push` after this returned, and on a production
+   * build that push was silently dropped — the next step was prefetched in
+   * full, this action's revalidation refreshed the current page, and the
+   * refresh won. The tap saved the name and stayed put, for ever. Redirecting
+   * from the action is the documented "save, then go" and has no race to
+   * lose; it is also one round trip instead of two, because the next page
+   * comes back in this response.
+   *
+   * Only within this film, so the parameter cannot send anybody elsewhere.
+   */
+  if (linkSentTo === null && then !== undefined && withinFilm(projectId, then)) redirect(then);
   return { ok: true, linkSentTo, already };
 };
+
+const withinFilm = (projectId: string, href: string): boolean =>
+  href === `/projects/${projectId}` || href.startsWith(`/projects/${projectId}/`);
 
 export const mintUploadFor = async (
   projectId: string,
