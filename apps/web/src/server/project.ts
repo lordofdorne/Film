@@ -6,11 +6,11 @@ import {
   assets,
   createDb,
   deliverableFilm,
-  deliveryRenders,
   edlVersions,
   filmFilename,
   isProjectId,
   projects,
+  stageExecutions,
   subjectNameOf,
   type Db,
 } from "@film/db";
@@ -300,7 +300,12 @@ export const loadProjectForPreview = async (
  */
 export type DeliveryState =
   | { readonly kind: "unapproved" }
-  | { readonly kind: "rendering" }
+  | {
+      readonly kind: "rendering";
+      /** An honest estimate, or null with nothing yet to base one on. 0 is
+       *  "made, being handed over". */
+      readonly minutesLeft: number | null;
+    }
   | { readonly kind: "failed" }
   | {
       readonly kind: "ready";
@@ -339,10 +344,24 @@ export const loadDelivery = async (projectId: string): Promise<DeliveryState | n
 
   if (status === "failed") return { kind: "failed" };
 
-  // A requested delivery render that has not landed yet. Approval and the
-  // render row are written in one transaction, so one implies the other.
-  const requested = await deliveryRenders(db(), projectId);
-  return requested.length > 0 ? { kind: "rendering" } : { kind: "unapproved" };
+  /**
+   * Approved, and the film not here yet: it is being made.
+   *
+   * Asked of the approvals, not the renders. A render row used to imply an
+   * approval because the two were written together; since compose requests
+   * the render the moment a cut exists — so the film is made while the
+   * customer watches — a render row means nothing about whether they have
+   * pressed Approve, and reading it that way told people their film was being
+   * made before they had said yes.
+   */
+  const approved = await db()
+    .select({ id: approvals.id })
+    .from(approvals)
+    .where(eq(approvals.projectId, projectId))
+    .limit(1);
+  return approved.length > 0
+    ? { kind: "rendering", minutesLeft: await minutesLeftFor(projectId) }
+    : { kind: "unapproved" };
 };
 
 /**
@@ -382,4 +401,40 @@ const fittedNotes = (
     spokenMs: f.spokenMs,
     leftOut: f.leftOut,
   }));
+};
+
+/**
+ * How long this film has left, from how long films have actually taken.
+ *
+ * The middle of the last twenty renders that finished, less however long this
+ * one has already been going — which, now that a render starts while the
+ * customer is still watching the preview, is often most of it. A finished
+ * render with delivery still to do is 0: a moment, not minutes. No history to
+ * go on is null, and the page says "a few minutes" rather than inventing one.
+ */
+const minutesLeftFor = async (projectId: string): Promise<number | null> => {
+  const recent = await db()
+    .select({ startedAt: stageExecutions.startedAt, finishedAt: stageExecutions.finishedAt })
+    .from(stageExecutions)
+    .where(and(eq(stageExecutions.stage, "render"), eq(stageExecutions.status, "succeeded")))
+    .orderBy(desc(stageExecutions.finishedAt))
+    .limit(20);
+  const durations = recent
+    .flatMap((r) => (r.startedAt === null || r.finishedAt === null ? [] : [r.finishedAt.getTime() - r.startedAt.getTime()]))
+    .sort((a, b) => a - b);
+  const typical = durations[Math.floor(durations.length / 2)];
+
+  const current = (
+    await db()
+      .select({ status: stageExecutions.status, startedAt: stageExecutions.startedAt })
+      .from(stageExecutions)
+      .where(and(eq(stageExecutions.projectId, projectId), eq(stageExecutions.stage, "render")))
+      .orderBy(desc(stageExecutions.createdAt))
+      .limit(1)
+  )[0];
+  if (current?.status === "succeeded") return 0;
+  if (typical === undefined) return null;
+
+  const elapsed = current?.startedAt === null || current?.startedAt === undefined ? 0 : Date.now() - current.startedAt.getTime();
+  return Math.max(1, Math.ceil((typical - elapsed) / 60_000));
 };

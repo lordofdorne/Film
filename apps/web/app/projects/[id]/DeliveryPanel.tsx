@@ -92,7 +92,15 @@ export const DeliveryPanel = ({
             <p className="muted">
               {gaveUp
                 ? "This is taking much longer than it should. Reload the page — if it still says this, the film needs looking at."
-                : "The full-quality file usually takes a few minutes. You can close this page; your film will be here when you come back."}
+                : `${
+                    state.minutesLeft === 0
+                      ? "It is made — handing it over now, just a moment."
+                      : state.minutesLeft === null
+                        ? "The full-quality file usually takes a few minutes."
+                        : state.minutesLeft === 1
+                          ? "About a minute left."
+                          : `About ${String(state.minutesLeft)} minutes left.`
+                  } You can close this page; your film will be here when you come back.`}
             </p>
           </div>
         </div>
