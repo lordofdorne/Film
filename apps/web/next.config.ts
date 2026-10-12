@@ -20,6 +20,13 @@ const ROOT_ENV = fileURLToPath(new URL("../../.env", import.meta.url));
 if (existsSync(ROOT_ENV)) process.loadEnvFile(ROOT_ENV);
 
 const config: NextConfig = {
+  /**
+   * `pnpm site` builds into its own directory. `next build` into `.next`
+   * replaces what a running `pnpm web` is serving and takes it down (see
+   * build:packages in the root package.json), and the point of `pnpm site` is
+   * to sit beside the dev server, not to fight it.
+   */
+  distDir: process.env["NEXT_DIST_DIR"] ?? ".next",
   // Workspace packages ship compiled ESM; Next needs to know they are ours.
   transpilePackages: [
     "@film/render",

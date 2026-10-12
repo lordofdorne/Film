@@ -284,7 +284,10 @@ progress.
   and restart. The scripts that used to cause it — `worker`, `intake`,
   `bed:upload` — now run `pnpm build:packages` instead, which filters out
   `@film/web`; `pnpm build` itself is still unsafe beside a dev server.
-- **No `loading.tsx` above a wizard step.** With one there — site-wide or
+- **No `loading.tsx` above a wizard step — beside one is fine.** Home and the
+  film page each have one, in their own route groups (`app/(home)`,
+  `projects/[id]/(overview)`), so neither wraps the wizard. Walked on a
+  production build: Continue 6 of 6, Make my film 4 of 4. With one above — site-wide or
   the wizard's own — a save that revalidates the film intermittently left the
   router unable to move on, on a production build only: Continue saved and
   stayed on the same screen for good, by `router.push` and by a redirect from
@@ -745,6 +748,30 @@ checked for length yet.
   insert's foreign key) instead of failing four times.
 - A preview or thumbnail stage already running when its film is deleted can
   still write one file afterwards. It sits under a prefix nothing points to.
+### Every tap answers at once — Phase 8, after Block 3
+
+The owner, on `pnpm web`: Continue and Home "take forever", with nothing on
+screen to say anything is happening.
+
+- **Most of the wait is the dev server.** Measured the same walk both ways:
+  `next dev` 0.3–2.7 s per tap warm and up to 11 s on a page's first visit;
+  a production build 30–260 ms. `next dev` compiles on demand and never
+  prefetches. **`pnpm site`** runs a production build on :3300, built into
+  `.next-site` so it sits beside `pnpm web` without taking it down. Turbopack
+  was tried and cannot resolve this repo's `.js`-spelled imports.
+- **Feedback within a frame, everywhere** (`app/NavProgress.tsx`): a bar across
+  the top and `data-pending`/`aria-busy` on the tapped link, from one capture
+  listener rather than per link. `<Button pending>` keeps its colour and shows
+  a spinner. Both wait 120 ms, so a fast answer flashes nothing. Continue,
+  Keep and Start this film hold their spinner until the next screen arrives
+  (`useNavigate`, not a transition's `isPending`, which ends at `push`).
+  `pnpm perf` "feedback" went from equal-to-arrival to 10–15 ms on every tap,
+  dev and production.
+- **Skeletons for home and the film page**, beside the wizard (see the
+  invariant). The cost: once a skeleton has shown, React holds the real page
+  back until 300 ms have passed, so on a fast machine those two arrive at
+  ~330 ms instead of 80–170 ms. On a phone network, or the dev server, the
+  page takes longer than that anyway.
 
 ### The preview plays smoothly — Phase 8, Block 3
 

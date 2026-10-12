@@ -1,10 +1,10 @@
 import Link from "next/link";
 
-import { FAQ, HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../src/product.js";
-import { authConfigured, currentUser, sessionClaims } from "../src/server/auth.js";
-import { loadWalkthroughView, thumbnailUrl } from "../src/server/capture.js";
-import { listProjects, type FilmListing } from "../src/server/project.js";
-import { progressOf } from "../src/server/wizard.js";
+import { FAQ, HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../../src/product.js";
+import { authConfigured, currentUser, sessionClaims } from "../../src/server/auth.js";
+import { loadWalkthroughView, thumbnailUrl } from "../../src/server/capture.js";
+import { listProjects, type FilmListing } from "../../src/server/project.js";
+import { progressOf } from "../../src/server/wizard.js";
 import {
   Button,
   Card,
@@ -14,7 +14,7 @@ import {
   Icon,
   Notice,
   type IconName,
-} from "../src/ui/index.js";
+} from "../../src/ui/index.js";
 
 /**
  * Films first when there are films; what this is, for anybody who might still

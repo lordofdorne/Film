@@ -1,13 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { submitDetail } from "../../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../../src/server/capture.js";
 import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
+import { startNavigation, stopNavigation, useNavigate } from "../../../../../NavProgress.js";
 import { SetPasswordOffer } from "../../../../../SetPasswordOffer.js";
 
 /**
@@ -28,10 +28,10 @@ export const DetailStepClient = ({
   readonly step: StepView;
   readonly nextHref: string;
 }) => {
-  const router = useRouter();
   const initial = step.value === null ? "" : String(step.value);
   const [value, setValue] = useState(initial);
   const [pending, startTransition] = useTransition();
+  const { leaving, go } = useNavigate();
   const [error, setError] = useState<string | null>(null);
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
@@ -46,23 +46,26 @@ export const DetailStepClient = ({
   const save = () => {
     // Unchanged is not a save: go on without a round trip.
     if (value === initial && !empty) {
-      router.push(nextHref);
+      go(nextHref);
       return;
     }
     setError(null);
+    startNavigation();
     startTransition(async () => {
       // Saved and nothing to say: the action sends us on (see submitDetail).
       const result = await submitDetail(projectId, step.id, value, nextHref);
       if (!result.ok) {
+        stopNavigation();
         setError(result.error);
         return;
       }
       if (result.linkSentTo !== null) {
         // Stay: the one message worth reading before moving on.
+        stopNavigation();
         setLinkSentTo({ email: result.linkSentTo, already: result.already });
         return;
       }
-      router.push(nextHref);
+      go(nextHref);
     });
   };
 
@@ -162,9 +165,9 @@ export const DetailStepClient = ({
           <Button variant="quiet" asChild>
             <Link href={nextHref}>Skip for now</Link>
           </Button>
-          <Button size="lg" onClick={save} disabled={pending || (step.required && empty)}>
+          <Button size="lg" onClick={save} pending={pending || leaving} disabled={step.required && empty}>
             {pending ? "Saving…" : "Continue"}
-            {!pending && <Icon name="forward" size={18} />}
+            {!pending && !leaving && <Icon name="forward" size={18} />}
           </Button>
         </div>
       </footer>

@@ -55,6 +55,54 @@
 }
 .ui-btn--quiet[disabled] { background: transparent; }
 
+/*
+ * On its way: the tapped control says so. Set by NavProgress on a link, or by
+ * <Button pending>. Held back 120ms like the skeletons, so a fast answer never
+ * flashes a spinner. Keeps its own colour — greying it out would read as
+ * "you cannot press this", which is the wrong message for "pressed, working".
+ */
+.ui-btn[data-pending] { pointer-events: none; cursor: progress; }
+.ui-btn[data-pending]::after {
+  content: "";
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  opacity: 0;
+  animation: ui-skel-in 1ms 120ms forwards, ui-spin 0.7s linear infinite;
+}
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+a[data-pending]:not(.ui-btn) { opacity: 0.55; cursor: progress; transition: opacity 1ms 120ms; }
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn[data-pending]::after { animation: ui-skel-in 1ms 120ms forwards; border-right-color: currentColor; opacity: 0.6; }
+}
+
+/* The bar across the top while a tap is on its way (app/NavProgress.tsx). */
+.nav-progress {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 3px;
+  z-index: 1000;
+  pointer-events: none;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  transform: scaleX(0);
+  opacity: 0;
+  transition: opacity var(--dur-2) ease, transform 0s var(--dur-2);
+}
+.nav-progress--on {
+  opacity: 1;
+  transform: scaleX(0.85);
+  /* Fast at first, then slower and slower: it never reaches the end on its
+     own, because only arriving is the end. */
+  transition: opacity 1ms 120ms, transform 8s cubic-bezier(0.1, 0.7, 0.2, 1) 120ms;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-progress--on { transform: scaleX(0.6); transition: opacity 1ms 120ms; }
+}
+
 .ui-icon-btn {
   display: inline-flex;
   align-items: center;

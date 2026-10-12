@@ -11,7 +11,7 @@ export const SignOutButton = ({ block = false }: { readonly block?: boolean }) =
     <Button
       variant="secondary"
       block={block}
-      disabled={pending}
+      pending={pending}
       onClick={() => { startTransition(async () => { await signOut(); }); }}
     >
       {pending ? "Signing out…" : "Sign out"}
