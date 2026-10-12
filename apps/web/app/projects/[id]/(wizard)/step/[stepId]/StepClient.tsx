@@ -4,10 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { discardStep, finishUpload, mintUploadFor } from "../../../../../../src/server/captureActions.js";
+import { discardStep } from "../../../../../../src/server/captureActions.js";
 import { clock, spokenRange, takeZone, type TakeLength } from "@film/templates/take";
 
 import type { StepView } from "../../../../../../src/server/capture.js";
+import { useCapture, type UploadState } from "../../../CaptureProvider.js";
 import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 
@@ -38,38 +39,17 @@ const supportedType = (): string | null => {
   return VIDEO_TYPES.find((t) => MediaRecorder.isTypeSupported(t)) ?? null;
 };
 
-type Saving = {
-  readonly state: "idle" | "saving" | "saved" | "failed";
-  readonly error?: string;
-  /** 0–1 while bytes are going up, when the browser can tell us. */
-  readonly progress?: number;
-};
-
 /**
- * PUT with upload progress.
+ * How big a take is allowed to get.
  *
- * `fetch` cannot report upload progress, and a take is hundreds of megabytes
- * on a phone connection — "Saving…" with no number for two minutes reads as
- * stuck, and stuck is when people close the tab. XMLHttpRequest can.
+ * Left to itself the browser picks, and Safari's 1080p is generous: an
+ * answer was hundreds of megabytes, which is minutes of upload on a phone.
+ * Five megabits is well above what ingest keeps (1080p at CRF 20) and about
+ * 37 MB a minute. One-second chunks so a long take is never held as one piece.
  */
-const putWithProgress = (
-  url: string,
-  body: Blob,
-  contentType: string,
-  onProgress: (fraction: number) => void,
-): Promise<boolean> =>
-  new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("content-type", contentType);
-    xhr.upload.onprogress = (event) => {
-      if (event.lengthComputable && event.total > 0) onProgress(event.loaded / event.total);
-    };
-    xhr.onload = () => { resolve(xhr.status >= 200 && xhr.status < 300); };
-    xhr.onerror = () => { resolve(false); };
-    xhr.onabort = () => { resolve(false); };
-    xhr.send(body);
-  });
+const VIDEO_BITS_PER_SECOND = 5_000_000;
+const AUDIO_BITS_PER_SECOND = 128_000;
+const CHUNK_MS = 1_000;
 
 export const StepClient = ({
   projectId,
@@ -82,80 +62,95 @@ export const StepClient = ({
   readonly nextHref: string;
 }) => {
   const router = useRouter();
+  const { camera, uploads } = useCapture();
+  const upload = uploads.byStep[step.id];
 
-  /** What the browser is holding right now, before or instead of a round trip. */
-  const [localUrl, setLocalUrl] = useState<string | null>(null);
-  const [localIsPhoto, setLocalIsPhoto] = useState(false);
   /**
-   * Whether the camera is on, and what for.
+   * What the screen is doing with the camera.
    *
-   * One state rather than two booleans because the live `<video>` is one
-   * element serving both — a step that takes a photograph frames it exactly
-   * the way a step that takes a take does.
+   *   idle      — nothing live: the invitation, or what was captured
+   *   preview   — the camera is on and the person can see themselves
+   *   recording — and it counts
+   *   photo     — the back camera, framing a still
    */
-  const [live, setLive] = useState<null | "video" | "photo">(null);
-  const recording = live === "video";
+  const [phase, setPhase] = useState<"idle" | "preview" | "recording" | "photo">("idle");
+  const recording = phase === "recording";
   const [seconds, setSeconds] = useState(0);
   /** When this recording started, so the clock is measured, not counted. */
   const startedAtRef = useRef(0);
   /** The take just recorded, for what is said about its length. */
   const [lastTake, setLastTake] = useState<{ seconds: number; atMax: boolean } | null>(null);
-  const [saving, setSaving] = useState<Saving>({ state: "idle" });
   const [cameraError, setCameraError] = useState<string | null>(null);
 
   const liveRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
   const takesVideo = step.accepts.includes("video");
   const takesPhoto = step.accepts.includes("photo");
-  const saved = saving.state === "saved" || (step.asset !== null && saving.state === "idle");
+  const photoOnly = takesPhoto && !takesVideo;
 
-  /** Nothing keeps the camera on after this screen. */
-  const stopStream = useCallback(() => {
-    streamRef.current?.getTracks().forEach((t) => { t.stop(); });
-    streamRef.current = null;
-    if (liveRef.current !== null) liveRef.current.srcObject = null;
-  }, []);
-
-  useEffect(() => stopStream, [stopStream]);
+  /** This browser's own copy first — it is the newest — then what is stored. */
+  const shownUrl = upload?.localUrl ?? step.asset?.url ?? null;
+  const shownIsPhoto = upload !== undefined ? upload.isPhoto : step.asset?.kind === "photo";
+  const captured = shownUrl !== null && phase === "idle";
 
   // The next screen is known; fetch it now so Keep and Skip feel instant.
   usePrefetchNext(nextHref);
 
   /**
-   * Closing the tab mid-upload loses the take, and nothing else on the page
-   * can say so in time. The browser's own "leave site?" is the one warning
-   * that arrives before it is too late.
+   * The camera, on as soon as the screen is up — once it has been allowed.
+   *
+   * The first recording step of a visit asks: "Turn on the camera" is a
+   * button, because a permission prompt nobody asked for is alarming. After
+   * that every recording step opens with the person already on screen, so
+   * Record starts in the same instant it is pressed, and they can see how they
+   * are framed before it counts. A step that already has a take shows the take.
    */
+  const openPreview = useCallback(async () => {
+    setCameraError(null);
+    try {
+      await camera.acquire("video");
+      setPhase("preview");
+    } catch {
+      // Almost always a refused permission, and there is a way round it.
+      setCameraError(
+        "No camera or microphone available. Check the browser’s permission, or use Upload instead.",
+      );
+      setPhase("idle");
+    }
+  }, [camera]);
+
+  const autoOpened = useRef(false);
   useEffect(() => {
-    if (saving.state !== "saving") return;
-    const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
-    window.addEventListener("beforeunload", warn);
-    return () => { window.removeEventListener("beforeunload", warn); };
-  }, [saving.state]);
+    if (autoOpened.current || !takesVideo || shownUrl !== null || !camera.allowed) return;
+    autoOpened.current = true;
+    void openPreview();
+  }, [takesVideo, shownUrl, camera.allowed, openPreview]);
+
+  // Leaving the screen lets the camera go; the next question picks it up.
+  const { letGo } = camera;
+  useEffect(() => letGo, [letGo]);
 
   /**
-   * Show the person what the camera can see.
+   * Show the person what the camera sees, on whichever element is up.
    *
-   * This has to be an effect, and that is the whole bug it fixes. The live
-   * `<video>` is only mounted while the camera is on, so the old code —
-   * which assigned `srcObject` inside startRecording, before flipping the
-   * state that mounts the element — was always assigning to a ref that was
-   * still null. The recording worked and the preview was a black rectangle,
-   * which is a horrible thing to hand somebody who is about to interview
-   * their grandmother.
-   *
-   * Running after the element exists is what makes it appear at all.
+   * An effect, because the live `<video>` only exists once the phase that
+   * mounts it has rendered — assigning before then put the stream on a null
+   * ref, and the preview was a black rectangle.
    */
   useEffect(() => {
     const video = liveRef.current;
-    const stream = streamRef.current;
-    if (live === null || video === null || stream === null) return;
-    video.srcObject = stream;
+    if (phase === "idle" || video === null || camera.stream === null) return;
+    if (video.srcObject !== camera.stream) video.srcObject = camera.stream;
     void video.play().catch(() => undefined);
-  }, [live]);
+  }, [phase, camera.stream]);
+
+  // The camera went away under the screen (the tab was hidden): say so by
+  // going back to the invitation, rather than showing a frozen frame.
+  useEffect(() => {
+    if (camera.stream === null && (phase === "preview" || phase === "photo")) setPhase("idle");
+  }, [camera.stream, phase]);
 
   /**
    * The recording clock, read from when it started rather than counted.
@@ -171,44 +166,6 @@ export const StepClient = ({
     return () => { clearInterval(timer); };
   }, [recording]);
 
-  const upload = useCallback(
-    async (blob: Blob, contentType: string) => {
-      setSaving({ state: "saving" });
-      const minted = await mintUploadFor(projectId, step.id, contentType);
-      if (!minted.ok) {
-        setSaving({ state: "failed", error: minted.error });
-        return;
-      }
-      const { assetId, key, uploadUrl, contentType: signedType } = minted.mint;
-
-      /**
-       * Straight to storage. In production this URL is R2's, signed for one
-       * key and one method, and these bytes never touch the app server.
-       *
-       * The header is the type the URL was SIGNED for, not the one the blob
-       * happens to carry. R2 covers content-type in the signature and
-       * MediaRecorder hands us `video/webm;codecs=vp9,opus`, so sending the
-       * blob's own type would be a 403 on every recording — and one that
-       * local development cannot reproduce, because the local upload route
-       * does not check a signature at all.
-       */
-      const landed = await putWithProgress(uploadUrl, blob, signedType, (fraction) => {
-        setSaving({ state: "saving", progress: fraction });
-      });
-
-      if (!landed) {
-        setSaving({ state: "failed", error: "That did not reach us. Try again?" });
-        return;
-      }
-
-      // The row is written only now, once the bytes are known to have landed.
-      const done = await finishUpload(projectId, step.id, assetId, key, signedType);
-      setSaving(done.ok ? { state: "saved" } : { state: "failed", error: done.error });
-      if (done.ok) router.refresh();
-    },
-    [projectId, router, step.id],
-  );
-
   const startRecording = useCallback(async () => {
     setCameraError(null);
     const mimeType = supportedType();
@@ -216,50 +173,57 @@ export const StepClient = ({
       setCameraError("This browser cannot record video. Use Upload instead — a video from the camera app works just as well.");
       return;
     }
+    let stream: MediaStream;
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: { ideal: 1920 }, height: { ideal: 1080 } },
-        audio: true,
-      });
-      streamRef.current = stream;
-
-      const recorder = new MediaRecorder(stream, { mimeType });
-      chunksRef.current = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data.size > 0) chunksRef.current.push(event.data);
-      };
-      recorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        stopStream();
-        setLocalUrl((old) => {
-          if (old !== null) URL.revokeObjectURL(old);
-          return URL.createObjectURL(blob);
-        });
-        setLocalIsPhoto(false);
-        void upload(blob, mimeType);
-      };
-
-      recorderRef.current = recorder;
-      startedAtRef.current = Date.now();
-      setSeconds(0);
-      setLastTake(null);
-      setLive("video");
-      recorder.start();
+      stream = await camera.acquire("video");
     } catch {
-      // Almost always a refused permission, and there is a way round it.
       setCameraError(
         "No camera or microphone available. Check the browser’s permission, or use Upload instead.",
       );
-      stopStream();
+      return;
     }
-  }, [stopStream, upload]);
+
+    const recorder = new MediaRecorder(stream, {
+      mimeType,
+      videoBitsPerSecond: VIDEO_BITS_PER_SECOND,
+      audioBitsPerSecond: AUDIO_BITS_PER_SECOND,
+    });
+    chunksRef.current = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunksRef.current.push(event.data);
+    };
+    /**
+     * The take is handed to the queue and the screen is free. It goes up
+     * behind the person while they read the next question; the camera stays
+     * with the provider, so the next question finds it on.
+     */
+    recorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: mimeType });
+      if (blob.size > 0) uploads.enqueue(step.id, blob, mimeType, false);
+      setPhase("idle");
+      camera.letGo();
+    };
+
+    recorderRef.current = recorder;
+    startedAtRef.current = Date.now();
+    setSeconds(0);
+    setLastTake(null);
+    setPhase("recording");
+    recorder.start(CHUNK_MS);
+  }, [camera, step.id, uploads]);
 
   const stopRecording = useCallback((atMax = false) => {
     setLastTake({ seconds: (Date.now() - startedAtRef.current) / 1000, atMax });
-    setLive(null);
-    recorderRef.current?.stop();
+    const recorder = recorderRef.current;
     recorderRef.current = null;
+    if (recorder !== null && recorder.state !== "inactive") recorder.stop();
+    else setPhase("idle");
   }, []);
+
+  // Recording when the camera goes (the tab was hidden): keep what there is.
+  useEffect(() => {
+    if (recording && camera.stream === null) stopRecording();
+  }, [recording, camera.stream, stopRecording]);
 
   /**
    * The longest this answer can use, and then it stops by itself.
@@ -280,30 +244,17 @@ export const StepClient = ({
    * "Choose a photo" was the only way to give us one, which assumes the
    * picture already exists — and half of them do not. Somebody sitting with a
    * shoebox of prints wants to point a camera at one now, and a phone is a
-   * better scanner than anything else in the house. No audio: a still needs
-   * no microphone, and asking for one is a permission prompt that frightens
-   * people for nothing.
+   * better scanner than anything else in the house.
    */
   const startPhoto = useCallback(async () => {
     setCameraError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          width: { ideal: 2560 },
-          height: { ideal: 1920 },
-          // The back camera on a phone, where there is one. A soft constraint,
-          // so a laptop with one camera gets that instead of an error.
-          facingMode: { ideal: "environment" },
-        },
-        audio: false,
-      });
-      streamRef.current = stream;
-      setLive("photo");
+      await camera.acquire("photo");
+      setPhase("photo");
     } catch {
       setCameraError("No camera available. Check the browser’s permission, or use Choose a photo instead.");
-      stopStream();
     }
-  }, [stopStream]);
+  }, [camera]);
 
   /** Freeze the frame that is on screen, and send that. */
   const takePhoto = useCallback(() => {
@@ -328,64 +279,47 @@ export const StepClient = ({
     canvas.toBlob(
       (blob) => {
         if (blob === null) return;
-        stopStream();
-        setLive(null);
-        setLocalUrl((old) => {
-          if (old !== null) URL.revokeObjectURL(old);
-          return URL.createObjectURL(blob);
-        });
-        setLocalIsPhoto(true);
-        void upload(blob, "image/jpeg");
+        // The back camera goes off as soon as it has done its job.
+        camera.stop();
+        setPhase("idle");
+        uploads.enqueue(step.id, blob, "image/jpeg", true);
       },
       "image/jpeg",
       // Ingest re-encodes anyway; this only has to survive that without
       // adding artefacts of its own.
       0.92,
     );
-  }, [stopStream, upload]);
+  }, [camera, step.id, uploads]);
 
   /** Changed their mind with the camera open. */
   const cancelCamera = useCallback(() => {
-    stopStream();
-    setLive(null);
-  }, [stopStream]);
+    if (phase === "photo") camera.stop();
+    else camera.letGo();
+    setPhase("idle");
+  }, [camera, phase]);
 
   const chooseFile = useCallback(
     (file: File | undefined) => {
       if (file === undefined) return;
       setCameraError(null);
-      setLocalUrl((old) => {
-        if (old !== null) URL.revokeObjectURL(old);
-        return URL.createObjectURL(file);
-      });
-      setLocalIsPhoto(file.type.startsWith("image/"));
       setLastTake(null);
-      void upload(file, file.type);
+      setPhase("idle");
+      camera.letGo();
+      uploads.enqueue(step.id, file, file.type, file.type.startsWith("image/"));
     },
-    [upload],
+    [camera, step.id, uploads],
   );
 
   /**
-   * Doing it again is one press, not two. The replacement uploads over the
-   * top — the server swaps the row and removes the take it replaced — so there
-   * is no "delete, then record" dance.
+   * Doing it again is one press, not two. A new take goes over the top — the
+   * server swaps the row and removes the one it replaced — so there is no
+   * "delete, then record" dance. Remove forgets any take still on its way.
    */
   const removeCapture = useCallback(() => {
     setLastTake(null);
-    setLocalUrl((old) => {
-      if (old !== null) URL.revokeObjectURL(old);
-      return null;
-    });
-    setSaving({ state: "idle" });
+    uploads.cancel(step.id);
     void discardStep(projectId, step.id).then(() => { router.refresh(); });
-  }, [projectId, router, step.id]);
-
-  /** What to show back: this session's capture first, then whatever is stored. */
-  const shownUrl = localUrl ?? step.asset?.url ?? null;
-  const shownIsPhoto =
-    localUrl !== null ? localIsPhoto : step.asset !== null && step.asset.kind === "photo";
-  const captured = shownUrl !== null && live === null;
-  const photoOnly = takesPhoto && !takesVideo;
+  }, [projectId, router, step.id, uploads]);
 
   const fileButton = (label: string) => (
     <label className="ui-btn ui-btn--ghost ui-file">
@@ -399,6 +333,8 @@ export const StepClient = ({
     </label>
   );
 
+  const live = phase !== "idle";
+
   return (
     <>
       <main className="wz-body">
@@ -409,12 +345,12 @@ export const StepClient = ({
         <h1 className="wz-ask">{step.ask}</h1>
 
         <section aria-label="Camera">
-          {live !== null ? (
+          {live ? (
             <div className="vf vf--filled">
               {/* autoPlay as well as the effect: whichever wins, the person
                   sees themselves rather than a black rectangle. */}
               <video ref={liveRef} autoPlay muted playsInline className="vf__media vf__media--live" />
-              {live === "video" &&
+              {recording &&
                 (take === undefined ? (
                   <span className="vf__badge" aria-live="off">
                     <span className="vf__dot" aria-hidden />
@@ -423,6 +359,9 @@ export const StepClient = ({
                 ) : (
                   <TakeTimer seconds={seconds} take={take} />
                 ))}
+              {phase === "preview" && take !== undefined && (
+                <span className="vf__badge vf__badge--quiet">A good length is {spokenRange(take)}</span>
+              )}
             </div>
           ) : shownUrl !== null ? (
             <div className="vf vf--filled">
@@ -432,26 +371,21 @@ export const StepClient = ({
                 /*
                   Nothing is fetched until somebody presses play.
 
-                  A take is hundreds of megabytes, and the default preload starts
+                  A take is tens of megabytes, and the default preload starts
                   pulling it the moment this page renders — so opening a step to
                   re-read the question cost a download of the answer. The poster
-                  is the thumbnail: one small image, and the frame it shows is
-                  the frame play would have started on anyway.
-
-                  `localUrl` is this session's own blob, already in memory, so it
-                  needs neither.
+                  is the thumbnail. This browser's own copy is already in
+                  memory, so it needs neither.
                 */
                 <video
                   src={shownUrl}
                   controls
                   playsInline
                   className="vf__media"
-                  {...(localUrl === null
+                  {...(upload === undefined
                     ? {
                         preload: "none" as const,
-                        ...(step.asset?.thumbUrl === undefined
-                          ? {}
-                          : { poster: step.asset.thumbUrl }),
+                        ...(step.asset?.thumbUrl === undefined ? {} : { poster: step.asset.thumbUrl }),
                       }
                     : {})}
                 />
@@ -465,7 +399,7 @@ export const StepClient = ({
                 {takesVideo && takesPhoto
                   ? "Record something, or add a photo or video you already have."
                   : takesVideo
-                    ? "Record it here, or upload a video you already have."
+                    ? "Turn on the camera to see how you are framed, then record."
                     : "Take a photo, or choose one you already have."}
               </p>
               {take !== undefined && takesVideo && (
@@ -475,16 +409,22 @@ export const StepClient = ({
           )}
         </section>
 
-        {captured && lastTake !== null && localUrl !== null && !localIsPhoto && take !== undefined && (
+        {captured && lastTake !== null && upload !== undefined && !upload.isPhoto && take !== undefined && (
           <TakeNote seconds={lastTake.seconds} atMax={lastTake.atMax} take={take} />
         )}
-        {captured && <Reassurance saving={saving} saved={saved} />}
+        {captured && (
+          <Reassurance
+            upload={upload}
+            stored={step.asset !== null}
+            onRetry={() => { uploads.retry(step.id); }}
+          />
+        )}
         {cameraError !== null && (
           <p className="note note--error" role="alert">
             {cameraError}
           </p>
         )}
-        {step.qcNote !== undefined && saving.state !== "saving" && (
+        {step.qcNote !== undefined && upload === undefined && (
           <p className="note note--warn">{step.qcNote}</p>
         )}
         {step.coaching !== undefined && <Tip>{step.coaching}</Tip>}
@@ -498,14 +438,14 @@ export const StepClient = ({
       </main>
 
       <footer className="wz-foot">
-        {live === "video" ? (
+        {phase === "recording" ? (
           <div className="wz-foot__row">
             <Button size="lg" variant="secondary" block onClick={() => { stopRecording(); }}>
               <span className="vf__dot" aria-hidden />
               Stop recording · {clock(seconds)}
             </Button>
           </div>
-        ) : live === "photo" ? (
+        ) : phase === "photo" ? (
           <div className="wz-foot__row">
             <Button variant="quiet" onClick={cancelCamera}>
               Cancel
@@ -517,11 +457,12 @@ export const StepClient = ({
           </div>
         ) : captured ? (
           /* Secondary actions in one row, the way forward full width under
-             them: on a phone, a thumb finds the bottom of the screen. */
+             them: on a phone, a thumb finds the bottom of the screen. Keep
+             never waits for the upload — the queue has it. */
           <div className="wz-foot__row wz-foot__row--stack">
             <div className="wz-foot__secondary">
               {takesVideo && (
-                <Button variant="ghost" onClick={() => { void startRecording(); }}>
+                <Button variant="ghost" onClick={() => { void openPreview(); }}>
                   <Icon name="rotate" size={18} />
                   Again
                 </Button>
@@ -539,16 +480,9 @@ export const StepClient = ({
                 </Button>
               )}
             </div>
-            <Button
-              size="lg"
-              block
-              disabled={saving.state === "saving" || saving.state === "failed"}
-              onClick={() => { router.push(nextHref); }}
-            >
-              {saving.state === "saving"
-                ? `Saving${saving.progress === undefined ? "…" : ` ${String(Math.round(saving.progress * 100))}%`}`
-                : "Keep and continue"}
-              {saving.state !== "saving" && <Icon name="forward" size={18} />}
+            <Button size="lg" block onClick={() => { router.push(nextHref); }}>
+              Keep and continue
+              <Icon name="forward" size={18} />
             </Button>
           </div>
         ) : (
@@ -567,15 +501,20 @@ export const StepClient = ({
                 {fileButton(photoOnly ? "Choose a photo" : "Upload")}
               </span>
             </div>
-            {takesVideo ? (
+            {!takesVideo ? (
+              <Button size="lg" block onClick={() => { void startPhoto(); }}>
+                <Icon name="camera" size={18} />
+                Take a photo
+              </Button>
+            ) : phase === "preview" ? (
               <Button size="lg" block onClick={() => { void startRecording(); }}>
                 <span className="ui-rec-dot" aria-hidden />
                 Record
               </Button>
             ) : (
-              <Button size="lg" block onClick={() => { void startPhoto(); }}>
-                <Icon name="camera" size={18} />
-                Take a photo
+              <Button size="lg" block onClick={() => { void openPreview(); }}>
+                <Icon name="video" size={18} />
+                Turn on the camera
               </Button>
             )}
           </div>
@@ -587,17 +526,27 @@ export const StepClient = ({
 
 /**
  * The reassurance after a take — the first of the three things the owner
- * asked capture to feel like. Said plainly, as soon as the bytes have landed,
- * and with the one thing people worry about answered: it is kept.
+ * asked capture to feel like. Said plainly, and with the one thing people
+ * worry about answered: it is kept. While the take is still going up, it
+ * says that too, and that they need not wait for it.
  */
-const Reassurance = ({ saving, saved }: { readonly saving: Saving; readonly saved: boolean }) => {
-  if (saving.state === "saving") {
-    const percent = saving.progress === undefined ? null : Math.round(saving.progress * 100);
+const Reassurance = ({
+  upload,
+  stored,
+  onRetry,
+}: {
+  readonly upload: UploadState | undefined;
+  readonly stored: boolean;
+  readonly onRetry: () => void;
+}) => {
+  if (upload !== undefined && (upload.state === "queued" || upload.state === "saving")) {
+    const percent =
+      upload.state === "saving" && upload.progress !== undefined ? Math.round(upload.progress * 100) : null;
     return (
       <div className="wz-uploading" role="status">
         <p>
           {percent === null || percent >= 100 ? "Saving" : `Saving — ${String(percent)}%`}
-          <span className="muted"> · keep this page open until it is done</span>
+          <span className="muted"> · carry on whenever you like; it keeps going</span>
         </p>
         <span className="wz-uploading__track" aria-hidden>
           <span className="wz-uploading__fill" style={{ width: `${String(percent ?? 8)}%` }} />
@@ -605,15 +554,17 @@ const Reassurance = ({ saving, saved }: { readonly saving: Saving; readonly save
       </div>
     );
   }
-  if (saving.state === "failed") {
+  if (upload !== undefined && upload.state === "failed") {
     return (
-      <p className="note note--error" role="alert">
-        {saving.error} Your recording is still here — try saving it again with Replace, or
-        record it once more.
-      </p>
+      <div className="note note--error" role="alert">
+        That one did not save — the connection dropped. Your recording is still here.{" "}
+        <button type="button" className="linklike" onClick={onRetry}>
+          Try again
+        </button>
+      </div>
     );
   }
-  if (!saved) return null;
+  if (!stored && upload?.state !== "saved") return null;
   return (
     <div className="wz-saved" role="status">
       <Icon name="check" size={22} strokeWidth={2.4} />
@@ -624,14 +575,6 @@ const Reassurance = ({ saving, saved }: { readonly saving: Saving; readonly save
     </div>
   );
 };
-
-const acceptAttribute = (step: StepView): string => {
-  const parts: string[] = [];
-  if (step.accepts.includes("photo")) parts.push("image/*");
-  if (step.accepts.includes("video")) parts.push("video/*");
-  return parts.join(",");
-};
-
 
 /**
  * The clock while recording, drawn across the bottom of the picture: how long
@@ -709,4 +652,11 @@ const TakeNote = ({
       if there is more to say, press Again. Otherwise keep it; it is theirs.
     </p>
   );
+};
+
+const acceptAttribute = (step: StepView): string => {
+  const parts: string[] = [];
+  if (step.accepts.includes("photo")) parts.push("image/*");
+  if (step.accepts.includes("video")) parts.push("video/*");
+  return parts.join(",");
 };
