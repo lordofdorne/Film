@@ -149,7 +149,7 @@ recovery is exercised constantly instead of being the branch nobody has run.
 
 | Package | Depends on | Role |
 |---|---|---|
-| `@film/edl` | **zod only** | Schemas and the validator. 44 rules. |
+| `@film/edl` | **zod only** | Schemas and the validator. 46 rules. |
 | `@film/formats` | — | Format registry (`landscape-classic`). |
 | `@film/music` | zod | Track schema, registry, cue sheets, licensing. |
 | `@film/templates` | edl, formats, music | `LIFE_ADVICE_V1`, text interpolation. Each template names its editor. |
@@ -585,6 +585,31 @@ rather type one.
 Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
+
+### The music ends with the film — Phase 9, Block 4
+
+- **`audio.musicEdits`** in the EDL (optional): at film time `atMs` the
+  track continues from `toMs`, crossfaded over `crossfadeMs`. Forward skips,
+  backward repeats. The validator keeps edits in order, the crossfades
+  fitting, the track long enough for every stretch asked of it, and — on a
+  track with a beat grid — both sides of each edit on a downbeat
+  (`MUSIC_EDIT_INVALID`, `MUSIC_EDIT_OFF_BEAT`, `MUSIC_TRACK_TOO_SHORT`).
+- **The renderer plays them** (`musicPiecesOf`, `MusicBed`): one piece of
+  track per stretch, equal-power crossfades. Ducking is a function of film
+  time and carries across an edit untouched. Rendered and measured around a
+  four-bar skip on the sample film: no dip, no silence.
+- **The life-advice editor fits the music** (`fitMusic`, version 7): one edit
+  in the middle of the music, downbeat to downbeat, lands the track's
+  `endingMs` cue on the end title; the black hold before the end title (2.4 s,
+  allowed 1.2–4 s) takes what the bar line cannot.
+- **Only for commissioned tracks.** Fitting needs a measured beat grid and
+  an ending cue. The temp beds are loops with neither, so every film so far
+  plays its bed straight through and fades, exactly as before. When real
+  tracks are commissioned their cue sheets (title, lifts, resolution,
+  ending) and beat grids must be marked against the recording — the temp
+  bed's cues were borrowed from the placeholder and mean nothing.
+- Now that shares hold films under ~3:40, a 240-second track with its ending
+  at 192 s will mostly skip, not repeat.
 
 ### Long answers are shaped to fit — Phase 9, Block 3
 
