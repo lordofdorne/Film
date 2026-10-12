@@ -91,6 +91,15 @@ const config: Template = {
    *   - the greatest lesson opens and closes the film: 45 s–2 min, stop at 3;
    *   - a clip is "ten quiet seconds": 8–20 s, stop at 30.
    * Capture-only: nothing in compose reads it, so changing it re-cuts no film.
+   *
+   * `shareSeconds` is the other end: the most of the FILM each answer gets,
+   * agreed with the owner on 2026-10-12 — the three identity answers about
+   * 15 s together, the greatest lesson 45 s (the cold open counts against
+   * it), the closing message 30 s, every other answer 22 s. With titles and
+   * cards that lands inside `targetDurationMs`. An answer over its share is
+   * shaped to fit. A film's compose hash does not include template content,
+   * so changing a share must come with a bump of the life-advice editor's
+   * version (`@film/editors`), or films already cut keep the old shape.
    */
   questions: [
     {
@@ -101,6 +110,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 60,
       take: { goodFrom: 3, goodTo: 20, max: 30 },
+      shareSeconds: 5,
       guidance: {
         coaching:
           "Ask for the whole sentence — \"My name is Ada Lovelace\" — rather than " +
@@ -115,6 +125,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 60,
       take: { goodFrom: 3, goodTo: 20, max: 30 },
+      shareSeconds: 5,
       guidance: {
         coaching:
           "A full sentence again: \"I'm 94.\" The film's title is built from this " +
@@ -129,6 +140,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 60,
       take: { goodFrom: 3, goodTo: 20, max: 30 },
+      shareSeconds: 5,
       guidance: {
         coaching:
           "Let them add where, if they want to. The place a life started is " +
@@ -150,6 +162,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 22,
       guidance: {
         coaching:
           "This one is usually answered with a joke first. Let the joke land, " +
@@ -164,6 +177,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 120,
       take: { goodFrom: 45, goodTo: 120, max: 180 },
+      shareSeconds: 45,
       guidance: {
         coaching:
           "The most important answer in the film — it opens it and it closes " +
@@ -179,6 +193,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 22,
       guidance: {
         coaching:
           "If it comes out general — \"work hard\" — ask who they would say it " +
@@ -194,6 +209,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 22,
       guidance: {
         coaching:
           "Name the group out loud when you ask — the family, the team, the " +
@@ -210,6 +226,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 22,
       guidance: {
         coaching:
           "Learned, not defined. If they start describing what love is, ask " +
@@ -226,6 +243,7 @@ const config: Template = {
       required: true,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 30,
       guidance: {
         coaching:
           "Ask them to look straight down the lens for this one, and to talk " +
@@ -241,6 +259,7 @@ const config: Template = {
       required: false,
       estimatedSeconds: 90,
       take: { goodFrom: 30, goodTo: 90, max: 150 },
+      shareSeconds: 22,
       guidance: {
         ask: "Ask them what they think of you",
         coaching:
