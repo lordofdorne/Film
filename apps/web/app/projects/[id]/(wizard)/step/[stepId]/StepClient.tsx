@@ -480,9 +480,12 @@ export const StepClient = ({
                 </Button>
               )}
             </div>
-            <Button size="lg" block onClick={() => { router.push(nextHref); }}>
-              Keep and continue
-              <Icon name="forward" size={18} />
+            {/* A link, like Skip: the tap is seen the moment it lands. */}
+            <Button size="lg" block asChild>
+              <Link href={nextHref}>
+                Keep and continue
+                <Icon name="forward" size={18} />
+              </Link>
             </Button>
           </div>
         ) : (
