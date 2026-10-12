@@ -1,5 +1,6 @@
 import { createReadStream } from "node:fs";
 import { mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { availableParallelism } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -46,6 +47,28 @@ export const RENDER_RECIPE = 1;
 export const RENDER_REQUIRES_FREE_BYTES = 8 * 1024 * 1024 * 1024;
 
 export type RenderQuality = "preview" | "delivery";
+
+const PULL_AT_ONCE = 4;
+
+/**
+ * How many frames are drawn at once.
+ *
+ * It was one, on a ten-core machine. Each frame is drawn independently, so the
+ * picture is identical at any setting — measured on a real film, decoded frame
+ * by frame: one, two, three, four, five and eight all gave the same MD5. What
+ * changes is the time, and only up to a point: past three, the browser tabs
+ * take the cores the x264 encoder needs and the render gets SLOWER (on this
+ * Mac: 1 → 66 s, 3 → 37 s, 5 → 55 s, 8 → 66 s for 30 s of film).
+ *
+ * So about a third of the cores, at least one, and RENDER_CONCURRENCY to set
+ * it on a worker whose shape is known. Measure again on the production worker
+ * before trusting the default there.
+ */
+export const renderConcurrency = (): number => {
+  const configured = Number(process.env["RENDER_CONCURRENCY"] ?? "");
+  if (Number.isInteger(configured) && configured > 0) return configured;
+  return Math.max(1, Math.floor(availableParallelism() / 3));
+};
 
 export const renderIdentity = (input: {
   readonly projectId: string;
@@ -117,19 +140,26 @@ export const runRender = async (ctx: StageContext, renderId: string): Promise<st
   let musicPath = "";
   let bytes = 0;
 
+  // Four at a time: one after another left the network idle between files,
+  // and more at once only splits the same bandwidth.
   for (const row of rows) {
     if (row.normalisedKey === null) throw transient(`asset ${row.id} has not been ingested`);
+  }
+  const pull = async (row: AssetRow): Promise<void> => {
+    const key = row.normalisedKey ?? row.storageKey;
     const relative = isMusicBed(row)
       ? `music/${row.id}.wav`
       : `${row.kind}/${row.id}${extensionOf(row)}`;
     const path = join(media, relative);
     await mkdir(dirname(path), { recursive: true });
-    const object = await ctx.store.get(row.normalisedKey);
+    const object = await ctx.store.get(key);
     await writeFile(path, object);
     bytes += object.byteLength;
-
     if (isMusicBed(row)) musicPath = relative;
     else assetPaths[row.id] = relative;
+  };
+  for (let i = 0; i < rows.length; i += PULL_AT_ONCE) {
+    await Promise.all(rows.slice(i, i + PULL_AT_ONCE).map(pull));
   }
   if (musicPath === "") throw permanent("the project has no music bed to render against");
   await ctx.log.info(
@@ -193,7 +223,7 @@ export const runRender = async (ctx: StageContext, renderId: string): Promise<st
     crf: render.quality === "preview" ? 28 : 21,
     x264Preset: render.quality === "preview" ? "veryfast" : "slow",
     outputLocation: mezzanine,
-    concurrency: 1,
+    concurrency: renderConcurrency(),
     chromiumOptions: { gl: "swiftshader" },
     timeoutInMilliseconds: 120_000,
     // Uncapped, ten 1080p sources push Chrome into swap and it stops
