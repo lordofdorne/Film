@@ -586,6 +586,35 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Words have times now — Phase 9, Block 2
+
+- **Transcription runs whisper twice** (`media/whisper.ts`): the untimed pass
+  decides the words, because asking for timestamps changes what whisper
+  writes (one take lost all its punctuation; another turned a full stop into
+  a comma and gained an extra "like"); a second, timed pass
+  (`--max-len 1 --split-on-word`) lends them times, matched word by word
+  (`attachTimings`, a longest common subsequence). Stored as
+  `selection.words`; `TRANSCRIBE_RECIPE` 2. About 2–4 s per answer here.
+- **The editor corrects the times against ingest** (`alignToRuns` in
+  `@film/editors`): whisper says which stretch of speech each word was in,
+  ingest's stretches say when. Whisper alone put 10 of 40 words of a real
+  take, and 35 of 77 of a synthetic one, in silence; after, none. The test
+  takes (`packages/editors/test/takes/`) keep those takes' times and
+  punctuation with every word swapped for a neutral one: the repository is
+  public, and they are recordings of a person. A word in a
+  gap goes by punctuation — a sentence's last word to the stretch before, its
+  first to the stretch after.
+- **Phrases** (`phrasesOf`): split at `.?!` and at pauses of 700 ms or more,
+  each marked whether it ends a sentence. The units Block 3 will choose from.
+  On the recorded take, every sentence comes out whole.
+- **Captions use the times** (life-advice editor version 5). Each piece shows
+  the words said inside it — which fixes the greatest lesson's main part,
+  which used to squeeze the cold open's words back in at its start.
+- **Existing films are untouched.** Transcription never overwrites words it
+  wrote, so no film made before this has `words`, and version 5 cuts those
+  byte-identically (checked on all five real films). New takes get times. A
+  backfill could re-transcribe old takes; none is written.
+
 ### An editor per film type — Phase 9, Block 1
 
 Proposal: `docs/proposal/phase-9-editors.md`. The edit that used to be the
