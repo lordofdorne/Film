@@ -13,6 +13,7 @@ import {
   type IconName,
 } from "../../src/ui/index.js";
 import { PRODUCT_LINE, PRODUCT_NAME } from "../../src/product.js";
+import { FittedAnswers } from "../projects/[id]/FittedAnswers.js";
 
 /**
  * The living style guide: every token and every component, rendered by the
@@ -158,6 +159,30 @@ export default function DesignPage() {
         >
           <p className="lede">Slides up on a phone and in from the right on a wide screen. Focus is trapped inside and Escape closes it.</p>
         </Sheet>
+      </Section>
+
+      <Section title="How the answers were fitted">
+        <FittedAnswers
+          fitted={[
+            {
+              questionId: "love_lesson",
+              label: "What have you learned about love?",
+              usedMs: 21_600,
+              spokenMs: 82_300,
+              leftOut: [
+                "Um, you know, I mean, like, it was.",
+                "But the city taught me how to work hard. Every job I ever had, I gave it everything.",
+              ],
+            },
+            {
+              questionId: "identity_name",
+              label: "What is your name?",
+              usedMs: 3_400,
+              spokenMs: 12_100,
+              leftOut: ["And everyone calls me Nan, which I have always liked."],
+            },
+          ]}
+        />
       </Section>
 
       <Section title="Icons">

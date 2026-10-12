@@ -7,6 +7,7 @@ import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
 import { Button, Chip, Icon, Notice, Skeleton } from "../../../src/ui/index.js";
+import { FittedAnswers } from "./FittedAnswers.js";
 
 /**
  * The player, fetched only when there is a film to play.
@@ -153,6 +154,8 @@ export const PreviewClient = ({
               </ul>
             </section>
           )}
+
+          <FittedAnswers fitted={summary.fitted} />
 
           <section className="ui-card film-approve" aria-labelledby="approve-title">
             <div>
