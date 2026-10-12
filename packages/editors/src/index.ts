@@ -6,6 +6,7 @@ import { LIFE_ADVICE_EDITOR } from "./life-advice/index.js";
 export type { Editor } from "./editor.js";
 export * from "./material.js";
 export { openingWords } from "./toolkit.js";
+export { fittedAnswers, type FittedAnswer } from "./report.js";
 export { alignToRuns, captionsWithin, phrasesOf, PHRASE_PAUSE_MS, timedWordsOf, type Phrase } from "./words.js";
 
 /**
