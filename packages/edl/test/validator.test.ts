@@ -536,6 +536,47 @@ describe("music", () => {
     }));
   });
 
+  describe("music edits", () => {
+    // The sample film is 214 s on a 240 s track with a bar every 3.2 s.
+    // Skipping four bars at bar 30 is the shape of a real "end with the film".
+    const withEdits = (edits: unknown[]): Record<string, unknown> => {
+      const edl = clone();
+      audio(edl)["musicEdits"] = edits;
+      return edl;
+    };
+
+    it("accepts a skip from one downbeat to another", () => {
+      expectValid(withEdits([{ atMs: 96_000, toMs: 108_800, crossfadeMs: 400 }]));
+    });
+
+    it("accepts a repeat, which jumps back", () => {
+      expectValid(withEdits([{ atMs: 96_000, toMs: 83_200, crossfadeMs: 400 }]));
+    });
+
+    it("rejects an edit that rejoins the track off the beat", () => {
+      expectError(withEdits([{ atMs: 96_000, toMs: 108_900, crossfadeMs: 400 }]), "MUSIC_EDIT_OFF_BEAT");
+    });
+
+    it("rejects edits out of order", () => {
+      expectError(
+        withEdits([
+          { atMs: 96_000, toMs: 108_800, crossfadeMs: 400 },
+          { atMs: 64_000, toMs: 70_400, crossfadeMs: 400 },
+        ]),
+        "MUSIC_EDIT_INVALID",
+      );
+    });
+
+    it("rejects a crossfade that does not fit around the edit", () => {
+      expectError(withEdits([{ atMs: 96_000, toMs: 108_800, crossfadeMs: 250_000 }]), "MUSIC_EDIT_INVALID");
+    });
+
+    it("rejects an edit that leaves too little track for the rest of the film", () => {
+      // 140.8 s + the remaining 118 s of film is past the 240 s track.
+      expectError(withEdits([{ atMs: 96_000, toMs: 140_800, crossfadeMs: 400 }]), "MUSIC_TRACK_TOO_SHORT");
+    });
+  });
+
   it("rejects a beat grid that no longer matches the registry", () => {
     const edl = clone();
     const grid = audio(edl)["beatGridMs"] as number[];
