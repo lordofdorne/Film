@@ -1,6 +1,6 @@
 # Phase 8 — Fluid: two audits and the upgrades they point to
 
-**Status: audited 2026-10-11, waiting on the owner's approval.**
+**Status: audited 2026-10-11; approved 2026-10-12. Block 1 built (see "Block 1, as built" at the end).**
 
 ## What was asked
 
@@ -70,13 +70,13 @@ expires (at most an hour, `jwt_expiry = 3600`). Signing out clears the cookie,
 so this only matters for a stolen token, and Supabase considers it the standard
 posture.
 
-**2. No `loading.tsx` anywhere, so dynamic pages are never really prefetched
-and every tap freezes the screen.** In the App Router a dynamic route only
-prefetches down to its nearest loading boundary. With none, `<Link>` and
-`router.prefetch()` fetch almost nothing, which is why the "fetch the next step
-now" code from part 7 saves nothing. With a `loading.tsx` per segment the
-shell (bar, progress, frame) is prefetched and shown **the instant** you tap,
-and the content streams in behind it.
+**2. ~~No `loading.tsx` anywhere, so dynamic pages are never really prefetched
+and every tap freezes the screen.~~** *Corrected 2026-10-12: wrong.* This was
+inferred from the dev server, which never prefetches. On a production build
+the default prefetch does fetch the next step, and Skip on `main` already
+measured 26–31 ms. What was slow was every tap that reached the server, for
+reason 1. And adding loading screens made things worse, not better: see
+"Block 1, as built".
 
 **3. The wizard frame is torn down and rebuilt on every step.** `WizardFrame`
 is rendered by each page rather than by a layout, so the bar, the progress and
@@ -305,3 +305,59 @@ and of each other.
 - **Approve the `getClaims()` trade-off** above (revocation up to an hour late).
 - One real take on a phone after Block 2. It is still the one thing that can
   only be proven by hand.
+
+---
+
+## Block 1, as built (2026-10-12)
+
+Branch `phase-8/fluid-navigation`. Measured with `pnpm perf` (new in this
+block) against production builds of `main` and the branch, run alternately,
+two rounds each, with the auth server's own response time sampled before
+every run so a slow patch on it could not pass for an improvement:
+
+| Tap | `main` | Branch |
+|---|---|---|
+| Start this film → chapter intro | 198–778 ms | 79–82 ms |
+| Begin → first step | 180–401 ms | 30–31 ms |
+| Continue (after typing) → next step | 315–579 ms | 32–46 ms |
+| Skip for now → next step | 26–31 ms | 28–32 ms |
+| Back → previous step | 27–28 ms | 27–28 ms |
+| All steps → See the overview | 196–362 ms | 97–110 ms |
+| Overview → home | 164–363 ms | 28–43 ms |
+
+Every tap now lands under about a tenth of a second on this machine. Hosted
+Supabase widens the gap rather than closing it: `main`'s auth calls each cross
+the internet, and the branch makes none on an ordinary page.
+
+What shipped:
+
+1. **Auth verified locally** (`getClaims`, cached per request). The pending
+   address is the only thing still asked of the auth server, and only for an
+   identity without a proved one. A token with an altered subject is rejected
+   (checked).
+2. **The wizard frame is a layout** and stays mounted between steps (checked:
+   the same element survives Begin, Continue, Skip and Back).
+3. **Directional step transition**, 250 ms, reduced motion respected.
+4. **The player loads only on the preview**: the film page's first load went
+   from 224 KB to 128 KB, and the capture overview loads none of it (checked).
+5. **Home signs posters and loads the resume card in parallel.**
+6. **Continue redirects from the save action**: one round trip, not two.
+7. **`pnpm perf`.**
+
+What was tried and taken out, because the production build disagreed with the
+plan:
+
+- **Loading screens.** With any `loading.tsx` above a wizard step (the
+  site-wide one or the wizard's own), Continue intermittently saved and
+  *stayed on the same screen for good*. Bisected over production builds:
+  `main` and the layout commit passed 4 of 4, every build with a loading screen
+  above the step failed intermittently, and the branch with it removed passed
+  5 of 5. The dev server never prefetches, so it never showed this. The
+  film page's loading screen went too: it has save-then-refresh actions of its
+  own, and the same bug there would be just as silent.
+- **Full prefetch** of the next step. The first suspect; not the cause, and
+  not needed.
+
+Not measured: the film page's actions (Make my film, Approve) on a production
+build with a real account. They don't navigate the way Continue does, but
+they are the next thing to walk by hand.
