@@ -7,21 +7,20 @@ import { useEffect } from "react";
  * Fetch the next screen while this one is open.
  *
  * The wizard always knows where Keep, Continue and Skip lead, and they lead to
- * the same place, so it is fetched as soon as this screen is up.
+ * the same place, so it is fetched as soon as this screen is up. On a
+ * production build that makes the tap near-instant: Skip measured 28–195 ms.
  *
- * Deliberately the default kind, not `full`. A full prefetch would bring the
- * whole next page and make the tap show it outright — and on a production
- * build it broke navigation: once the next step had been fetched in full, a
- * save's `revalidatePath` left the router unable to go there at all, whether
- * by `router.push` or by a redirect from the action. Typing a name and
- * pressing Continue stayed on the same screen for good. Reproduced with
- * Playwright; blocking only that one prefetch made it work again. The dev
- * server never prefetches, which is why it looked fine there.
+ * Two things that look like improvements and are not, both found by timing a
+ * production build with `pnpm perf` (the dev server never prefetches, so it
+ * showed neither):
  *
- * The default prefetch brings the route down to its loading screen, and the
- * wizard has one, so the tap still changes the screen at once — the frame
- * stays and the step's skeleton shows (after 120 ms, so a fast answer never
- * flashes it) until the page arrives.
+ *   - `kind: "full"`, and
+ *   - a `loading.tsx` inside the wizard layout.
+ *
+ * With either, a save that revalidates the film leaves the router unable to
+ * move to the next step: Continue saved the name and stayed on the same
+ * screen for good, by `router.push` and by a redirect from the action alike.
+ * Removing each one, alone, made it work again.
  */
 export const usePrefetchNext = (href: string): void => {
   const router = useRouter();

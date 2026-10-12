@@ -1192,7 +1192,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .wz-offline { width: 100%; max-width: 640px; margin: var(--s-4) auto 0; padding: 0 var(--s-5); }
 .wz-saved > svg { animation: wz-pop 420ms var(--ease-out); }
 @keyframes wz-pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
-.wz-skel-vf { border-radius: 20px; }
 
 /* A wizard screen arrives from the direction you went: forward from the
    right, Back from the left. Only the middle moves; the frame stays put.
