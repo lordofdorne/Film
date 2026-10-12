@@ -729,6 +729,23 @@ are the owner's to adjust (`life-advice/v1.ts`, above `questions`). They are
 capture-only, so changing them re-cuts no film. Uploaded files are not
 checked for length yet.
 
+### A film can be deleted — after Phase 8
+
+- **Delete this film**, quiet at the bottom of the overview, the unapproved
+  preview and the failed-film page, behind a sheet that says it is for good.
+  Deletes the project row (everything else cascades from it), then the whole
+  `projects/<id>/` storage prefix, then goes home.
+- **Which films:** draft, capturing, awaiting approval, failed
+  (`DELETABLE_STATUSES`). Never approved, rendering or delivered. Refused while
+  processing, because the worker is writing files for it that would be left
+  behind; it can be deleted once the preview is ready or it fails. The status
+  is checked in the DELETE itself, so a film handed over between the page
+  loading and the press is not deleted.
+- **Queued jobs for a deleted film skip** (`claimStage` → `gone`, on the
+  insert's foreign key) instead of failing four times.
+- A preview or thumbnail stage already running when its film is deleted can
+  still write one file afterwards. It sits under a prefix nothing points to.
+
 ### The preview plays smoothly — Phase 8, Block 3
 
 - **Preview copies** (`stages/preview.ts`, migration 0008 → `assets.preview_key`):
