@@ -65,6 +65,22 @@ export const parseProjectConfig = (raw: unknown): ProjectConfig =>
 export const AssetSelectionSchema = z
   .object({
     spoken: z.string().min(1),
+    /**
+     * `spoken` word by word, with whisper's times — written by transcribe
+     * since Phase 9. Never by hand: corrected text loses its timings, and the
+     * editor ignores words that no longer match `spoken`.
+     */
+    words: z
+      .array(
+        z
+          .object({
+            text: z.string().min(1),
+            startMs: z.number().nonnegative(),
+            endMs: z.number().nonnegative(),
+          })
+          .strict(),
+      )
+      .optional(),
     coldOpen: z.string().min(1).optional(),
     emphasis: z
       .object({

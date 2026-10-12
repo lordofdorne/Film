@@ -136,6 +136,7 @@ export const runCompose = async (ctx: StageContext): Promise<string | null> => {
         durationMs: qc.durationMs ?? 0,
         runs: qc.speechRuns ?? [],
         spoken: selection.data.spoken,
+        ...(selection.data.words === undefined ? {} : { words: selection.data.words }),
         ...(selection.data.coldOpen === undefined ? {} : { coldOpen: selection.data.coldOpen }),
         ...(selection.data.emphasis === undefined ? {} : { emphasis: selection.data.emphasis }),
       });
