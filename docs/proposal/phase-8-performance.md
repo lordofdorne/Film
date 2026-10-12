@@ -1,6 +1,6 @@
 # Phase 8 — Fluid: two audits and the upgrades they point to
 
-**Status: audited 2026-10-11; approved 2026-10-12. Block 1 built (see "Block 1, as built" at the end).**
+**Status: audited 2026-10-11; approved 2026-10-12. Block 1 built (see "Block 1, as built" at the end). Block 2 built: one camera, background uploads, bounded takes.**
 
 ## What was asked
 

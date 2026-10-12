@@ -715,6 +715,29 @@ are the owner's to adjust (`life-advice/v1.ts`, above `questions`). They are
 capture-only, so changing them re-cuts no film. Uploaded files are not
 checked for length yet.
 
+### Recording without waiting — Phase 8, Block 2
+
+`CaptureProvider` (`projects/[id]/layout.tsx`) owns the camera and the
+upload queue for the whole film, above the overview and the wizard:
+
+- **One camera, kept between questions.** The first recording step of a
+  visit asks ("Turn on the camera"); after that each recording step opens
+  live, so Record starts at once and the person sees their framing first.
+  It is let go 1.5 s after a screen is done with it and stopped when the tab
+  is hidden. Allowed-ness is remembered per tab (sessionStorage).
+- **Uploads in the background.** Keep and continue never waits. One take at
+  a time, retried after 2, 6 and 15 s, then "Try again" in the bar and on the
+  step; "leave site?" while anything is pending; Make my film waits.
+  `UploadStatus` shows it in the bar and on the overview.
+- **Bounded takes:** 5 Mbit/s video, 128 kbit/s audio, one-second chunks.
+- **Checked** with Chrome's fake camera: Record → recording 17 ms, Stop →
+  Keep usable 83 ms, the same camera on the next question, the camera off
+  while a take is watched back and on the overview, a dropped connection
+  retried and recovered. On a production build Continue moved on 5 of 5, and
+  the overview tap measured the same as main (median 172 ms vs 164).
+- **Not yet proven on a phone:** a real camera's bitrate, Safari's handling
+  of a stream kept between screens, and a phone being locked mid-take.
+
 ### Moving through the site is fast now — Phase 8, Block 1
 
 Proposal and measurements: `docs/proposal/phase-8-performance.md`. Every tap
