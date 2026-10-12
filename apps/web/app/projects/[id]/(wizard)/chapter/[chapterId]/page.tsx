@@ -28,8 +28,7 @@ export default async function ChapterPage({
   params: Promise<{ id: string; chapterId: string }>;
 }) {
   const { id, chapterId } = await params;
-  const guard = await guardProject(id, `/projects/${id}/chapter/${chapterId}`);
-  if (guard.needsAccount) redirect(`/projects/${id}`);
+  await guardProject(id, `/projects/${id}/chapter/${chapterId}`);
 
   const view = await loadWalkthroughView(id);
   if (view === null) notFound();

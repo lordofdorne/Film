@@ -223,12 +223,8 @@ export const saveFilm = async (
   email: string,
   make: boolean,
 ): Promise<SendResult> => {
-  // Not `mine`: an anonymous owner of a handed-over film is refused there with
-  // needs-account, and that is exactly who this action is for.
-  const access = await accessToProject(projectId);
-  if (!access.allowed && access.reason !== "needs-account") {
-    return { ok: false, error: "no such project" };
-  }
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
   return sendMagicLink(email, `/projects/${projectId}`, make ? projectId : undefined);
 };
 

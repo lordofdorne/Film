@@ -295,26 +295,21 @@ export const ownsProject = async (
 };
 
 /**
- * What this user may do with this project: everything, nothing, or — the case
- * this exists for — "it is yours, but prove an address first".
+ * What this user may do with this project: everything, or nothing.
  *
- * Capture is anonymous on purpose: pressing Start must not ask for anything.
- * But the moment a film is handed over, an identity that lives only in one
- * browser's cookie is no longer enough. Whoever picks up that browser — a
- * shared family computer, a phone lent across a table — would get the
- * finished film with no sign-in at all, and there would be no address to tell
- * when it is ready. So once a project leaves capture, its owner must be an
- * identity with a proved address.
+ * The owner, in whatever state the film is in, and nobody else.
  *
- * `needs-account` is distinct from `none` because the two are rendered
- * differently: somebody else's film is a 404, but your own film behind a save
- * sheet is not something to pretend does not exist.
+ * It used to ask more of an owner who had no proved address: once the film
+ * was handed over, the browser that made it could no longer watch it until
+ * somebody clicked a link in an email. The worry was a shared computer. In
+ * practice it meant the person who had just made a film was shown a form
+ * instead of their film, and with no email provider set up the link never
+ * came at all. The owner asked for it to just play, and it does.
+ *
+ * Losing the film by clearing the browser is still a real risk for an
+ * anonymous owner; home says so and offers to save it to an email.
  */
-export type FilmAccess = "owner" | "needs-account" | "none";
-
-/** The statuses in which a film is still being made by the person holding
- *  the phone, and an anonymous owner is enough. */
-const STILL_CAPTURING: ReadonlySet<string> = new Set(["draft", "capturing"]);
+export type FilmAccess = "owner" | "none";
 
 export const accessToFilm = async (
   db: Db,
@@ -323,18 +318,15 @@ export const accessToFilm = async (
 ): Promise<FilmAccess> => {
   if (!isProjectId(projectId) || !isProjectId(user.id)) return "none";
   const rows = await db
-    .select({ status: projects.status })
+    .select({ id: projects.id })
     .from(projects)
     .where(and(eq(projects.id, projectId), eq(projects.ownerId, user.id)))
     .limit(1);
-  const status = rows[0]?.status;
-  if (status === undefined) return "none";
-  if (STILL_CAPTURING.has(status) || hasAccount(user)) return "owner";
-  return "needs-account";
+  return rows[0] === undefined ? "none" : "owner";
 };
 
 /**
- * Whether this user may hand a film over to be made, and later watch it.
+ * Whether this user may hand a film over to be made.
  *
  * A proved address is the whole test. The application row only ever holds an
  * address the auth server has verified — a typed-but-unconfirmed one waits in

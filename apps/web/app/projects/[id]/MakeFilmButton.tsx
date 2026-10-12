@@ -41,7 +41,6 @@ export const MakeFilmButton = ({
     return (
       <SaveFilmSheet
         projectId={projectId}
-        purpose="make"
         suggestedEmail={suggestedEmail}
         pendingEmail={pendingEmail}
       />

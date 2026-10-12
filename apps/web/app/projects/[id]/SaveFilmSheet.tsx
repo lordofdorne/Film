@@ -9,15 +9,13 @@ import { SetPasswordOffer } from "../../SetPasswordOffer.js";
 /**
  * Save your film: the one place an account is asked for.
  *
- * Capture never asks — pressing Start must cost nothing. This appears at the
- * two moments the film starts to exist outside this browser: pressing "Make my
- * film" (`purpose: "make"`), and opening a film that was handed over before
- * this rule existed (`purpose: "watch"`). Either way it is their own film, so
- * it says so rather than pretending there is nothing here.
+ * Capture never asks — pressing Start must cost nothing. This appears when the
+ * film starts to exist outside this browser: pressing "Make my film". Watching
+ * it never asks; the browser that made a film can always play it.
  *
  * The magic link stays first and the password sits beside it, as everywhere
  * else. The link is the one that carries the intent: opened, it proves the
- * address and — for "make" — hands the film over in the same step, so they
+ * address and hands the film over in the same step, so they
  * land on "we're making it" rather than on the button they already pressed.
  *
  * "In this browser" is load-bearing copy. The link completes a sign-in this
@@ -25,12 +23,10 @@ import { SetPasswordOffer } from "../../SetPasswordOffer.js";
  */
 export const SaveFilmSheet = ({
   projectId,
-  purpose,
   suggestedEmail,
   pendingEmail,
 }: {
   readonly projectId: string;
-  readonly purpose: "make" | "watch";
   /** The address they gave the walk-through for where the film should go. */
   readonly suggestedEmail: string;
   /** A confirmation already in their inbox, from setting a password. */
@@ -45,7 +41,7 @@ export const SaveFilmSheet = ({
     const email = String(new FormData(event.currentTarget).get("email") ?? "");
     setError(null);
     startTransition(async () => {
-      const result = await saveFilm(projectId, email, purpose === "make");
+      const result = await saveFilm(projectId, email, true);
       if (result.ok) setSentTo(result.email);
       else setError(result.error);
     });
@@ -60,9 +56,7 @@ export const SaveFilmSheet = ({
         <h2 className="title">Check your email</h2>
         <p className="lede">
           We sent a link to <strong>{sentTo}</strong>. Open it in this browser and{" "}
-          {purpose === "make"
-            ? "we will start making your film straight away."
-            : "your film is yours to watch and download."}
+          we will start making your film straight away.
         </p>
         <p className="muted">
           Nothing there after a minute? Look in spam, or{" "}
@@ -81,12 +75,11 @@ export const SaveFilmSheet = ({
         <Icon name="lock" size={26} />
       </span>
       <h2 className="title">
-        {purpose === "make" ? "Save your film to make it" : "Save your film to watch it"}
+        Save your film to make it
       </h2>
       <p className="lede">
-        {purpose === "make"
-          ? "Everything you recorded is kept. Confirm your email and we will start on the film — and only you will be able to watch it."
-          : "This film was made without an account, so it is locked to keep it private. Confirm your email and it is yours to watch and download."}
+        Everything you recorded is kept. Confirm your email and we will start on the film — and
+        only you will be able to watch it.
       </p>
       <form onSubmit={submit} className="auth__body" style={{ marginTop: 0 }}>
         <TextField
