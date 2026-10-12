@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 
+import { startNavigation, stopNavigation } from "../NavProgress.js";
 import { chooseFilm, type StartResult } from "../../src/server/captureActions.js";
 import { Button, Icon, Notice } from "../../src/ui/index.js";
 
@@ -26,14 +27,18 @@ export const ChooseButton = ({
       <Button
         size="lg"
         block
-        disabled={pending}
+        pending={pending}
         onClick={() => {
           setError(null);
+          startNavigation();
           startTransition(async () => {
             // Success redirects from the server, in which case nothing comes
             // back here at all; only a failure resolves with a value.
             const result: StartResult | undefined = await chooseFilm(templateId, templateVersion);
-            if (result !== undefined && !result.ok) setError(result.error);
+            if (result !== undefined && !result.ok) {
+              stopNavigation();
+              setError(result.error);
+            }
           });
         }}
       >

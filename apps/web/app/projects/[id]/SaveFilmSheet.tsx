@@ -98,7 +98,7 @@ export const SaveFilmSheet = ({
           autoComplete="email"
           defaultValue={suggestedEmail}
         />
-        <Button type="submit" size="lg" block disabled={pending}>
+        <Button type="submit" size="lg" block pending={pending}>
           {pending ? "Sending…" : "Email me a link"}
         </Button>
         {error !== null && <p className="note note--error" role="alert">{error}</p>}

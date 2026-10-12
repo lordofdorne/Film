@@ -165,7 +165,7 @@ export const PreviewClient = ({
                 minutes, and you can close the page while it does.
               </p>
             </div>
-            <Button size="lg" onClick={approve} disabled={pending || outstanding.length > 0}>
+            <Button size="lg" onClick={approve} pending={pending} disabled={outstanding.length > 0}>
               {pending ? "Approving…" : "Approve and make my film"}
             </Button>
             {outstanding.length > 0 && (
