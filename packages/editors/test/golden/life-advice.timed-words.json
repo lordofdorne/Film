@@ -5,7 +5,7 @@
   "templateId": "life-advice",
   "templateVersion": 1,
   "fps": 30,
-  "totalDurationMs": 189900,
+  "totalDurationMs": 177900,
   "audio": {
    "musicTrackId": "temp",
    "musicStartMs": 0,
@@ -299,21 +299,21 @@
     "startMs": 26200
    },
    {
-    "id": "v_longevity_a",
+    "id": "v_longevity_1_a",
     "kind": "interview",
-    "durationMs": 8400,
+    "durationMs": 6200,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-longevity",
     "sourceInMs": 0,
-    "sourceOutMs": 8400,
+    "sourceOutMs": 6200,
     "scale": 1.1,
     "startMs": 31900
    },
    {
-    "id": "v_longevity_insert",
+    "id": "v_longevity_1_insert",
     "kind": "photo",
     "durationMs": 6000,
     "transitionIn": {
@@ -329,21 +329,35 @@
     "motion": "in",
     "intensity": 0.35,
     "entry": "insetExpand",
-    "startMs": 40300
+    "startMs": 38100
    },
    {
-    "id": "v_longevity_b",
+    "id": "v_longevity_1_b",
     "kind": "interview",
-    "durationMs": 5600,
+    "durationMs": 2600,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-longevity",
-    "sourceInMs": 14400,
-    "sourceOutMs": 20000,
+    "sourceInMs": 12200,
+    "sourceOutMs": 14800,
     "scale": 1.1,
-    "startMs": 46300
+    "startMs": 44100
+   },
+   {
+    "id": "v_longevity_2",
+    "kind": "interview",
+    "durationMs": 2800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 17200,
+    "sourceOutMs": 20000,
+    "scale": 1,
+    "startMs": 46700
    },
    {
     "id": "v_greatest_lesson_main_a",
@@ -356,8 +370,8 @@
     "assetId": "asset-greatest_lesson",
     "sourceInMs": 3000,
     "sourceOutMs": 10000,
-    "scale": 1,
-    "startMs": 51900
+    "scale": 1.06,
+    "startMs": 49500
    },
    {
     "id": "v_greatest_lesson_main_insert",
@@ -371,7 +385,7 @@
     "slotId": "video_group",
     "sourceInMs": 1500,
     "sourceOutMs": 9500,
-    "startMs": 58900
+    "startMs": 56500
    },
    {
     "id": "v_greatest_lesson_main_b",
@@ -384,25 +398,25 @@
     "assetId": "asset-greatest_lesson",
     "sourceInMs": 18000,
     "sourceOutMs": 20000,
-    "scale": 1,
-    "startMs": 66900
+    "scale": 1.06,
+    "startMs": 64500
    },
    {
-    "id": "v_advice_for_young_people_a",
+    "id": "v_advice_for_young_people_1_a",
     "kind": "interview",
-    "durationMs": 8400,
+    "durationMs": 6200,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-advice_for_young_people",
     "sourceInMs": 0,
-    "sourceOutMs": 8400,
-    "scale": 1.06,
-    "startMs": 68900
+    "sourceOutMs": 6200,
+    "scale": 1,
+    "startMs": 66500
    },
    {
-    "id": "v_advice_for_young_people_insert",
+    "id": "v_advice_for_young_people_1_insert",
     "kind": "photo",
     "durationMs": 6000,
     "transitionIn": {
@@ -418,38 +432,52 @@
     "motion": "panRight",
     "intensity": 0.35,
     "entry": "cut",
-    "startMs": 77300
+    "startMs": 72700
    },
    {
-    "id": "v_advice_for_young_people_b",
+    "id": "v_advice_for_young_people_1_b",
     "kind": "interview",
-    "durationMs": 5600,
+    "durationMs": 2600,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-advice_for_young_people",
-    "sourceInMs": 14400,
-    "sourceOutMs": 20000,
-    "scale": 1.06,
-    "startMs": 83300
+    "sourceInMs": 12200,
+    "sourceOutMs": 14800,
+    "scale": 1,
+    "startMs": 78700
    },
    {
-    "id": "v_meaning_of_group_a",
+    "id": "v_advice_for_young_people_2",
     "kind": "interview",
-    "durationMs": 8400,
+    "durationMs": 2800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 17200,
+    "sourceOutMs": 20000,
+    "scale": 1.1,
+    "startMs": 81300
+   },
+   {
+    "id": "v_meaning_of_group_1_a",
+    "kind": "interview",
+    "durationMs": 6200,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-meaning_of_group",
     "sourceInMs": 0,
-    "sourceOutMs": 8400,
+    "sourceOutMs": 6200,
     "scale": 1,
-    "startMs": 88900
+    "startMs": 84100
    },
    {
-    "id": "v_meaning_of_group_insert",
+    "id": "v_meaning_of_group_1_insert",
     "kind": "photo",
     "durationMs": 6000,
     "transitionIn": {
@@ -465,38 +493,52 @@
     "motion": "out",
     "intensity": 0.35,
     "entry": "insetExpand",
-    "startMs": 97300
+    "startMs": 90300
    },
    {
-    "id": "v_meaning_of_group_b",
+    "id": "v_meaning_of_group_1_b",
     "kind": "interview",
-    "durationMs": 5600,
+    "durationMs": 2600,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-meaning_of_group",
-    "sourceInMs": 14400,
-    "sourceOutMs": 20000,
+    "sourceInMs": 12200,
+    "sourceOutMs": 14800,
     "scale": 1,
-    "startMs": 103300
+    "startMs": 96300
    },
    {
-    "id": "v_love_lesson_a",
+    "id": "v_meaning_of_group_2",
     "kind": "interview",
-    "durationMs": 8400,
+    "durationMs": 2800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 17200,
+    "sourceOutMs": 20000,
+    "scale": 1.06,
+    "startMs": 98900
+   },
+   {
+    "id": "v_love_lesson_1_a",
+    "kind": "interview",
+    "durationMs": 4800,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-love_lesson",
     "sourceInMs": 0,
-    "sourceOutMs": 8400,
-    "scale": 1.1,
-    "startMs": 108900
+    "sourceOutMs": 4800,
+    "scale": 1,
+    "startMs": 101700
    },
    {
-    "id": "v_love_lesson_insert",
+    "id": "v_love_lesson_1_insert",
     "kind": "broll",
     "durationMs": 8000,
     "transitionIn": {
@@ -507,21 +549,35 @@
     "slotId": "video_environment",
     "sourceInMs": 1500,
     "sourceOutMs": 9500,
-    "startMs": 117300
+    "startMs": 106500
    },
    {
-    "id": "v_love_lesson_b",
+    "id": "v_love_lesson_1_b",
     "kind": "interview",
-    "durationMs": 3600,
+    "durationMs": 2000,
     "transitionIn": {
      "type": "cut",
      "durationMs": 0
     },
     "assetId": "asset-love_lesson",
-    "sourceInMs": 16400,
+    "sourceInMs": 12800,
+    "sourceOutMs": 14800,
+    "scale": 1,
+    "startMs": 114500
+   },
+   {
+    "id": "v_love_lesson_2",
+    "kind": "interview",
+    "durationMs": 2800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 17200,
     "sourceOutMs": 20000,
     "scale": 1.1,
-    "startMs": 125300
+    "startMs": 116500
    },
    {
     "id": "v_closing_message",
@@ -535,7 +591,7 @@
     "sourceInMs": 0,
     "sourceOutMs": 20000,
     "scale": 1,
-    "startMs": 128900
+    "startMs": 119300
    },
    {
     "id": "v_keepsake",
@@ -554,7 +610,7 @@
     "motion": "still",
     "intensity": 0,
     "entry": "insetExpand",
-    "startMs": 148300
+    "startMs": 138700
    },
    {
     "id": "v_group_still",
@@ -573,7 +629,7 @@
     "motion": "in",
     "intensity": 0.25,
     "entry": "cut",
-    "startMs": 153300
+    "startMs": 143700
    },
    {
     "id": "v_black_beat",
@@ -583,7 +639,7 @@
      "type": "fade",
      "durationMs": 800
     },
-    "startMs": 158100
+    "startMs": 148500
    },
    {
     "id": "v_end_title",
@@ -595,21 +651,35 @@
     },
     "textKey": "endTitle",
     "reveal": "sequential",
-    "startMs": 160500
+    "startMs": 150900
    },
    {
-    "id": "v_bonus_interviewer",
+    "id": "v_bonus_interviewer_1",
     "kind": "interview",
-    "durationMs": 20000,
+    "durationMs": 14800,
     "transitionIn": {
      "type": "fade",
      "durationMs": 800
     },
     "assetId": "asset-bonus_interviewer",
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14800,
     "scale": 1.06,
-    "startMs": 164700
+    "startMs": 155100
+   },
+   {
+    "id": "v_bonus_interviewer_2",
+    "kind": "interview",
+    "durationMs": 2800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 17200,
+    "sourceOutMs": 20000,
+    "scale": 1,
+    "startMs": 169900
    },
    {
     "id": "v_dedication",
@@ -621,7 +691,7 @@
     },
     "textKey": "closing",
     "reveal": "fade",
-    "startMs": 183900
+    "startMs": 171900
    }
   ],
   "promptSegments": [],
@@ -891,13 +961,13 @@
     ]
    },
    {
-    "id": "s_longevity",
+    "id": "s_longevity_1",
     "questionId": "longevity",
     "assetId": "asset-longevity",
     "startMs": 31900,
-    "durationMs": 20000,
+    "durationMs": 14500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14500,
     "captions": [
      {
       "text": "The",
@@ -1057,47 +1127,43 @@
      {
       "text": "door.",
       "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
+      "endMs": 14500
+     }
+    ]
+   },
+   {
+    "id": "s_longevity_2",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 46800,
+    "durationMs": 2700,
+    "sourceInMs": 17300,
+    "sourceOutMs": 20000,
+    "captions": [
      {
       "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
+      "startMs": 0,
+      "endMs": 228
      },
      {
       "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
+      "startMs": 248,
+      "endMs": 924
      },
      {
       "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
+      "startMs": 944,
+      "endMs": 1725
      },
      {
       "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
+      "startMs": 1745,
+      "endMs": 2202
      },
      {
       "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
+      "startMs": 2222,
+      "endMs": 2679
      }
     ]
    },
@@ -1105,7 +1171,7 @@
     "id": "s_greatest_lesson_main",
     "questionId": "greatest_lesson",
     "assetId": "asset-greatest_lesson",
-    "startMs": 52100,
+    "startMs": 49700,
     "durationMs": 16800,
     "sourceInMs": 3200,
     "sourceOutMs": 20000,
@@ -1273,13 +1339,13 @@
     ]
    },
    {
-    "id": "s_advice_for_young_people",
+    "id": "s_advice_for_young_people_1",
     "questionId": "advice_for_young_people",
     "assetId": "asset-advice_for_young_people",
-    "startMs": 68900,
-    "durationMs": 20000,
+    "startMs": 66500,
+    "durationMs": 14500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14500,
     "captions": [
      {
       "text": "The",
@@ -1439,58 +1505,54 @@
      {
       "text": "door.",
       "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
-     {
-      "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
-     },
-     {
-      "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
-     },
-     {
-      "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
-     },
-     {
-      "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
-     },
-     {
-      "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
+      "endMs": 14500
      }
     ]
    },
    {
-    "id": "s_meaning_of_group",
+    "id": "s_advice_for_young_people_2",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 81400,
+    "durationMs": 2700,
+    "sourceInMs": 17300,
+    "sourceOutMs": 20000,
+    "captions": [
+     {
+      "text": "Made",
+      "startMs": 0,
+      "endMs": 228
+     },
+     {
+      "text": "toast",
+      "startMs": 248,
+      "endMs": 924
+     },
+     {
+      "text": "for.",
+      "startMs": 944,
+      "endMs": 1725
+     },
+     {
+      "text": "Everyone",
+      "startMs": 1745,
+      "endMs": 2202
+     },
+     {
+      "text": "even.",
+      "startMs": 2222,
+      "endMs": 2679
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group_1",
     "questionId": "meaning_of_group",
     "assetId": "asset-meaning_of_group",
-    "startMs": 88900,
-    "durationMs": 20000,
+    "startMs": 84100,
+    "durationMs": 14500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14500,
     "captions": [
      {
       "text": "The",
@@ -1650,58 +1712,54 @@
      {
       "text": "door.",
       "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
-     {
-      "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
-     },
-     {
-      "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
-     },
-     {
-      "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
-     },
-     {
-      "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
-     },
-     {
-      "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
+      "endMs": 14500
      }
     ]
    },
    {
-    "id": "s_love_lesson",
+    "id": "s_meaning_of_group_2",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 99000,
+    "durationMs": 2700,
+    "sourceInMs": 17300,
+    "sourceOutMs": 20000,
+    "captions": [
+     {
+      "text": "Made",
+      "startMs": 0,
+      "endMs": 228
+     },
+     {
+      "text": "toast",
+      "startMs": 248,
+      "endMs": 924
+     },
+     {
+      "text": "for.",
+      "startMs": 944,
+      "endMs": 1725
+     },
+     {
+      "text": "Everyone",
+      "startMs": 1745,
+      "endMs": 2202
+     },
+     {
+      "text": "even.",
+      "startMs": 2222,
+      "endMs": 2679
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_1",
     "questionId": "love_lesson",
     "assetId": "asset-love_lesson",
-    "startMs": 108900,
-    "durationMs": 20000,
+    "startMs": 101700,
+    "durationMs": 14500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14500,
     "captions": [
      {
       "text": "The",
@@ -1861,47 +1919,43 @@
      {
       "text": "door.",
       "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
+      "endMs": 14500
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson_2",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 116600,
+    "durationMs": 2700,
+    "sourceInMs": 17300,
+    "sourceOutMs": 20000,
+    "captions": [
      {
       "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
+      "startMs": 0,
+      "endMs": 228
      },
      {
       "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
+      "startMs": 248,
+      "endMs": 924
      },
      {
       "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
+      "startMs": 944,
+      "endMs": 1725
      },
      {
       "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
+      "startMs": 1745,
+      "endMs": 2202
      },
      {
       "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
+      "startMs": 2222,
+      "endMs": 2679
      }
     ]
    },
@@ -1909,7 +1963,7 @@
     "id": "s_closing_message",
     "questionId": "closing_message",
     "assetId": "asset-closing_message",
-    "startMs": 128900,
+    "startMs": 119300,
     "durationMs": 20000,
     "sourceInMs": 0,
     "sourceOutMs": 20000,
@@ -2117,13 +2171,13 @@
     ]
    },
    {
-    "id": "s_bonus_interviewer",
+    "id": "s_bonus_interviewer_1",
     "questionId": "bonus_interviewer",
     "assetId": "asset-bonus_interviewer",
-    "startMs": 164700,
-    "durationMs": 20000,
+    "startMs": 155100,
+    "durationMs": 14500,
     "sourceInMs": 0,
-    "sourceOutMs": 20000,
+    "sourceOutMs": 14500,
     "captions": [
      {
       "text": "The",
@@ -2283,55 +2337,56 @@
      {
       "text": "door.",
       "startMs": 14078,
-      "endMs": 14516
-     },
-     {
-      "text": "Every",
-      "startMs": 15438,
-      "endMs": 15757
-     },
-     {
-      "text": "morning",
-      "startMs": 15777,
-      "endMs": 16050
-     },
-     {
-      "text": "she.",
-      "startMs": 16070,
-      "endMs": 16396
-     },
+      "endMs": 14500
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer_2",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 170000,
+    "durationMs": 2700,
+    "sourceInMs": 17300,
+    "sourceOutMs": 20000,
+    "captions": [
      {
       "text": "Made",
-      "startMs": 17302,
-      "endMs": 17530
+      "startMs": 0,
+      "endMs": 228
      },
      {
       "text": "toast",
-      "startMs": 17550,
-      "endMs": 18226
+      "startMs": 248,
+      "endMs": 924
      },
      {
       "text": "for.",
-      "startMs": 18246,
-      "endMs": 19027
+      "startMs": 944,
+      "endMs": 1725
      },
      {
       "text": "Everyone",
-      "startMs": 19047,
-      "endMs": 19504
+      "startMs": 1745,
+      "endMs": 2202
      },
      {
       "text": "even.",
-      "startMs": 19524,
-      "endMs": 19981
+      "startMs": 2222,
+      "endMs": 2679
      }
     ]
    }
   ]
  },
  "notes": [
-  "\"identity_name\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences",
-  "\"identity_age\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences",
-  "\"identity_birth_year\": 20 s shaped to 5 s (share 5 s): kept 1 of 5 sentences"
+  "\"identity_name\": 20 s shaped to 5 s (share 4 s): kept 1 of 5 sentences",
+  "\"identity_age\": 20 s shaped to 5 s (share 4 s): kept 1 of 5 sentences",
+  "\"identity_birth_year\": 20 s shaped to 5 s (share 4 s): kept 1 of 5 sentences",
+  "\"longevity\": 20 s shaped to 18 s (share 20 s): kept 4 of 5 sentences",
+  "\"advice_for_young_people\": 20 s shaped to 18 s (share 20 s): kept 4 of 5 sentences",
+  "\"meaning_of_group\": 20 s shaped to 18 s (share 20 s): kept 4 of 5 sentences",
+  "\"love_lesson\": 20 s shaped to 18 s (share 20 s): kept 4 of 5 sentences",
+  "\"bonus_interviewer\": 20 s shaped to 18 s (share 20 s): kept 4 of 5 sentences"
  ]
 }

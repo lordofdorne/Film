@@ -185,7 +185,8 @@ describe("a film from long answers, shaped", () => {
   it("lands near the template's length instead of the length of what was said", () => {
     const said = input.answers.reduce((t, a) => t + a.durationMs, 0);
     expect(said).toBeGreaterThan(10 * 60_000);
-    expect(edl.totalDurationMs).toBeLessThanOrEqual(template.targetDurationMs.max + 30_000);
+    // With the optional bonus given, too: shares shrink so it still fits.
+    expect(edl.totalDurationMs).toBeLessThanOrEqual(template.targetDurationMs.max);
   });
 
   it("says what it shaped", () => {

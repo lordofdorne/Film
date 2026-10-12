@@ -612,9 +612,12 @@ to its share with `shapeAnswer` (`packages/editors/src/shaping.ts`):
 - **Notes say what happened**, e.g. `"love_lesson": 82 s shaped to 22 s
   (share 22 s): kept 6 of 20 sentences` — in the compose log for now; Block 5
   shows them beside the preview.
-- **Checked:** a film of ten 82-second answers (14 minutes said) cuts to 4:02
-  and passes the validator. The template's target is 3:30–3:50; the optional
-  bonus answer's 22 s is what takes it over.
+- **An optional answer does not lengthen the film** (`sharesFor`): when the
+  bonus is given, every share shrinks so the total stays the required
+  answers' total (owner's choice, 2026-10-12).
+- **Checked:** a film of ten 82-second answers (14 minutes said, bonus
+  included) cuts to 3:38 — inside the 3:30–3:50 target — and passes the
+  validator.
 - Changing a share must come with an editor version bump: compose's hash does
   not include template content.
 

@@ -1,3 +1,5 @@
+import type { Template } from "@film/templates";
+
 import type { SpeechRun, TimedWord } from "./material.js";
 import { phrasesOf } from "./words.js";
 
@@ -215,4 +217,28 @@ export const shapeAnswer = (
   const kept = units.filter((_, i) => chosen.has(i));
   const spans = spansOf(kept, words);
   return { ...whole, spans, untouched: false, keptMs: lengthOf(spans), keptUnits: kept.length };
+};
+
+/**
+ * Each answer's share of the film, in milliseconds, for the answers actually
+ * given.
+ *
+ * Owner's rule, 2026-10-12: an optional answer does not make the film longer.
+ * The required answers' shares add up to the film's spoken length; when an
+ * optional answer is recorded too (life-advice's bonus question), every share
+ * shrinks by the same proportion so the total stays where it was. Without
+ * this, a film with the bonus came out at 4:02 against a 3:50 maximum.
+ *
+ * Questions with no share are left out of the sum and never shaped.
+ */
+export const sharesFor = (
+  template: Pick<Template, "questions">,
+  answered: ReadonlySet<string>,
+): ReadonlyMap<string, number> => {
+  const withShare = template.questions.filter((q) => q.shareSeconds !== undefined);
+  const required = withShare.filter((q) => q.required).reduce((t, q) => t + (q.shareSeconds ?? 0), 0);
+  const present = withShare.filter((q) => answered.has(q.id));
+  const total = present.reduce((t, q) => t + (q.shareSeconds ?? 0), 0);
+  const scale = total > required && total > 0 ? required / total : 1;
+  return new Map(present.map((q) => [q.id, Math.round((q.shareSeconds ?? 0) * 1000 * scale)] as const));
 };

@@ -19,7 +19,8 @@ export const LIFE_ADVICE_EDITOR: Editor = {
    * 6: answers over their share of the film are shaped to fit (Phase 9,
    * Block 3) — long pauses out, then the strongest whole sentences. Only
    * answers with word times can be shaped, so again every film made before
-   * is cut exactly as by 5.
+   * is cut exactly as by 5. When the optional bonus answer is given, every
+   * share shrinks so the film is no longer for it (`sharesFor`).
    */
   version: 6,
   edit: editLifeAdvice,

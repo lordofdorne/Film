@@ -2,7 +2,7 @@ import type { EDL, QuestionPromptSegment, SpeechSegment } from "@film/edl";
 import { questionTextKey } from "@film/templates";
 
 import type { ComposeInput, ComposeResult, IngestedAnswer, SpeechRun, StillAsset } from "../material.js";
-import { shapeAnswer } from "../shaping.js";
+import { shapeAnswer, sharesFor } from "../shaping.js";
 import { alignToRuns, captionsWithin, timedWordsOf } from "../words.js";
 import { READING_BASE_MS, READING_MS_PER_WORD, questionTextOf, grid, gridDown, clamp, openingWords, distributeWords, findPhrase, VisualTimeline, unusedAssetNotes } from "../toolkit.js";
 
@@ -633,6 +633,12 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
 
   };
 
+  /** Every answer's share, shrunk to fit when an optional one was given. */
+  const shares = sharesFor(
+    template,
+    new Set(input.answers.filter((a) => a.runs.length > 0).map((a) => a.questionId)),
+  );
+
   /**
    * An answer, fitted to its share of the film.
    *
@@ -649,7 +655,7 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
    */
   const addAnswerBeat = (questionId: string, options: BeatOptions = {}): void => {
     const a = answer(questionId);
-    const share = template.questions.find((q) => q.id === questionId)?.shareSeconds;
+    const share = shares.get(questionId);
     const timed = timedWordsOf(a);
     const runs = options.runs ?? a.runs;
     const first = runs[0];
@@ -663,7 +669,7 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
       const middle = (w.startMs + w.endMs) / 2;
       return middle >= first.startMs && middle <= last.endMs;
     });
-    const budgetMs = options.budgetMs ?? share * 1000;
+    const budgetMs = options.budgetMs ?? share;
     const shaped = shapeAnswer(words, budgetMs, a.emphasis?.phrase);
     if (shaped.untouched || shaped.spans.length === 0) {
       placeAnswer(questionId, options);
@@ -711,11 +717,7 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
   addAnswerBeat("greatest_lesson", {
     runs: lesson.runs.slice(1),
     // The cold open is the first part of this answer's share.
-    budgetMs: Math.max(
-      0,
-      (template.questions.find((q) => q.id === "greatest_lesson")?.shareSeconds ?? 0) * 1000 -
-        (coldRun.endMs - coldRun.startMs),
-    ),
+    budgetMs: Math.max(0, (shares.get("greatest_lesson") ?? 0) - (coldRun.endMs - coldRun.startMs)),
     idSuffix: "_main",
     insert: { kind: "broll", slotId: "video_group" },
   });

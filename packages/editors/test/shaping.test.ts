@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 
-import { LONG_PAUSE_MS, shapeAnswer, unitsOf } from "../src/shaping.js";
+import { getTemplate } from "@film/templates";
+
+import { LONG_PAUSE_MS, shapeAnswer, sharesFor, unitsOf } from "../src/shaping.js";
 import type { TimedWord } from "../src/material.js";
 import { talk } from "./talk.js";
 
@@ -95,5 +97,28 @@ describe("shapeAnswer", () => {
     const shaped = shapeAnswer(words, 1_000);
     expect(length(shaped.spans)).toBeGreaterThan(1_000);
     expect(shaped.keptUnits).toBe(1);
+  });
+});
+
+describe("sharesFor", () => {
+  const template = getTemplate("life-advice", 1);
+  const required = template.questions.filter((q) => q.required).map((q) => q.id);
+  const sum = (m: ReadonlyMap<string, number>): number => [...m.values()].reduce((a, b) => a + b, 0);
+
+  it("gives the required answers their shares as written", () => {
+    const shares = sharesFor(template, new Set(required));
+    expect(shares.get("greatest_lesson")).toBe(45_000);
+    expect(shares.get("closing_message")).toBe(30_000);
+    expect(shares.has("bonus_interviewer")).toBe(false);
+  });
+
+  it("shrinks every share when the optional bonus is given, so the film is no longer", () => {
+    const without = sharesFor(template, new Set(required));
+    const withBonus = sharesFor(template, new Set([...required, "bonus_interviewer"]));
+    expect(withBonus.has("bonus_interviewer")).toBe(true);
+    expect(Math.abs(sum(withBonus) - sum(without))).toBeLessThanOrEqual(withBonus.size);
+    expect(withBonus.get("greatest_lesson")).toBeLessThan(45_000);
+    // In proportion: the greatest lesson is still the largest.
+    expect(Math.max(...withBonus.values())).toBe(withBonus.get("greatest_lesson"));
   });
 });
