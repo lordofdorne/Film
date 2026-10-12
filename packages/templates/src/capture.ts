@@ -1,3 +1,4 @@
+import type { TakeLength } from "./take.js";
 import type { PartialSubject } from "./interpolate.js";
 import { resolveQuestionText } from "./interpolate.js";
 import type { CaptureChapter, DetailField, Guidance, MediaSlot, Template } from "./types.js";
@@ -59,6 +60,8 @@ export type ResolvedCaptureStep = {
   readonly number: number;
   /** The template's honest guess, summed by the hub into time remaining. */
   readonly estimatedSeconds: number;
+  /** How long a recording here should be, where something is recorded. */
+  readonly take?: TakeLength;
 };
 
 const slotsOf = (template: Template): readonly MediaSlot[] => [
@@ -153,6 +156,7 @@ export const resolveCaptureSteps = (
           ...guidanceOf(question.guidance),
           ...chapterFields,
           estimatedSeconds: question.estimatedSeconds,
+          take: question.take,
         });
         continue;
       }
@@ -173,6 +177,7 @@ export const resolveCaptureSteps = (
         ...guidanceOf(slot.guidance),
         ...chapterFields,
         estimatedSeconds: slot.estimatedSeconds,
+        ...(slot.take === undefined ? {} : { take: slot.take }),
       });
     }
   }
