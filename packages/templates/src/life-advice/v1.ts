@@ -80,6 +80,17 @@ const config: Template = {
    * version. Nine required + one optional means the customer records ten
    * takes, which is the strongest argument for save-and-resume in capture.
    */
+  /**
+   * `take` on each question and clip is how long a good recording is: the
+   * recording screen draws it as a timer, says "good length — stop whenever
+   * you're ready" inside it, and stops by itself at `max`. Proposed
+   * 2026-10-12 from each step's own coaching, for the owner to adjust:
+   *   - identity answers are one sentence: 3–20 s, stop at 30;
+   *   - an ordinary answer: 30–90 s, stop at 2:30;
+   *   - the greatest lesson opens and closes the film: 45 s–2 min, stop at 3;
+   *   - a clip is "ten quiet seconds": 8–20 s, stop at 30.
+   * Capture-only: nothing in compose reads it, so changing it re-cuts no film.
+   */
   questions: [
     {
       id: "identity_name",
@@ -88,6 +99,7 @@ const config: Template = {
       narrativeRole: "introduction",
       required: true,
       estimatedSeconds: 60,
+      take: { goodFrom: 3, goodTo: 20, max: 30 },
       guidance: {
         coaching:
           "Ask for the whole sentence — \"My name is Ada Lovelace\" — rather than " +
@@ -101,6 +113,7 @@ const config: Template = {
       narrativeRole: "introduction",
       required: true,
       estimatedSeconds: 60,
+      take: { goodFrom: 3, goodTo: 20, max: 30 },
       guidance: {
         coaching:
           "A full sentence again: \"I'm 94.\" The film's title is built from this " +
@@ -114,6 +127,7 @@ const config: Template = {
       narrativeRole: "introduction",
       required: true,
       estimatedSeconds: 60,
+      take: { goodFrom: 3, goodTo: 20, max: 30 },
       guidance: {
         coaching:
           "Let them add where, if they want to. The place a life started is " +
@@ -134,6 +148,7 @@ const config: Template = {
       narrativeRole: "personality",
       required: true,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         coaching:
           "This one is usually answered with a joke first. Let the joke land, " +
@@ -147,6 +162,7 @@ const config: Template = {
       narrativeRole: "wisdom",
       required: true,
       estimatedSeconds: 120,
+      take: { goodFrom: 45, goodTo: 120, max: 180 },
       guidance: {
         coaching:
           "The most important answer in the film — it opens it and it closes " +
@@ -161,6 +177,7 @@ const config: Template = {
       narrativeRole: "wisdom",
       required: true,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         coaching:
           "If it comes out general — \"work hard\" — ask who they would say it " +
@@ -175,6 +192,7 @@ const config: Template = {
       narrativeRole: "relationships",
       required: true,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         coaching:
           "Name the group out loud when you ask — the family, the team, the " +
@@ -190,6 +208,7 @@ const config: Template = {
       narrativeRole: "love",
       required: true,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         coaching:
           "Learned, not defined. If they start describing what love is, ask " +
@@ -205,6 +224,7 @@ const config: Template = {
       narrativeRole: "closing",
       required: true,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         coaching:
           "Ask them to look straight down the lens for this one, and to talk " +
@@ -219,6 +239,7 @@ const config: Template = {
       narrativeRole: "bonus",
       required: false,
       estimatedSeconds: 90,
+      take: { goodFrom: 30, goodTo: 90, max: 150 },
       guidance: {
         ask: "Ask them what they think of you",
         coaching:
@@ -293,6 +314,7 @@ const config: Template = {
       label: "A place or detail connected to them",
       required: false,
       estimatedSeconds: 60,
+      take: { goodFrom: 8, goodTo: 20, max: 30 },
       guidance: {
         ask: "Film somewhere that belongs to them",
         coaching:
@@ -306,6 +328,7 @@ const config: Template = {
       label: "A group moment",
       required: true,
       estimatedSeconds: 60,
+      take: { goodFrom: 8, goodTo: 20, max: 30 },
       guidance: {
         ask: "Film them with other people",
         coaching:
@@ -318,6 +341,7 @@ const config: Template = {
       label: "A candid moment",
       required: true,
       estimatedSeconds: 60,
+      take: { goodFrom: 8, goodTo: 20, max: 30 },
       guidance: {
         ask: "Film them being themselves, not answering anything",
         coaching:
@@ -333,6 +357,7 @@ const config: Template = {
       label: "A meaningful or funny object",
       required: false,
       estimatedSeconds: 60,
+      take: { goodFrom: 8, goodTo: 20, max: 30 },
       accepts: ["photo", "video"],
       guidance: {
         ask: "Add an object that means something",
