@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { HubStep, HubView } from "../../../src/server/capture.js";
+import { DeleteFilmButton } from "./DeleteFilmButton.js";
 import { FreshenOnReturn } from "./FreshenOnReturn.js";
 import { MakeFilmButton } from "./MakeFilmButton.js";
 import { UploadStatus } from "./UploadStatus.js";
@@ -107,6 +108,13 @@ export const Hub = ({
           </ul>
         </section>
       ))}
+
+      <div className="delete-film">
+        <DeleteFilmButton
+          projectId={walkthrough.projectId}
+          name={name === undefined ? null : `${name}’s film`}
+        />
+      </div>
 
       {/* Sticky only once there is something to press: a disabled button
           following somebody down the page is a nag, not a promise. */}

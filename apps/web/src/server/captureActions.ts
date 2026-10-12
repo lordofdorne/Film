@@ -12,6 +12,7 @@ import { nextHref } from "./wizard.js";
 import {
   completeUpload,
   createProjectFor,
+  deleteFilmFor,
   discardCapture,
   loadWalkthroughView,
   mintUpload,
@@ -251,6 +252,23 @@ export const tryAgain = async (
   revalidatePath(`/projects/${projectId}`);
   revalidatePath("/");
   return { ok: true };
+};
+
+/**
+ * Delete a film for good, and go home.
+ *
+ * Only the owner, and only while it is not approved (deleteFilm says which).
+ * Success redirects, so nothing comes back to a page that no longer has a
+ * film to show; only a refusal resolves with a value.
+ */
+export const deleteFilmAction = async (projectId: string): Promise<{ ok: false; error: string }> => {
+  const refused = await mine(projectId);
+  if (refused !== null) return refused;
+
+  const result = await deleteFilmFor(projectId);
+  if (!result.ok) return result;
+  revalidatePath("/");
+  redirect("/");
 };
 
 export const discardStep = async (
