@@ -113,6 +113,9 @@ importers:
       '@film/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@film/editors':
+        specifier: workspace:*
+        version: link:../../packages/editors
       '@film/edl':
         specifier: workspace:*
         version: link:../../packages/edl
