@@ -586,6 +586,20 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Shortening is never a surprise — Phase 9, Block 5
+
+Before Approve, the preview lists every answer that lost words to fit its
+share: the question, "We used 0:22 of 1:22", and — behind a quiet disclosure
+— the passages left out (`FittedAnswers`). It ends with the one lever there
+is today: record that answer again and say the important thing first, since
+shaping always keeps an answer's opening. "Put it back" waits for
+request-a-change.
+
+`fittedAnswers` (`@film/editors`) works it out from the cut being shown — the
+EDL's speech segments against the answer's timed words — so nothing is stored
+that could disagree with the film. Films made before word times show nothing,
+because nothing in them was shaped. Seen on `/design` with sample data; no
+real film has been shaped yet, because none has word times.
 ### The music ends with the film — Phase 9, Block 4
 
 - **`audio.musicEdits`** in the EDL (optional): at film time `atMs` the
