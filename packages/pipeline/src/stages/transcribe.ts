@@ -17,7 +17,8 @@ import { AssetSelectionSchema, type AssetRow } from "../model.js";
  * audio — a different prompt, a different post-processing rule. The model name
  * is hashed separately, so swapping models already re-transcribes on its own.
  */
-export const TRANSCRIBE_RECIPE = 1;
+export const TRANSCRIBE_RECIPE = 2;
+// 2: a second, timed pass keeps word times (`selection.words`).
 
 /** Whisper wants a few hundred megabytes of scratch for a long answer. */
 const SCRATCH_HEADROOM_BYTES = 2 * 1024 * 1024 * 1024;
@@ -131,12 +132,20 @@ export const runTranscribe = async (ctx: StageContext): Promise<string | null> =
 
   await ctx.db
     .update(assets)
-    .set({ transcriptKey: key, selection: { spoken: transcript.text } })
+    .set({
+      transcriptKey: key,
+      selection: {
+        spoken: transcript.text,
+        // Only when every word has one: a partial list would mismatch `spoken`.
+        ...(transcript.words.length > 0 ? { words: transcript.words } : {}),
+      },
+    })
     .where(eq(assets.id, row.id));
 
   const words = transcript.text.split(/\s+/).length;
   await ctx.log.info(
-    `${String(words)} words from ${transcript.model} (${(bytes.byteLength / 1e6).toFixed(1)} MB of video)`,
+    `${String(words)} words from ${transcript.model} (${(bytes.byteLength / 1e6).toFixed(1)} MB of video), ` +
+      (transcript.words.length > 0 ? "timed" : "no word times"),
   );
 
   return hashInputs({ text: transcript.text });

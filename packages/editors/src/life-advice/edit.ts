@@ -2,6 +2,7 @@ import type { EDL, QuestionPromptSegment, SpeechSegment } from "@film/edl";
 import { questionTextKey } from "@film/templates";
 
 import type { ComposeInput, ComposeResult, IngestedAnswer, SpeechRun, StillAsset } from "../material.js";
+import { alignToRuns, captionsWithin, timedWordsOf } from "../words.js";
 import { READING_BASE_MS, READING_MS_PER_WORD, questionTextOf, grid, gridDown, clamp, openingWords, distributeWords, findPhrase, VisualTimeline, unusedAssetNotes } from "../toolkit.js";
 
 /**
@@ -284,6 +285,22 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
     lesson.coldOpen === undefined
       ? openingWords(lesson.spoken, lesson.runs)
       : lesson.coldOpen.split(/\s+/).filter((w) => w.length > 0);
+  /**
+   * With timed words and nobody's choice of phrase, the words on screen are
+   * the words actually spoken in that first run — not a share of the answer
+   * sized to its length, which could end a word early or late.
+   */
+  const lessonTimed = timedWordsOf(lesson);
+  const timedCold =
+    lesson.coldOpen === undefined && lessonTimed !== undefined
+      ? captionsWithin(
+          alignToRuns(lessonTimed, lesson.runs),
+          coldRun.startMs,
+          coldRun.endMs,
+          coldRun.startMs,
+          coldSpeechDur,
+        )
+      : [];
   speech.push({
     id: "s_cold_open",
     questionId: lesson.questionId,
@@ -292,7 +309,10 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
     durationMs: coldSpeechDur,
     sourceInMs: grid(coldRun.startMs),
     sourceOutMs: grid(coldRun.startMs) + coldSpeechDur,
-    captions: distributeWords(coldWords, [coldRun], coldRun.startMs, coldSpeechDur),
+    captions:
+      timedCold.length > 0
+        ? timedCold
+        : distributeWords(coldWords, [coldRun], coldRun.startMs, coldSpeechDur),
   });
 
   /* ── 3. main title, on the cue ─────────────────────────────────────── */
@@ -560,8 +580,26 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
 
     const speechStartMs = grid(beatStart + (speechStart - sourceIn));
     const speechDur = grid(speechEnd - speechStart);
-    const words = a.spoken.split(/\s+/).filter((w) => w.length > 0);
-    const captions = distributeWords(words, runs, speechStart, speechDur);
+    /**
+     * The words spoken in THIS piece, at the times they were spoken.
+     *
+     * Spreading the whole answer across `runs` was right when it was the whole
+     * answer, and wrong for the greatest lesson's main part, which plays every
+     * run but the first: the cold open's words were squeezed back in at the
+     * front of it. Timed words go where they were said, so each piece shows
+     * its own. Without timings, the old spreading stands.
+     */
+    const timed = timedWordsOf(a);
+    const timedCaptions =
+      timed === undefined
+        ? []
+        : captionsWithin(alignToRuns(timed, a.runs), speechStart, speechEnd, speechStart, speechDur);
+    const words =
+      timedCaptions.length > 0
+        ? timedCaptions.map((c) => c.text)
+        : a.spoken.split(/\s+/).filter((w) => w.length > 0);
+    const captions =
+      timedCaptions.length > 0 ? timedCaptions : distributeWords(words, runs, speechStart, speechDur);
 
     const emphasis =
       a.emphasis === undefined ? undefined : findPhrase(words, a.emphasis.phrase);

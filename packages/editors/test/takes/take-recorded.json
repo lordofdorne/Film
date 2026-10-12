@@ -1,0 +1,235 @@
+{
+ "text": "The kettle was always on and we would sit by the window. Talking about nothing in particular while the rain. Came down over the garden and the. Dog slept. By the door. Every morning she. Made toast for. Everyone even.",
+ "words": [
+  {
+   "text": "The",
+   "startMs": 20,
+   "endMs": 390
+  },
+  {
+   "text": "kettle",
+   "startMs": 390,
+   "endMs": 540
+  },
+  {
+   "text": "was",
+   "startMs": 540,
+   "endMs": 670
+  },
+  {
+   "text": "always",
+   "startMs": 670,
+   "endMs": 1010
+  },
+  {
+   "text": "on",
+   "startMs": 1010,
+   "endMs": 1420
+  },
+  {
+   "text": "and",
+   "startMs": 1420,
+   "endMs": 1800
+  },
+  {
+   "text": "we",
+   "startMs": 1800,
+   "endMs": 2350
+  },
+  {
+   "text": "would",
+   "startMs": 2350,
+   "endMs": 3480
+  },
+  {
+   "text": "sit",
+   "startMs": 3480,
+   "endMs": 3930
+  },
+  {
+   "text": "by",
+   "startMs": 3930,
+   "endMs": 4450
+  },
+  {
+   "text": "the",
+   "startMs": 4450,
+   "endMs": 5160
+  },
+  {
+   "text": "window.",
+   "startMs": 5160,
+   "endMs": 5700
+  },
+  {
+   "text": "Talking",
+   "startMs": 5700,
+   "endMs": 6090
+  },
+  {
+   "text": "about",
+   "startMs": 6090,
+   "endMs": 6740
+  },
+  {
+   "text": "nothing",
+   "startMs": 6740,
+   "endMs": 7080
+  },
+  {
+   "text": "in",
+   "startMs": 7080,
+   "endMs": 7330
+  },
+  {
+   "text": "particular",
+   "startMs": 7330,
+   "endMs": 7760
+  },
+  {
+   "text": "while",
+   "startMs": 7760,
+   "endMs": 8060
+  },
+  {
+   "text": "the",
+   "startMs": 8060,
+   "endMs": 8390
+  },
+  {
+   "text": "rain.",
+   "startMs": 8390,
+   "endMs": 9000
+  },
+  {
+   "text": "Came",
+   "startMs": 9000,
+   "endMs": 9390
+  },
+  {
+   "text": "down",
+   "startMs": 9390,
+   "endMs": 9500
+  },
+  {
+   "text": "over",
+   "startMs": 9500,
+   "endMs": 9840
+  },
+  {
+   "text": "the",
+   "startMs": 9840,
+   "endMs": 10170
+  },
+  {
+   "text": "garden",
+   "startMs": 10170,
+   "endMs": 10540
+  },
+  {
+   "text": "and",
+   "startMs": 10540,
+   "endMs": 10770
+  },
+  {
+   "text": "the.",
+   "startMs": 10770,
+   "endMs": 11500
+  },
+  {
+   "text": "Dog",
+   "startMs": 11500,
+   "endMs": 11890
+  },
+  {
+   "text": "slept.",
+   "startMs": 11890,
+   "endMs": 13040
+  },
+  {
+   "text": "By",
+   "startMs": 13500,
+   "endMs": 14000
+  },
+  {
+   "text": "the",
+   "startMs": 14000,
+   "endMs": 14630
+  },
+  {
+   "text": "door.",
+   "startMs": 14630,
+   "endMs": 15170
+  },
+  {
+   "text": "Every",
+   "startMs": 15170,
+   "endMs": 15690
+  },
+  {
+   "text": "morning",
+   "startMs": 15690,
+   "endMs": 16140
+  },
+  {
+   "text": "she.",
+   "startMs": 16140,
+   "endMs": 16670
+  },
+  {
+   "text": "Made",
+   "startMs": 16670,
+   "endMs": 16930
+  },
+  {
+   "text": "toast",
+   "startMs": 16930,
+   "endMs": 17660
+  },
+  {
+   "text": "for.",
+   "startMs": 17660,
+   "endMs": 18500
+  },
+  {
+   "text": "Everyone",
+   "startMs": 18500,
+   "endMs": 19000
+  },
+  {
+   "text": "even.",
+   "startMs": 19000,
+   "endMs": 19500
+  }
+ ],
+ "runs": [
+  {
+   "endMs": 2751,
+   "startMs": 0
+  },
+  {
+   "endMs": 4536,
+   "startMs": 3188
+  },
+  {
+   "endMs": 5512,
+   "startMs": 5083
+  },
+  {
+   "endMs": 9189,
+   "startMs": 5954
+  },
+  {
+   "endMs": 14536,
+   "startMs": 9694
+  },
+  {
+   "endMs": 16416,
+   "startMs": 15438
+  },
+  {
+   "endMs": 20001,
+   "startMs": 17302
+  }
+ ]
+}
