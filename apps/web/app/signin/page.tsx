@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-import { authConfigured, sessionIdentity } from "../../src/server/auth.js";
+import { authConfigured, sessionClaims } from "../../src/server/auth.js";
 import { safeNext } from "../../src/server/origin.js";
 import { AuthShell } from "../AuthShell.js";
 import { LinkTrouble } from "./LinkTrouble.js";
@@ -39,7 +39,7 @@ export default async function SignInPage({
    * to sign in — someone holding a film and no account — could never reach
    * the form.
    */
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
   if (identity !== null && identity.email !== null) redirect(safeNext(next) ?? "/");
 
   return (

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { createServerClient } from "@supabase/ssr";
@@ -76,23 +77,64 @@ export const supabase = async (): Promise<SupabaseClient> => {
 };
 
 /**
- * The signed-in user, as this application knows them, or null.
+ * Who the session cookie says this is, verified here rather than by asking.
  *
- * `getUser()` rather than `getSession()`: getSession trusts whatever is in the
- * cookie, and the cookie came from the browser. getUser verifies the token with
- * the auth server, which is the difference between an identity and a claim.
+ * This used to be `getUser()`, which sends the token to the auth server and
+ * waits. Measured on 2026-10-11 that wait was 200–535 ms for a real session —
+ * even with the auth server on the same machine — and a single wizard step
+ * paid it three times in a row: the middleware, the ownership check, and the
+ * page's own look at the address. It was most of every tap.
+ *
+ * `getClaims()` verifies the token's signature locally, against the auth
+ * server's published public key (fetched once and cached), which is what
+ * Supabase recommends for server code. It is still an identity and not a
+ * claim: a forged or altered token fails the signature. What it gives up is
+ * instant revocation — a token revoked on the auth server stays valid here
+ * until it expires, at most `jwt_expiry` (an hour). Signing out clears the
+ * cookie, so that only matters for a stolen token. Accepted by the owner on
+ * 2026-10-12.
+ *
+ * It needs asymmetric signing keys (ES256 here). On a project still using a
+ * shared secret, `getClaims` falls back to `getUser` by itself: slower, never
+ * wrong.
+ *
+ * `cache` makes it once per request however many components ask.
  */
-export const currentUser = async (): Promise<AppUser | null> => {
+export type SessionClaims = {
+  readonly authId: string;
+  /** Proved, and therefore ours to use. */
+  readonly email: string | null;
+  readonly anonymous: boolean;
+};
+
+export const sessionClaims = cache(async (): Promise<SessionClaims | null> => {
   if (!authConfigured()) return null;
 
   const client = await supabase();
-  const { data, error } = await client.auth.getUser();
-  if (error !== null || data.user === null) return null;
+  const { data, error } = await client.auth.getClaims();
+  if (error !== null || data === null) return null;
+
+  const { sub, email, is_anonymous: anonymous } = data.claims;
+  return {
+    authId: sub,
+    email: typeof email === "string" && email !== "" ? email : null,
+    anonymous: anonymous === true,
+  };
+});
+
+/**
+ * The signed-in user, as this application knows them, or null.
+ *
+ * Verified from the token (see `sessionClaims`), then mapped to our own row.
+ */
+export const currentUser = cache(async (): Promise<AppUser | null> => {
+  const claims = await sessionClaims();
+  if (claims === null) return null;
 
   // An anonymous identity has no email and is still an identity: the browser
   // that pressed Start owns its film through exactly this path.
-  return linkIdentity(db(), { authId: data.user.id, email: data.user.email ?? null });
-};
+  return linkIdentity(db(), { authId: claims.authId, email: claims.email });
+});
 
 /**
  * The signed-in user, creating an anonymous one if nobody is.
@@ -148,21 +190,23 @@ export type SessionIdentity = {
   readonly anonymous: boolean;
 };
 
-export const sessionIdentity = async (): Promise<SessionIdentity | null> => {
-  if (!authConfigured()) return null;
+export const sessionIdentity = cache(async (): Promise<SessionIdentity | null> => {
+  const claims = await sessionClaims();
+  if (claims === null) return null;
+
+  /**
+   * The one thing the token cannot tell us. A pending address lives only on
+   * the auth server, so this is the one place that still asks it — and only
+   * for an identity with no proved address, the only kind that can have one
+   * pending. Somebody signed in with an address never pays for it.
+   */
+  if (claims.email !== null) return { ...claims, pendingEmail: null };
+
   const client = await supabase();
   const { data, error } = await client.auth.getUser();
-  if (error !== null || data.user === null) return null;
-
-  const email = data.user.email ?? "";
-  const pending = data.user.new_email ?? "";
-  return {
-    authId: data.user.id,
-    email: email === "" ? null : email,
-    pendingEmail: pending === "" ? null : pending,
-    anonymous: data.user.is_anonymous === true,
-  };
-};
+  const pending = error === null ? (data.user?.new_email ?? "") : "";
+  return { ...claims, pendingEmail: pending === "" ? null : pending };
+});
 
 /**
  * The films made before an address was proved follow the person.
@@ -218,7 +262,7 @@ export type Access =
  * Every route that serves a film's media or its file asks this and treats
  * every refusal as a 404, so `needs-account` closes them too.
  */
-export const accessToProject = async (projectId: string): Promise<Access> => {
+export const accessToProject = cache(async (projectId: string): Promise<Access> => {
   // Nobody to check against, and nothing to check. Development only, and every
   // page says so.
   if (!authConfigured()) return { allowed: true, user: null };
@@ -229,7 +273,7 @@ export const accessToProject = async (projectId: string): Promise<Access> => {
   const access = await accessToFilm(db(), user, projectId);
   if (access === "owner") return { allowed: true, user };
   return { allowed: false, reason: access === "needs-account" ? "needs-account" : "not-yours" };
-};
+});
 
 export type Guarded =
   | { readonly needsAccount: false; readonly user: AppUser | null }

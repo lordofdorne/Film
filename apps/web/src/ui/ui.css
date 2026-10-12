@@ -326,3 +326,21 @@
 .ui-disclosure__icon { flex-shrink: 0; transition: transform var(--dur-2) var(--ease-out); }
 .ui-disclosure[open] .ui-disclosure__icon { transform: rotate(45deg); }
 .ui-disclosure__body { padding: 0 0 var(--s-5); color: var(--ink-2); max-width: 62ch; }
+
+/* ── Skeleton ─────────────────────────────────────────────────────────── */
+.ui-skel {
+  display: block;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, var(--mist) 0%, var(--line) 50%, var(--mist) 100%);
+  background-size: 200% 100%;
+  /* Invisible for the first 120ms: an answer that fast never shows a
+     skeleton at all, and a flash of grey is worse than a short pause. */
+  opacity: 0;
+  animation: ui-skel-in 1ms 120ms forwards, ui-skel 1.4s ease-in-out infinite;
+}
+.ui-skel--round { border-radius: 999px; }
+@keyframes ui-skel { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+@keyframes ui-skel-in { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .ui-skel { animation: ui-skel-in 1ms 120ms forwards; background: var(--line); }
+}

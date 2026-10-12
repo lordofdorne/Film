@@ -34,7 +34,9 @@
     "worker": "pnpm build:packages && tsx --env-file-if-exists=.env apps/worker/src/main.ts",
     "thumbs:backfill": "pnpm build:packages && tsx --env-file-if-exists=.env scripts/backfill-thumbnails.ts",
     "//screens": "Every screen at phone and laptop width into out/screens/, against a running `pnpm web`, using the installed Chrome. Presses Start once per viewport, so it leaves two anonymous films in the dev database.",
-    "screens": "tsx scripts/screens.ts"
+    "screens": "tsx scripts/screens.ts",
+    "//perf": "How long each tap in the wizard takes, as feedback (screen changes) and ready (next screen's heading), median of three walks. Run against a production build: `next dev` does not prefetch. Leaves one anonymous film per walk.",
+    "perf": "tsx scripts/perf.ts"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",

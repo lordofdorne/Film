@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { authConfigured, sessionIdentity } from "../../../src/server/auth.js";
+import { authConfigured, sessionClaims } from "../../../src/server/auth.js";
 import { AuthShell } from "../../AuthShell.js";
 import { NewPasswordForm } from "./NewPasswordForm.js";
 
@@ -32,7 +32,7 @@ export default async function PasswordPage({
     );
   }
 
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
 
   // No session at all, or one that has never proved an address. A password
   // with nothing to sign in as is no use, and Supabase refuses to store one.

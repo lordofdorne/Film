@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { FAQ, HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../src/product.js";
-import { authConfigured, currentUser, sessionIdentity } from "../src/server/auth.js";
+import { authConfigured, currentUser, sessionClaims } from "../src/server/auth.js";
 import { loadWalkthroughView, thumbnailUrl } from "../src/server/capture.js";
 import { listProjects, type FilmListing } from "../src/server/project.js";
 import { progressOf } from "../src/server/wizard.js";
@@ -36,17 +36,26 @@ export default async function Home() {
   const open = !authConfigured();
   const user = await currentUser();
   const projects = user === null && !open ? [] : await listProjects(user?.id);
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
   const settled = identity?.email !== null && identity?.email !== undefined;
 
   if (projects.length === 0) return <Landing open={open} />;
 
-  const posters = new Map<string, string>();
-  for (const p of projects) {
-    if (p.posterKey !== null) posters.set(p.id, await thumbnailUrl(p.posterKey));
-  }
+  /**
+   * The posters and the film to resume, together rather than one after the
+   * other: none of them waits on any other, and in a loop each signing waited
+   * for the one before it.
+   */
   const resume = projects.find((p) => p.status === "capturing");
-  const resumeView = resume === undefined ? null : await loadWalkthroughView(resume.id);
+  const [signed, resumeView] = await Promise.all([
+    Promise.all(
+      projects.flatMap((p) =>
+        p.posterKey === null ? [] : [thumbnailUrl(p.posterKey).then((url) => [p.id, url] as const)],
+      ),
+    ),
+    resume === undefined ? null : loadWalkthroughView(resume.id),
+  ]);
+  const posters = new Map<string, string>(signed);
 
   return (
     <main className="page page--wide home">

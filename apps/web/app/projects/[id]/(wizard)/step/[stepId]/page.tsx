@@ -1,9 +1,8 @@
 import { notFound, redirect } from "next/navigation";
 
-import { guardProject } from "../../../../../src/server/auth.js";
-import { loadWalkthroughView, stepWithMedia } from "../../../../../src/server/capture.js";
-import { backHref, chaptersOf, nextHref, outlineOf, progressOf } from "../../../../../src/server/wizard.js";
-import { WizardFrame } from "../../WizardFrame.js";
+import { guardProject } from "../../../../../../src/server/auth.js";
+import { loadWalkthroughView, stepWithMedia } from "../../../../../../src/server/capture.js";
+import { nextHref } from "../../../../../../src/server/wizard.js";
 import { DetailStepClient } from "./DetailStepClient.js";
 import { StepClient } from "./StepClient.js";
 
@@ -45,29 +44,12 @@ export default async function StepPage({
   const step = await stepWithMedia(walkthrough, stepId);
   if (step === null) notFound();
 
-  const chapter = chaptersOf(walkthrough.steps).find((c) => c.id === step.chapterId);
-  const position = (chapter?.steps.findIndex((s) => s.id === step.id) ?? 0) + 1;
-  const where =
-    chapter === undefined
-      ? step.chapterTitle
-      : `${chapter.title} · ${String(position)} of ${String(chapter.steps.length)}`;
-
   const next = nextHref(id, walkthrough.steps, step.id);
 
-  return (
-    <WizardFrame
-      projectId={id}
-      backHref={backHref(id, walkthrough.steps, step.id)}
-      where={where}
-      progress={progressOf(walkthrough.steps, step.chapterId)}
-      outline={outlineOf(id, walkthrough.steps)}
-      currentStepId={step.id}
-    >
-      {step.kind === "detail" ? (
-        <DetailStepClient key={step.id} projectId={id} step={step} nextHref={next} />
-      ) : (
-        <StepClient key={step.id} projectId={id} step={step} nextHref={next} />
-      )}
-    </WizardFrame>
+  // The frame around it is the layout's: this page is only the middle.
+  return step.kind === "detail" ? (
+    <DetailStepClient key={step.id} projectId={id} step={step} nextHref={next} />
+  ) : (
+    <StepClient key={step.id} projectId={id} step={step} nextHref={next} />
   );
 }

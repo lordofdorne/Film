@@ -1,12 +1,29 @@
 "use client";
 
-import { Player } from "@remotion/player";
-import { FilmComposition, msToFrame, type FilmProps } from "@film/render/composition";
+import type { FilmProps } from "@film/render/composition";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
-import { Button, Chip, Icon, Notice } from "../../../src/ui/index.js";
+import { Button, Chip, Icon, Notice, Skeleton } from "../../../src/ui/index.js";
+
+/**
+ * The player, fetched only when there is a film to play.
+ *
+ * Remotion's player and the composition are most of this page's JavaScript —
+ * about 100 KB, measured — and the same URL is the capture overview for the
+ * whole of capture, which never draws a frame. Split out, the overview stops
+ * paying for it, and the preview draws a placeholder of exactly the player's
+ * shape until it lands, so nothing below it moves.
+ *
+ * `ssr: false` because the player measures its container and starts a
+ * timeline: there is nothing useful to render on the server.
+ */
+const FilmPlayer = dynamic(() => import("./FilmPlayer.js").then((m) => m.FilmPlayer), {
+  ssr: false,
+  loading: () => <Skeleton height="100%" className="player-frame__placeholder" />,
+});
 
 /**
  * The preview is the SAME composition the render worker uses.
@@ -39,7 +56,6 @@ export const PreviewClient = ({
   const [approved, setApproved] = useState(summary.approved);
   const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
 
-  const durationInFrames = msToFrame(props.edl.totalDurationMs, props.format.fps);
   const outstanding = summary.warnings.filter((w) => !acknowledged.has(warningKey(w)));
 
   const acknowledge = useCallback((w: AssetWarning) => {
@@ -84,19 +100,11 @@ export const PreviewClient = ({
         delivery
       )}
 
-      <div className="player-frame">
-        <Player
-          component={FilmComposition}
-          inputProps={props}
-          durationInFrames={durationInFrames}
-          fps={props.format.fps}
-          compositionWidth={props.format.width}
-          compositionHeight={props.format.height}
-          style={{ width: "100%" }}
-          controls
-          doubleClickToFullscreen
-          acknowledgeRemotionLicense
-        />
+      <div
+        className="player-frame"
+        style={{ aspectRatio: `${String(props.format.width)} / ${String(props.format.height)}` }}
+      >
+        <FilmPlayer props={props} />
       </div>
 
       {/*

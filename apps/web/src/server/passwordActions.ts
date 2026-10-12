@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 
 import { addressTaken } from "@film/db";
 
-import { authConfigured, currentUser, dbForAuth, sessionIdentity, supabase } from "./auth.js";
+import { authConfigured, currentUser, dbForAuth, sessionClaims, supabase } from "./auth.js";
 import { origin, safeNext } from "./origin.js";
 
 /**
@@ -257,7 +257,7 @@ export const chooseNewPassword = async (password: string): Promise<PasswordResul
   const weak = tooWeak(password);
   if (weak !== null) return { ok: false, error: weak };
 
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
   if (identity === null) {
     return { ok: false, error: "That link has expired. Ask for another from the sign-in page." };
   }

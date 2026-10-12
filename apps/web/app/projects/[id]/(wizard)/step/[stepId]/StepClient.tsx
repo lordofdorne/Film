@@ -4,9 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { discardStep, finishUpload, mintUploadFor } from "../../../../../src/server/captureActions.js";
-import type { StepView } from "../../../../../src/server/capture.js";
-import { Button, Chip, Icon, Tip } from "../../../../../src/ui/index.js";
+import { discardStep, finishUpload, mintUploadFor } from "../../../../../../src/server/captureActions.js";
+import type { StepView } from "../../../../../../src/server/capture.js";
+import { usePrefetchNext } from "../../usePrefetchNext.js";
+import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 
 /**
  * One capture, one screen of the wizard: record it, look at it, do it again,
@@ -115,7 +116,7 @@ export const StepClient = ({
   useEffect(() => stopStream, [stopStream]);
 
   // The next screen is known; fetch it now so Keep and Skip feel instant.
-  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
+  usePrefetchNext(nextHref);
 
   /**
    * Closing the tab mid-upload loses the take, and nothing else on the page

@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
-import { submitDetail } from "../../../../../src/server/captureActions.js";
-import type { StepView } from "../../../../../src/server/capture.js";
-import { Button, Chip, Icon, Tip } from "../../../../../src/ui/index.js";
-import { SetPasswordOffer } from "../../../../SetPasswordOffer.js";
+import { submitDetail } from "../../../../../../src/server/captureActions.js";
+import type { StepView } from "../../../../../../src/server/capture.js";
+import { usePrefetchNext } from "../../usePrefetchNext.js";
+import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
+import { SetPasswordOffer } from "../../../../../SetPasswordOffer.js";
 
 /**
  * A typed answer, dressed exactly like a capture: the ask, the coaching, one
@@ -35,7 +36,7 @@ export const DetailStepClient = ({
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
   // The next screen is known; fetch it now so Continue feels instant.
-  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
+  usePrefetchNext(nextHref);
 
   const inputType =
     step.field?.kind === "number" ? "number" : step.field?.kind === "email" ? "email" : "text";
@@ -50,7 +51,8 @@ export const DetailStepClient = ({
     }
     setError(null);
     startTransition(async () => {
-      const result = await submitDetail(projectId, step.id, value);
+      // Saved and nothing to say: the action sends us on (see submitDetail).
+      const result = await submitDetail(projectId, step.id, value, nextHref);
       if (!result.ok) {
         setError(result.error);
         return;

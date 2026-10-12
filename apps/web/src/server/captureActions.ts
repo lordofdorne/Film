@@ -100,6 +100,8 @@ export const submitDetail = async (
   projectId: string,
   fieldId: string,
   value: string,
+  /** Where to go once saved; the wizard's next stop, worked out by the page. */
+  then?: string,
 ): Promise<DetailResult> => {
   const refused = await mine(projectId);
   if (refused !== null) return refused;
@@ -133,8 +135,26 @@ export const submitDetail = async (
   }
 
   revalidatePath(`/projects/${projectId}`);
+
+  /**
+   * Saved, and nothing to stop for: go on from here.
+   *
+   * The client used to `router.push` after this returned. Redirecting from the
+   * action is Next's documented "save, then go", and it is one round trip
+   * instead of two: the next page comes back in this response.
+   *
+   * (It was first written to escape a Continue that saved and stayed put on a
+   * production build. That turned out to be a loading screen above the step,
+   * not the push — see usePrefetchNext — but this is still the better shape.)
+   *
+   * Only within this film, so the parameter cannot send anybody elsewhere.
+   */
+  if (linkSentTo === null && then !== undefined && withinFilm(projectId, then)) redirect(then);
   return { ok: true, linkSentTo, already };
 };
+
+const withinFilm = (projectId: string, href: string): boolean =>
+  href === `/projects/${projectId}` || href.startsWith(`/projects/${projectId}/`);
 
 export const mintUploadFor = async (
   projectId: string,
