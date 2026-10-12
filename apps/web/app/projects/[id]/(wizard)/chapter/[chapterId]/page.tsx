@@ -86,7 +86,7 @@ export default async function ChapterPage({
             <Link href={skipChapterHref(id, view.steps, chapter.id)}>Not now</Link>
           </Button>
           <Button size="lg" asChild>
-            <Link href={beginHref(id, view.steps, chapter.id)}>
+            <Link href={beginHref(id, view.steps, chapter.id)} prefetch>
               {started ? "Carry on" : "Begin"}
               <Icon name="forward" size={18} />
             </Link>

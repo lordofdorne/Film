@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 
 import { submitDetail } from "../../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../../src/server/capture.js";
+import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 import { SetPasswordOffer } from "../../../../../SetPasswordOffer.js";
 
@@ -34,8 +35,8 @@ export const DetailStepClient = ({
   const [error, setError] = useState<string | null>(null);
   const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
-  // The next screen is known; fetch it now so Continue feels instant.
-  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
+  // The next screen is known; fetch all of it now so Continue feels instant.
+  usePrefetchNext(nextHref);
 
   const inputType =
     step.field?.kind === "number" ? "number" : step.field?.kind === "email" ? "email" : "text";

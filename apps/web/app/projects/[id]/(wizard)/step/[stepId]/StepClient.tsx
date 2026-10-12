@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { discardStep, finishUpload, mintUploadFor } from "../../../../../../src/server/captureActions.js";
 import type { StepView } from "../../../../../../src/server/capture.js";
+import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 
 /**
@@ -114,8 +115,8 @@ export const StepClient = ({
 
   useEffect(() => stopStream, [stopStream]);
 
-  // The next screen is known; fetch it now so Keep and Skip feel instant.
-  useEffect(() => { router.prefetch(nextHref); }, [router, nextHref]);
+  // The next screen is known; fetch all of it now so Keep and Skip feel instant.
+  usePrefetchNext(nextHref);
 
   /**
    * Closing the tab mid-upload loses the take, and nothing else on the page
