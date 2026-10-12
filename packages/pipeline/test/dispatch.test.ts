@@ -18,6 +18,7 @@ import { deliverIdentity } from "../src/stages/deliver.js";
 import { ingestIdentity as ingest } from "../src/stages/ingest.js";
 import { renderIdentity } from "../src/stages/render.js";
 import { transcribeIdentity } from "../src/stages/transcribe.js";
+import { previewKeyOf } from "../src/stages/preview.js";
 import { thumbnailIdentity, thumbnailKeyOf } from "../src/stages/thumbnail.js";
 import { MUSIC_BED_SLOT, type AssetRow } from "../src/model.js";
 import { loadAssets } from "../src/stages/context.js";
@@ -131,7 +132,9 @@ const record = async (
  *
  * Including the thumbnail. Ingest writes one while it has the file open, so a
  * helper that set only `normalisedKey` would model an ingest that never
- * happens and leave every test in this file planning a repair job.
+ * happens and leave every test in this file planning a repair job. And the
+ * preview copy, which its own stage makes right after: every test here except
+ * the preview ones is about a film whose copies are already made.
  */
 const markIngested = async (): Promise<void> => {
   for (const row of await rows()) {
@@ -139,7 +142,9 @@ const markIngested = async (): Promise<void> => {
       .update(assets)
       .set({
         normalisedKey: `projects/${projectId}/normalised/${row.id}/n`,
-        ...(row.kind === "audio" ? {} : { thumbnailKey: thumbnailKeyOf(projectId, row.id) }),
+        ...(row.kind === "audio"
+          ? {}
+          : { thumbnailKey: thumbnailKeyOf(projectId, row.id), previewKey: previewKeyOf(projectId, row.id, row.kind) }),
         qcMetrics:
           row.kind === "audio"
             ? { durationMs: 200_000 }
@@ -316,6 +321,47 @@ describe("planProject", () => {
  * ingested before that existed: their ingest is cached and will never run
  * again, so nothing else can.
  */
+describe("planProject — preview copies", () => {
+  const forgetPreviews = async (): Promise<void> => {
+    await db.update(assets).set({ previewKey: null }).where(eq(assets.projectId, projectId));
+  };
+
+  it("plans one for each ingested asset with a picture, and not the music bed", async () => {
+    needsDb();
+    await markReady();
+    await forgetPreviews();
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.filter((j) => j.stage === "preview").map((j) => j.assetId)).toEqual([takeId]);
+  });
+
+  it("plans none once the copy exists", async () => {
+    needsDb();
+    await markReady();
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.map((j) => j.stage)).not.toContain("preview");
+  });
+
+  it("plans a new one when the recipe has moved past the stored copy", async () => {
+    needsDb();
+    await markReady();
+    await db
+      .update(assets)
+      .set({ previewKey: `projects/${projectId}/preview/${takeId}/preview-v0.mp4` })
+      .where(eq(assets.id, takeId));
+    const { jobs } = await planProject(db, projectId);
+    expect(jobs.filter((j) => j.stage === "preview").map((j) => j.assetId)).toEqual([takeId]);
+  });
+
+  it("never holds up the cut: compose is planned whether or not the copies exist", async () => {
+    needsDb();
+    await markReady();
+    const before = (await planProject(db, projectId)).jobs.map((j) => j.stage);
+    await forgetPreviews();
+    const after = (await planProject(db, projectId)).jobs.map((j) => j.stage).filter((s) => s !== "preview");
+    expect(after).toEqual(before);
+  });
+});
+
 describe("planProject — thumbnails", () => {
   /** Ingested, but before ingest knew to make a thumbnail. */
   const forgetThumbnails = async (): Promise<void> => {

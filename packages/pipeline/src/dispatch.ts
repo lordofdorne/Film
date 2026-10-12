@@ -22,6 +22,7 @@ import { ingestIdentity } from "./stages/ingest.js";
 import { renderIdentity } from "./stages/render.js";
 import { deliverIdentity } from "./stages/deliver.js";
 import { hasSelection, transcribeIdentity } from "./stages/transcribe.js";
+import { needsPreview, previewIdentity } from "./stages/preview.js";
 import { needsThumbnail, thumbnailIdentity } from "./stages/thumbnail.js";
 import type { AssetRow } from "./model.js";
 
@@ -191,6 +192,19 @@ export const planProject = async (
     if (!needsThumbnail(row)) continue;
     const identity = thumbnailIdentity(row);
     const label = `thumbnail ${row.slotId ?? row.questionId ?? row.id}`;
+    if (consider(identity, label, false) === "dispatch") jobs.push(payload(identity));
+  }
+
+  /* ── 3b. preview copies, so the preview plays without stuttering ────── */
+  /**
+   * Like thumbnails: never blocks anything and never fails a project. The
+   * preview plays the normalised file until its copy exists. During capture
+   * too, so by the time somebody presses Make my film the copies are made.
+   */
+  for (const row of ingested) {
+    if (!needsPreview(row)) continue;
+    const identity = previewIdentity(row);
+    const label = `preview ${row.slotId ?? row.questionId ?? row.id}`;
     if (consider(identity, label, false) === "dispatch") jobs.push(payload(identity));
   }
 

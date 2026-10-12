@@ -47,6 +47,7 @@ export const stageName = pgEnum("stage_name", [
   "render",
   "deliver",
   "thumbnail",
+  "preview",
 ]);
 
 export const stageStatus = pgEnum("stage_status", [
@@ -175,6 +176,9 @@ export const assets = pgTable(
      * whole thing this column exists to stop it doing.
      */
     thumbnailKey: text("thumbnail_key"),
+    /** A light copy for the preview to play (stages/preview.ts); null until
+     *  made, and the preview falls back to the normalised file meanwhile. */
+    previewKey: text("preview_key"),
     contentType: text("content_type"),
     byteSize: bigint("byte_size", { mode: "number" }),
     etag: text("etag"),
