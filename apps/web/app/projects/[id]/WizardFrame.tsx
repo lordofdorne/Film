@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
+import { useEffect, useRef } from "react";
 
 import type { FrameMap, OutlineChapter, Progress } from "../../../src/server/wizard.js";
 import { OfflineNotice } from "./OfflineNotice.js";
@@ -47,8 +48,22 @@ export const WizardFrame = ({
 }) => {
   // ["step", "<id>"] or ["chapter", "<id>"], relative to this layout.
   const [kind, id] = useSelectedLayoutSegments();
-  const stop = map.stops[`${kind ?? ""}:${id ?? ""}`];
+  const key = `${kind ?? ""}:${id ?? ""}`;
+  const stop = map.stops[key];
   const currentStepId = kind === "step" ? id : undefined;
+
+  /**
+   * Which way the screen moves: in from the right going forward, from the
+   * left going back, so the motion says where you went. The stops are in
+   * walk-through order, so comparing positions is enough. Read during render
+   * against the previous screen's position, which the effect then moves on.
+   */
+  const position = Object.keys(map.stops).indexOf(key);
+  const previous = useRef(position);
+  const direction = position < previous.current ? "back" : "forward";
+  useEffect(() => {
+    previous.current = position;
+  }, [position]);
 
   const progress: Progress = {
     ...map.progress,
@@ -59,7 +74,7 @@ export const WizardFrame = ({
   };
 
   return (
-    <div className="wz">
+    <div className="wz" data-direction={direction}>
       <header className="wz-bar">
         <div className="wz-bar__row">
           <IconButton label="Back" asChild>

@@ -688,6 +688,9 @@ a {
   background: #000;
   margin-top: var(--s-5);
 }
+/* Holds the player's exact shape while its code loads. Dark, like the player
+   it stands in for, so nothing flashes when it arrives. */
+.player-frame__placeholder { border-radius: 0; background: #1c1c1c; }
 
 .badge {
   display: inline-flex;
@@ -1190,3 +1193,12 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .wz-saved > svg { animation: wz-pop 420ms var(--ease-out); }
 @keyframes wz-pop { 0% { transform: scale(0.4); opacity: 0; } 60% { transform: scale(1.15); opacity: 1; } 100% { transform: scale(1); } }
 .wz-skel-vf { border-radius: 20px; }
+
+/* A wizard screen arrives from the direction you went: forward from the
+   right, Back from the left. Only the middle moves; the frame stays put.
+   Reduced motion is handled by the global rule, which flattens it. */
+.wz { overflow-x: clip; }
+.wz[data-direction="forward"] .wz-body { animation: wz-from-right var(--dur-2) var(--ease-out); }
+.wz[data-direction="back"] .wz-body { animation: wz-from-left var(--dur-2) var(--ease-out); }
+@keyframes wz-from-right { from { transform: translateX(28px); opacity: 0; } }
+@keyframes wz-from-left { from { transform: translateX(-28px); opacity: 0; } }
