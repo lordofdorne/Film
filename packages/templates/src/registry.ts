@@ -2,6 +2,7 @@ import { getFormat } from "@film/formats";
 import { resolveTrack } from "@film/music";
 import { REQUIRED_SUBJECT_FIELDS } from "./interpolate.js";
 import { LIFE_ADVICE_V1 } from "./life-advice/v1.js";
+import { validTakeLength } from "./take.js";
 import type { Template } from "./types.js";
 
 /**
@@ -73,6 +74,17 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
       severity: "error",
       message: `defaultMusicTrackId "${t.defaultMusicTrackId}" is not among musicOptions`,
     });
+  }
+
+  // The recording screen's timer is drawn from these, and recording stops at
+  // `max`: a range that is backwards would stop somebody mid-sentence.
+  for (const item of [...t.questions, ...t.photoSlots, ...t.videoSlots, ...t.optionalSlots]) {
+    if (item.take !== undefined && !validTakeLength(item.take)) {
+      issues.push({
+        severity: "error",
+        message: `"${item.id}" has a take length that does not run goodFrom < goodTo <= max`,
+      });
+    }
   }
 
   if (!t.questionPrompt.supportedModes.includes(t.questionPrompt.defaultMode)) {
