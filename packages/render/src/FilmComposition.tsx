@@ -1,4 +1,5 @@
 import { AbsoluteFill, Sequence } from "remotion";
+import { MediaSequence } from "./timing/MediaSequence.js";
 import { MusicBed } from "./audio/MusicBed.js";
 import { PromptTrack } from "./audio/PromptTrack.js";
 import { SpeechTrack } from "./audio/SpeechTrack.js";
@@ -38,15 +39,14 @@ export const FilmComposition = (props: FilmProps) => {
   return (
     <AbsoluteFill style={{ backgroundColor: "#000" }}>
       {visualWindows(edl).map((window) => (
-        <Sequence
+        <MediaSequence
           key={window.segment.id}
           from={window.fromFrame}
           durationInFrames={window.durationInFrames}
-          layout="none"
           name={`${window.segment.kind}:${window.segment.id}`}
         >
           <VisualSegmentView window={window} props={props} theme={theme} />
-        </Sequence>
+        </MediaSequence>
       ))}
 
       {showCaptions &&

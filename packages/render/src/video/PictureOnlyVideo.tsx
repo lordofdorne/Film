@@ -62,6 +62,9 @@ export const PictureOnlyVideo = ({
       muted
       volume={0}
       style={style}
+      // Hold the whole Player while this clip catches up, rather than play the
+      // sound on over a frozen or black picture.
+      pauseWhenBuffering
     />
   );
 };

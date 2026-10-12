@@ -197,7 +197,7 @@ const SegmentBody = ({
               overflow: "hidden",
             }}
           >
-            <Img src={resolveSrc(assetPath(props, segment.assetId))} style={frameStyle(box)} />
+            <Img src={resolveSrc(assetPath(props, segment.assetId))} style={frameStyle(box)} pauseWhenLoading />
           </AbsoluteFill>
         </AbsoluteFill>
       );
