@@ -61,3 +61,24 @@
 .delivery__icon { flex-shrink: 0; width: 48px; height: 48px; border-radius: var(--radius-pill); background: var(--surface-2); display: inline-flex; align-items: center; justify-content: center; }
 .delivery__icon--ready { background: var(--success); color: #fff; }
 .delivery__actions { display: flex; flex-wrap: wrap; gap: var(--s-3); }
+
+/* How the answers were fitted: one row per shortened answer. The disclosure
+   is the quiet kind here — a link-sized line under the question, not an FAQ
+   heading competing with it — and the rows' own dividers stand in for its. */
+.ui-card > .fitted { margin-top: var(--s-5); }
+.fitted { display: flex; flex-direction: column; }
+.fitted .ui-disclosure { border-bottom: 0; }
+.fitted .ui-disclosure__summary {
+  min-height: 44px;
+  padding: var(--s-1) 0;
+  justify-content: flex-start;
+  gap: var(--s-2);
+  font-size: var(--t-small);
+  font-weight: 600;
+  color: var(--accent-hover);
+}
+.fitted .ui-disclosure__body { padding: 0 0 var(--s-2); }
+.fitted__item { padding: var(--s-4) 0; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: var(--s-1); }
+.fitted__item:first-child { border-top: 0; padding-top: 0; }
+.fitted__ask { font-weight: 600; }
+.fitted__left { display: flex; flex-direction: column; gap: var(--s-2); color: var(--ink-2); font-size: var(--t-small); line-height: 1.55; }

@@ -24,6 +24,7 @@ const config: NextConfig = {
   transpilePackages: [
     "@film/render",
     "@film/edl",
+    "@film/editors",
     "@film/templates",
     "@film/formats",
     "@film/music",

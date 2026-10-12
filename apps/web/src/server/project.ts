@@ -25,7 +25,8 @@ import { EdlSchema, type EDL } from "@film/edl";
  * meant to see. This is what the subpath exports are for.
  */
 import { retryProject } from "@film/pipeline/retry";
-import { buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
+import { fittedAnswers, type IngestedAnswer } from "@film/editors";
+import { AssetSelectionSchema, buildManifest, isMusicBed, qcOf } from "@film/pipeline/model";
 import { storeFromEnv, usingLocalStore, type ObjectStore } from "@film/storage";
 import { getTemplate, resolveCaptureSteps, type SubjectData } from "@film/templates";
 
@@ -89,6 +90,18 @@ export type ProjectSummary = {
   readonly edlVersionId: string;
   readonly approved: boolean;
   readonly warnings: AssetWarning[];
+  /** Answers that lost words to fit their share of the film, and what went. */
+  readonly fitted: readonly FittedNote[];
+};
+
+/** One shortened answer, as the preview tells it. */
+export type FittedNote = {
+  readonly questionId: string;
+  /** The question as the walk-through asked it. */
+  readonly label: string;
+  readonly usedMs: number;
+  readonly spokenMs: number;
+  readonly leftOut: readonly string[];
 };
 
 /**
@@ -258,6 +271,7 @@ export const loadProjectForPreview = async (
 
   return {
     summary: {
+      fitted: fittedNotes(edl, assetRows, askOf),
       id: project.id,
       ownerId: project.ownerId,
       status: project.status,
@@ -329,4 +343,43 @@ export const loadDelivery = async (projectId: string): Promise<DeliveryState | n
   // render row are written in one transaction, so one implies the other.
   const requested = await deliveryRenders(db(), projectId);
   return requested.length > 0 ? { kind: "rendering" } : { kind: "unapproved" };
+};
+
+/**
+ * What the cut left out of each answer, for the preview, worked out from the
+ * cut and the words (`fittedAnswers` in @film/editors) rather than kept
+ * anywhere — so it is always the truth about the cut being shown.
+ *
+ * The answers are rebuilt from the rows exactly as compose builds them: the
+ * measured speech, and the words with their times where transcription kept
+ * them. A row whose words do not parse is simply not reported.
+ */
+const fittedNotes = (
+  edl: EDL,
+  rows: readonly (typeof assets.$inferSelect)[],
+  askOf: ReadonlyMap<string, string>,
+): FittedNote[] => {
+  const answers: IngestedAnswer[] = rows.flatMap((row) => {
+    if (row.kind !== "interview") return [];
+    const selection = AssetSelectionSchema.safeParse(row.selection);
+    if (!selection.success) return [];
+    const qc = qcOf(row);
+    return [
+      {
+        questionId: row.questionId ?? row.id,
+        assetId: row.id,
+        durationMs: qc.durationMs ?? 0,
+        runs: qc.speechRuns ?? [],
+        spoken: selection.data.spoken,
+        ...(selection.data.words === undefined ? {} : { words: selection.data.words }),
+      },
+    ];
+  });
+  return fittedAnswers(edl, answers).map((f) => ({
+    questionId: f.questionId,
+    label: askOf.get(f.questionId) ?? "One of the answers",
+    usedMs: f.usedMs,
+    spokenMs: f.spokenMs,
+    leftOut: f.leftOut,
+  }));
 };
