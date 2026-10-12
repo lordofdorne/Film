@@ -17,8 +17,37 @@ export const EdlAudioSchema = z
      *  reproducible even if the registry's measurement is later corrected.
      *  The validator rejects divergence from the resolved track. */
     beatGridMs: z.array(MsInt),
+    /**
+     * Music edits: at timeline `atMs`, the track continues from `toMs`,
+     * crossfaded over `crossfadeMs` centred on the edit. Forward skips a
+     * section, backward repeats one — how a film's music is made to end with
+     * the film without changing where it starts. Absent: the track plays
+     * straight through from `musicStartMs`, as every EDL before Phase 9 did.
+     */
+    musicEdits: z
+      .array(
+        z
+          .object({ atMs: MsInt, toMs: MsInt, crossfadeMs: MsPositive })
+          .strict(),
+      )
+      .optional(),
   })
   .strict();
+
+/** Where in the track the music is at timeline `ms`, edits included. */
+export const trackTimeAt = (
+  audio: { readonly musicStartMs: number; readonly musicEdits?: readonly { readonly atMs: number; readonly toMs: number }[] | undefined },
+  ms: number,
+): number => {
+  let start = 0;
+  let trackAtStart = audio.musicStartMs;
+  for (const edit of audio.musicEdits ?? []) {
+    if (edit.atMs > ms) break;
+    start = edit.atMs;
+    trackAtStart = edit.toMs;
+  }
+  return trackAtStart + (ms - start);
+};
 
 /**
  * The edit is a versioned JSON document, not application code.

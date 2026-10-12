@@ -2,6 +2,7 @@ import type { EDL, QuestionPromptSegment, SpeechSegment } from "@film/edl";
 import { questionTextKey } from "@film/templates";
 
 import type { ComposeInput, ComposeResult, IngestedAnswer, SpeechRun, StillAsset } from "../material.js";
+import { fitMusic } from "../music.js";
 import { shapeAnswer, sharesFor } from "../shaping.js";
 import { alignToRuns, captionsWithin, timedWordsOf } from "../words.js";
 import { READING_BASE_MS, READING_MS_PER_WORD, questionTextOf, grid, gridDown, clamp, openingWords, distributeWords, findPhrase, VisualTimeline, unusedAssetNotes } from "../toolkit.js";
@@ -837,7 +838,34 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
     reveal: "fade",
   });
 
-  const totalDurationMs = visual.endMs;
+  /**
+   * The music's ending on the end title.
+   *
+   * Fitted once the whole film is laid out, because the track has to outlast
+   * all of it. Whatever the music edit cannot make exact goes to the black
+   * hold before the end title — 2.4 s, allowed between 1.2 and 4 — and
+   * everything after the hold moves with it. With a temp bed, or a track
+   * without an ending marked, nothing here changes anything.
+   */
+  const blackBeat = visual.segments.find((v) => v.id === "v_black_beat");
+  const musicFit =
+    blackBeat === undefined
+      ? fitMusic(input.track, 0, 0, { shortenBy: 0, lengthenBy: 0 })
+      : fitMusic(input.track, blackBeat.startMs + blackBeat.durationMs, visual.endMs, {
+          shortenBy: 1_200,
+          lengthenBy: 1_600,
+        });
+  const holdMs = blackBeat === undefined ? 0 : grid(musicFit.holdAdjustMs);
+  if (blackBeat !== undefined && holdMs !== 0) {
+    const after = blackBeat.startMs + blackBeat.durationMs;
+    blackBeat.durationMs += holdMs;
+    for (const v of visual.segments) if (v !== blackBeat && v.startMs >= after) v.startMs += holdMs;
+    for (const sp of speech) if (sp.startMs >= after) sp.startMs += holdMs;
+    for (const pr of prompts) if (pr.startMs >= after) pr.startMs += holdMs;
+  }
+  if (musicFit.note !== undefined) notes.push(musicFit.note);
+
+  const totalDurationMs = visual.endMs + holdMs;
 
   const edl: EDL = {
     version: "1.0",
@@ -852,6 +880,15 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
       musicGainDb: template.audioDefaults.musicGainDb,
       duckDb: template.audioDefaults.duckDb,
       beatGridMs: [...input.track.beatGridMs],
+      ...(musicFit.edits.length > 0
+        ? {
+            musicEdits: musicFit.edits.map((e) => ({
+              atMs: e.atMs,
+              toMs: e.toMs,
+              crossfadeMs: e.crossfadeMs,
+            })),
+          }
+        : {}),
     },
     visualSegments: visual.segments,
     promptSegments: prompts,
