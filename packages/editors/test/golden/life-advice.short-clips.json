@@ -1,0 +1,1530 @@
+{
+ "edl": {
+  "version": "1.0",
+  "projectId": "11111111-1111-4111-8111-111111111111",
+  "templateId": "life-advice",
+  "templateVersion": 1,
+  "fps": 30,
+  "totalDurationMs": 314800,
+  "audio": {
+   "musicTrackId": "temp",
+   "musicStartMs": 0,
+   "musicGainDb": -6,
+   "duckDb": -12,
+   "beatGridMs": [
+    0,
+    2000,
+    4000,
+    6000,
+    8000,
+    10000,
+    12000,
+    14000,
+    16000,
+    18000,
+    20000,
+    22000,
+    24000,
+    26000,
+    28000,
+    30000,
+    32000,
+    34000,
+    36000,
+    38000,
+    40000,
+    42000,
+    44000,
+    46000,
+    48000,
+    50000,
+    52000,
+    54000,
+    56000,
+    58000,
+    60000,
+    62000,
+    64000,
+    66000,
+    68000,
+    70000,
+    72000,
+    74000,
+    76000,
+    78000,
+    80000,
+    82000,
+    84000,
+    86000,
+    88000,
+    90000,
+    92000,
+    94000,
+    96000,
+    98000,
+    100000,
+    102000,
+    104000,
+    106000,
+    108000,
+    110000,
+    112000,
+    114000,
+    116000,
+    118000,
+    120000,
+    122000,
+    124000,
+    126000,
+    128000,
+    130000,
+    132000,
+    134000,
+    136000,
+    138000,
+    140000,
+    142000,
+    144000,
+    146000,
+    148000,
+    150000,
+    152000,
+    154000,
+    156000,
+    158000,
+    160000,
+    162000,
+    164000,
+    166000,
+    168000,
+    170000,
+    172000,
+    174000,
+    176000,
+    178000,
+    180000,
+    182000,
+    184000,
+    186000,
+    188000,
+    190000,
+    192000,
+    194000,
+    196000,
+    198000,
+    200000,
+    202000,
+    204000,
+    206000,
+    208000,
+    210000,
+    212000,
+    214000,
+    216000,
+    218000,
+    220000,
+    222000,
+    224000,
+    226000,
+    228000,
+    230000,
+    232000,
+    234000,
+    236000,
+    238000,
+    240000,
+    242000,
+    244000,
+    246000,
+    248000,
+    250000,
+    252000,
+    254000,
+    256000,
+    258000,
+    260000,
+    262000,
+    264000,
+    266000,
+    268000,
+    270000,
+    272000,
+    274000,
+    276000,
+    278000,
+    280000,
+    282000,
+    284000,
+    286000,
+    288000,
+    290000,
+    292000,
+    294000,
+    296000,
+    298000,
+    300000,
+    302000,
+    304000,
+    306000,
+    308000,
+    310000,
+    312000,
+    314000,
+    316000,
+    318000,
+    320000,
+    322000,
+    324000,
+    326000,
+    328000,
+    330000,
+    332000,
+    334000,
+    336000,
+    338000,
+    340000,
+    342000,
+    344000,
+    346000,
+    348000,
+    350000,
+    352000,
+    354000,
+    356000,
+    358000,
+    360000,
+    362000,
+    364000,
+    366000,
+    368000,
+    370000,
+    372000,
+    374000,
+    376000,
+    378000,
+    380000,
+    382000,
+    384000,
+    386000,
+    388000,
+    390000,
+    392000,
+    394000,
+    396000,
+    398000
+   ]
+  },
+  "visualSegments": [
+   {
+    "id": "v_open",
+    "kind": "broll",
+    "durationMs": 2500,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "overlayTextKey": "opening",
+    "assetId": "broll-video_personality",
+    "slotId": "video_personality",
+    "sourceInMs": 0,
+    "sourceOutMs": 2500,
+    "startMs": 0
+   },
+   {
+    "id": "v_cold_open",
+    "kind": "interview",
+    "durationMs": 9500,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 400,
+    "sourceOutMs": 9900,
+    "scale": 1,
+    "startMs": 1900
+   },
+   {
+    "id": "v_main_title",
+    "kind": "title",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "textKey": "mainTitle",
+    "reveal": "sequential",
+    "startMs": 10600
+   },
+   {
+    "id": "v_identity_name",
+    "kind": "interview",
+    "durationMs": 28900,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "assetId": "asset-identity_name",
+    "sourceInMs": 400,
+    "sourceOutMs": 29300,
+    "scale": 1,
+    "startMs": 14800
+   },
+   {
+    "id": "v_identity_age",
+    "kind": "interview",
+    "durationMs": 28900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-identity_age",
+    "sourceInMs": 400,
+    "sourceOutMs": 29300,
+    "scale": 1.06,
+    "startMs": 43700
+   },
+   {
+    "id": "v_identity_birth_year",
+    "kind": "interview",
+    "durationMs": 28900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-identity_birth_year",
+    "sourceInMs": 400,
+    "sourceOutMs": 29300,
+    "scale": 1,
+    "startMs": 72600
+   },
+   {
+    "id": "v_longevity_a",
+    "kind": "interview",
+    "durationMs": 12100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 400,
+    "sourceOutMs": 12500,
+    "scale": 1.1,
+    "startMs": 101500
+   },
+   {
+    "id": "v_longevity_insert",
+    "kind": "photo",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "still-photo_early",
+    "slotId": "photo_early",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.42
+    },
+    "motion": "in",
+    "intensity": 0.35,
+    "entry": "insetExpand",
+    "startMs": 113600
+   },
+   {
+    "id": "v_longevity_b",
+    "kind": "interview",
+    "durationMs": 10800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-longevity",
+    "sourceInMs": 18500,
+    "sourceOutMs": 29300,
+    "scale": 1.1,
+    "startMs": 119600
+   },
+   {
+    "id": "v_greatest_lesson_main_a",
+    "kind": "interview",
+    "durationMs": 7900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 10400,
+    "sourceOutMs": 18300,
+    "scale": 1,
+    "startMs": 130400
+   },
+   {
+    "id": "v_greatest_lesson_main_insert",
+    "kind": "broll",
+    "durationMs": 2500,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "broll-video_group",
+    "slotId": "video_group",
+    "sourceInMs": 0,
+    "sourceOutMs": 2500,
+    "startMs": 138300
+   },
+   {
+    "id": "v_greatest_lesson_main_b",
+    "kind": "interview",
+    "durationMs": 8500,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-greatest_lesson",
+    "sourceInMs": 20800,
+    "sourceOutMs": 29300,
+    "scale": 1,
+    "startMs": 140800
+   },
+   {
+    "id": "v_advice_for_young_people_a",
+    "kind": "interview",
+    "durationMs": 12100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 400,
+    "sourceOutMs": 12500,
+    "scale": 1.06,
+    "startMs": 149300
+   },
+   {
+    "id": "v_advice_for_young_people_insert",
+    "kind": "photo",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "still-photo_personality",
+    "slotId": "photo_personality",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.42
+    },
+    "motion": "panRight",
+    "intensity": 0.35,
+    "entry": "cut",
+    "startMs": 161400
+   },
+   {
+    "id": "v_advice_for_young_people_b",
+    "kind": "interview",
+    "durationMs": 10800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-advice_for_young_people",
+    "sourceInMs": 18500,
+    "sourceOutMs": 29300,
+    "scale": 1.06,
+    "startMs": 167400
+   },
+   {
+    "id": "v_meaning_of_group_a",
+    "kind": "interview",
+    "durationMs": 12100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 400,
+    "sourceOutMs": 12500,
+    "scale": 1,
+    "startMs": 178200
+   },
+   {
+    "id": "v_meaning_of_group_insert",
+    "kind": "photo",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "still-photo_group",
+    "slotId": "photo_group",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.42
+    },
+    "motion": "out",
+    "intensity": 0.35,
+    "entry": "insetExpand",
+    "startMs": 190300
+   },
+   {
+    "id": "v_meaning_of_group_b",
+    "kind": "interview",
+    "durationMs": 10800,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-meaning_of_group",
+    "sourceInMs": 18500,
+    "sourceOutMs": 29300,
+    "scale": 1,
+    "startMs": 196300
+   },
+   {
+    "id": "v_love_lesson_a",
+    "kind": "interview",
+    "durationMs": 12100,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 400,
+    "sourceOutMs": 12500,
+    "scale": 1.1,
+    "startMs": 207100
+   },
+   {
+    "id": "v_love_lesson_insert",
+    "kind": "broll",
+    "durationMs": 2500,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "broll-video_environment",
+    "slotId": "video_environment",
+    "sourceInMs": 0,
+    "sourceOutMs": 2500,
+    "startMs": 219200
+   },
+   {
+    "id": "v_love_lesson_b",
+    "kind": "interview",
+    "durationMs": 14300,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-love_lesson",
+    "sourceInMs": 15000,
+    "sourceOutMs": 29300,
+    "scale": 1.1,
+    "startMs": 221700
+   },
+   {
+    "id": "v_closing_message",
+    "kind": "interview",
+    "durationMs": 28900,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "assetId": "asset-closing_message",
+    "sourceInMs": 400,
+    "sourceOutMs": 29300,
+    "scale": 1,
+    "startMs": 236000
+   },
+   {
+    "id": "v_keepsake",
+    "kind": "photo",
+    "durationMs": 5600,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-keepsake",
+    "slotId": "keepsake",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "motion": "still",
+    "intensity": 0,
+    "entry": "insetExpand",
+    "startMs": 264300
+   },
+   {
+    "id": "v_group_still",
+    "kind": "photo",
+    "durationMs": 5600,
+    "transitionIn": {
+     "type": "crossfade",
+     "durationMs": 600
+    },
+    "assetId": "still-photo_group",
+    "slotId": "photo_group",
+    "focalPoint": {
+     "x": 0.5,
+     "y": 0.5
+    },
+    "motion": "in",
+    "intensity": 0.25,
+    "entry": "cut",
+    "startMs": 269300
+   },
+   {
+    "id": "v_black_beat",
+    "kind": "black",
+    "durationMs": 2400,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "startMs": 274100
+   },
+   {
+    "id": "v_end_title",
+    "kind": "title",
+    "durationMs": 5000,
+    "transitionIn": {
+     "type": "cut",
+     "durationMs": 0
+    },
+    "textKey": "endTitle",
+    "reveal": "sequential",
+    "startMs": 276500
+   },
+   {
+    "id": "v_bonus_interviewer",
+    "kind": "interview",
+    "durationMs": 28900,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "assetId": "asset-bonus_interviewer",
+    "sourceInMs": 400,
+    "sourceOutMs": 29300,
+    "scale": 1.06,
+    "startMs": 280700
+   },
+   {
+    "id": "v_dedication",
+    "kind": "title",
+    "durationMs": 6000,
+    "transitionIn": {
+     "type": "fade",
+     "durationMs": 800
+    },
+    "textKey": "closing",
+    "reveal": "fade",
+    "startMs": 308800
+   }
+  ],
+  "promptSegments": [],
+  "speechSegments": [
+   {
+    "id": "s_cold_open",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 2000,
+    "durationMs": 9700,
+    "sourceInMs": 500,
+    "sourceOutMs": 10200,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     }
+    ]
+   },
+   {
+    "id": "s_identity_name",
+    "questionId": "identity_name",
+    "assetId": "asset-identity_name",
+    "startMs": 14900,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_identity_age",
+    "questionId": "identity_age",
+    "assetId": "asset-identity_age",
+    "startMs": 43800,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_identity_birth_year",
+    "questionId": "identity_birth_year",
+    "assetId": "asset-identity_birth_year",
+    "startMs": 72700,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_longevity",
+    "questionId": "longevity",
+    "assetId": "asset-longevity",
+    "startMs": 101600,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_greatest_lesson_main",
+    "questionId": "greatest_lesson",
+    "assetId": "asset-greatest_lesson",
+    "startMs": 130600,
+    "durationMs": 18400,
+    "sourceInMs": 10600,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1188
+     },
+     {
+      "text": "sentence",
+      "startMs": 1208,
+      "endMs": 2397
+     },
+     {
+      "text": "with",
+      "startMs": 2417,
+      "endMs": 3605
+     },
+     {
+      "text": "a",
+      "startMs": 3625,
+      "endMs": 4813
+     },
+     {
+      "text": "reasonable",
+      "startMs": 4833,
+      "endMs": 6021
+     },
+     {
+      "text": "number",
+      "startMs": 6041,
+      "endMs": 7230
+     },
+     {
+      "text": "of",
+      "startMs": 7250,
+      "endMs": 8438
+     },
+     {
+      "text": "words",
+      "startMs": 8458,
+      "endMs": 9646
+     },
+     {
+      "text": "in",
+      "startMs": 10066,
+      "endMs": 11241
+     },
+     {
+      "text": "it",
+      "startMs": 11261,
+      "endMs": 12437
+     },
+     {
+      "text": "for",
+      "startMs": 12457,
+      "endMs": 13632
+     },
+     {
+      "text": "captions",
+      "startMs": 13652,
+      "endMs": 14828
+     },
+     {
+      "text": "to",
+      "startMs": 14848,
+      "endMs": 16023
+     },
+     {
+      "text": "sit",
+      "startMs": 16043,
+      "endMs": 17219
+     },
+     {
+      "text": "on",
+      "startMs": 17239,
+      "endMs": 18400
+     }
+    ]
+   },
+   {
+    "id": "s_advice_for_young_people",
+    "questionId": "advice_for_young_people",
+    "assetId": "asset-advice_for_young_people",
+    "startMs": 149400,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_meaning_of_group",
+    "questionId": "meaning_of_group",
+    "assetId": "asset-meaning_of_group",
+    "startMs": 178300,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_love_lesson",
+    "questionId": "love_lesson",
+    "assetId": "asset-love_lesson",
+    "startMs": 207200,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_closing_message",
+    "questionId": "closing_message",
+    "assetId": "asset-closing_message",
+    "startMs": 236100,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   },
+   {
+    "id": "s_bonus_interviewer",
+    "questionId": "bonus_interviewer",
+    "assetId": "asset-bonus_interviewer",
+    "startMs": 280800,
+    "durationMs": 28500,
+    "sourceInMs": 500,
+    "sourceOutMs": 29000,
+    "captions": [
+     {
+      "text": "a",
+      "startMs": 0,
+      "endMs": 1913
+     },
+     {
+      "text": "sentence",
+      "startMs": 1933,
+      "endMs": 3846
+     },
+     {
+      "text": "with",
+      "startMs": 3866,
+      "endMs": 5780
+     },
+     {
+      "text": "a",
+      "startMs": 5800,
+      "endMs": 7713
+     },
+     {
+      "text": "reasonable",
+      "startMs": 7733,
+      "endMs": 9646
+     },
+     {
+      "text": "number",
+      "startMs": 10066,
+      "endMs": 11979
+     },
+     {
+      "text": "of",
+      "startMs": 11999,
+      "endMs": 13912
+     },
+     {
+      "text": "words",
+      "startMs": 13932,
+      "endMs": 15846
+     },
+     {
+      "text": "in",
+      "startMs": 15866,
+      "endMs": 17779
+     },
+     {
+      "text": "it",
+      "startMs": 17799,
+      "endMs": 19712
+     },
+     {
+      "text": "for",
+      "startMs": 20132,
+      "endMs": 21786
+     },
+     {
+      "text": "captions",
+      "startMs": 21806,
+      "endMs": 23459
+     },
+     {
+      "text": "to",
+      "startMs": 23479,
+      "endMs": 25133
+     },
+     {
+      "text": "sit",
+      "startMs": 25153,
+      "endMs": 26806
+     },
+     {
+      "text": "on",
+      "startMs": 26826,
+      "endMs": 28480
+     }
+    ]
+   }
+  ]
+ },
+ "notes": [
+  "the opening clip is only 2500ms; the film opens on what there is"
+ ]
+}
