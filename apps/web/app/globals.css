@@ -1254,3 +1254,22 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .take--plenty .take__fill { background: #fcd34d; }
 .take--ending .take__fill { background: #fb923c; }
 .take--ending .take__said { color: #fed7aa; }
+
+/* Takes on their way up, in the wizard bar and on the overview. */
+.upload-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  margin-top: var(--s-2);
+  font-size: var(--t-small);
+  color: var(--ink-2);
+}
+.upload-status__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--accent);
+  animation: vf-pulse 1.2s ease-in-out infinite;
+}
+.upload-status--failed { color: var(--danger); }
+.vf__badge--quiet { font-weight: 500; }
