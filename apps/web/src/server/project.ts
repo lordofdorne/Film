@@ -206,26 +206,40 @@ export const loadProjectForPreview = async (
   const subject = project.subjectData as SubjectData;
 
   /**
-   * Assets are served from what INGEST produced, not from the original.
+   * Assets are served from what INGEST produced, never the original — and, once
+   * the preview stage has made one, from the light copy of it.
    *
    * The original is whatever the customer's phone recorded — variable frame
-   * rate, rotation in a container tag, wildly uneven levels. The film is cut
-   * against the normalised file, so previewing the original would show a
-   * different edit from the one being approved.
+   * rate, rotation in a container tag, wildly uneven levels — and the film is
+   * cut against the normalised file. The preview copy is that file at 720p
+   * with a keyframe every second, the same frames at the same times, so the
+   * edit plays identically and a cut into a take starts at once. Until it
+   * exists, the normalised file, so no film is unwatchable for want of it.
+   *
+   * Signed for three hours, not fifteen minutes: somebody watches the cut,
+   * reads the notes, makes a cup of tea, and comes back to watch it again.
+   * With fifteen minutes the second viewing failed part-way, when the player
+   * reached a clip whose URL had expired. Still one key and one method each,
+   * still a private bucket.
    */
   const objects = store();
+  const PREVIEW_URL_SECONDS = 3 * 60 * 60;
   const resolve = async (key: string): Promise<string> =>
     usingLocalStore()
       ? `/api/media/${key}`
-      : objects.signedGetUrl(key, { expiresInSeconds: 900 });
+      : objects.signedGetUrl(key, { expiresInSeconds: PREVIEW_URL_SECONDS });
 
   const assetPaths: Record<string, string> = {};
   let musicPath = "";
-  for (const asset of assetRows) {
-    const key = asset.normalisedKey ?? asset.storageKey;
-    if (isMusicBed(asset)) musicPath = await resolve(key);
-    else assetPaths[asset.id] = await resolve(key);
-  }
+  await Promise.all(
+    assetRows.map(async (asset) => {
+      if (isMusicBed(asset)) {
+        musicPath = await resolve(asset.normalisedKey ?? asset.storageKey);
+        return;
+      }
+      assetPaths[asset.id] = await resolve(asset.previewKey ?? asset.normalisedKey ?? asset.storageKey);
+    }),
+  );
 
   const bed = assetRows.find(isMusicBed);
   /**
