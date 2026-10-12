@@ -7,6 +7,7 @@ import { createDb, type Db } from "@film/db";
 import {
   attachUpload,
   clearStep,
+  deleteFilm,
   ensureAnonymousOwner,
   finishCapture,
   loadWalkthrough,
@@ -425,6 +426,10 @@ export const completeUpload = async (
   contentType: string,
 ): Promise<{ ok: true } | Failure> =>
   attachUpload(deps(), { projectId, stepId, assetId, key, contentType });
+
+/** A whole film, gone: its rows and every file under it. */
+export const deleteFilmFor = async (projectId: string): Promise<{ ok: true } | Failure> =>
+  deleteFilm(deps(), projectId);
 
 export const discardCapture = async (
   projectId: string,

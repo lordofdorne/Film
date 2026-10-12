@@ -7,6 +7,7 @@ import { useCallback, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
 import { Button, Chip, Icon, Notice, Skeleton } from "../../../src/ui/index.js";
+import { DeleteFilmButton } from "./DeleteFilmButton.js";
 import { FittedAnswers } from "./FittedAnswers.js";
 
 /**
@@ -176,6 +177,10 @@ export const PreviewClient = ({
             )}
             {error !== null && <Notice tone="error">{error}</Notice>}
           </section>
+          {/* Not happy and not going to be: until it is approved, it can go. */}
+          <div className="delete-film">
+            <DeleteFilmButton projectId={summary.id} name={`${name}’s film`} />
+          </div>
         </div>
       )}
     </main>

@@ -8,13 +8,14 @@ import pg from "pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 import type { Db } from "@film/db";
-import { LocalObjectStore, objectKey } from "@film/storage";
+import { LocalObjectStore, objectKey, projectPrefix } from "@film/storage";
 import * as schema from "../../db/src/schema/tables.js";
 
 import {
   attachUpload,
   bedSpecKey,
   clearStep,
+  deleteFilm,
   ensureOwner,
   finishCapture,
   MAX_UNFINISHED_FILMS,
@@ -567,5 +568,71 @@ describe("finishing", () => {
     await finishCapture(deps, projectId, TRACK);
     expect(await finishCapture(deps, projectId, TRACK)).toEqual({ ok: true });
     expect((await rowsOf()).filter((r) => r.slotId === MUSIC_BED_SLOT)).toHaveLength(1);
+  });
+});
+
+describe("deleting a film", () => {
+  const statusOf = async (): Promise<string | undefined> =>
+    (await db.select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)))[0]
+      ?.status;
+
+  it("takes every row and every file with it", async () => {
+    needsDb();
+    await fillDetails();
+    await capture("keepsake", "image/jpeg");
+    expect(await deps.store.list(projectPrefix(projectId))).not.toHaveLength(0);
+
+    expect(await deleteFilm(deps, projectId)).toEqual({ ok: true });
+
+    expect(await statusOf()).toBeUndefined();
+    expect(await rowsOf()).toHaveLength(0);
+    expect(await deps.store.list(projectPrefix(projectId))).toHaveLength(0);
+  });
+
+  it("succeeds when the film is already gone", async () => {
+    needsDb();
+    await deleteFilm(deps, projectId);
+    expect(await deleteFilm(deps, projectId)).toEqual({ ok: true });
+  });
+
+  it("can delete a film waiting for approval, or one that failed", async () => {
+    needsDb();
+    for (const status of ["awaiting_approval", "failed"] as const) {
+      await db.update(projects).set({ status }).where(eq(projects.id, projectId));
+      expect(await deleteFilm(deps, projectId)).toEqual({ ok: true });
+      expect(await statusOf()).toBeUndefined();
+      // A fresh film for the next status.
+      const again = await startCapture(deps, {
+        ownerId: await ensureOwner(db, EMAIL),
+        templateId: "life-advice",
+        templateVersion: 1,
+      });
+      if (!again.ok) throw new Error(again.error);
+      projectId = again.projectId;
+    }
+  });
+
+  it("refuses while the film is being put together, and keeps everything", async () => {
+    needsDb();
+    const taken = await capture("keepsake", "image/jpeg");
+    await db.update(projects).set({ status: "processing" }).where(eq(projects.id, projectId));
+
+    const result = await deleteFilm(deps, projectId);
+    expect(result.ok).toBe(false);
+    expect(await statusOf()).toBe("processing");
+    expect(await deps.store.head(taken.key)).not.toBeNull();
+  });
+
+  it("never deletes an approved or delivered film", async () => {
+    needsDb();
+    for (const status of ["approved", "rendering", "delivered"] as const) {
+      await db.update(projects).set({ status }).where(eq(projects.id, projectId));
+      expect(await deleteFilm(deps, projectId)).toEqual({ ok: false, error: "An approved film is kept." });
+      expect(await statusOf()).toBe(status);
+    }
+  });
+
+  it("refuses something that is not a film id", async () => {
+    expect((await deleteFilm(deps, "../../etc")).ok).toBe(false);
   });
 });

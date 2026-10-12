@@ -1273,3 +1273,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .upload-status--failed { color: var(--danger); }
 .vf__badge--quiet { font-weight: 500; }
+
+/* "Delete this film": last on the page, centred, quiet. */
+.delete-film { display: flex; justify-content: center; padding-top: var(--s-2); }

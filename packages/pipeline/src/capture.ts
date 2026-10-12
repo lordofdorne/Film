@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { assets, projects, users, isProjectId, type Db } from "@film/db";
 import { objectKey, projectPrefix, type ObjectStore } from "@film/storage";
 import {
@@ -579,6 +579,68 @@ export const clearStep = async (
 
   await deps.db.delete(assets).where(eq(assets.id, step.asset.id));
   await deps.store.deletePrefix(originalPrefix(projectId, step.asset.id));
+  return { ok: true };
+};
+
+/**
+ * Which films can be deleted: any not yet approved, except one the worker is
+ * cutting right now.
+ *
+ * Approved, rendering and delivered films are kept — somebody signed off on
+ * them, and a delivered film may be the only copy anybody has. A film being
+ * put together is refused only for the minutes that takes: its stages are
+ * writing to storage, and anything they wrote after the delete would be left
+ * behind with nothing pointing at it.
+ */
+export const DELETABLE_STATUSES = ["draft", "capturing", "awaiting_approval", "failed"] as const;
+
+export const canDelete = (status: string): boolean =>
+  (DELETABLE_STATUSES as readonly string[]).includes(status);
+
+/**
+ * Delete a film and everything in it, for good.
+ *
+ * The row goes first and takes every other row with it (every table hangs off
+ * projects with ON DELETE CASCADE), then the storage prefix. That order is the
+ * one this module always uses: an object with no row is invisible and can be
+ * swept, a row pointing at no object is a film that breaks.
+ *
+ * The status is checked in the DELETE itself, so a film that started being
+ * made between the page loading and the press is not deleted out from under
+ * the worker. Jobs already queued for it find nothing when they run and skip
+ * (claimStage, "gone").
+ *
+ * Deleting something already gone succeeds: the person wanted it gone.
+ */
+export const deleteFilm = async (
+  deps: CaptureDeps,
+  projectId: string,
+): Promise<{ ok: true } | Failure> => {
+  if (!isProjectId(projectId)) return { ok: false, error: "no such project" };
+
+  const deleted = await deps.db
+    .delete(projects)
+    .where(and(eq(projects.id, projectId), inArray(projects.status, [...DELETABLE_STATUSES])))
+    .returning({ id: projects.id });
+
+  if (deleted.length === 0) {
+    const rows = await deps.db
+      .select({ status: projects.status })
+      .from(projects)
+      .where(eq(projects.id, projectId))
+      .limit(1);
+    const status = rows[0]?.status;
+    if (status === undefined) return { ok: true };
+    return {
+      ok: false,
+      error:
+        status === "processing"
+          ? "It is being put together right now. It can be deleted once the preview is ready."
+          : "An approved film is kept.",
+    };
+  }
+
+  await deps.store.deletePrefix(projectPrefix(projectId));
   return { ok: true };
 };
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Button, Icon, Notice } from "../../../src/ui/index.js";
+import { DeleteFilmButton } from "./DeleteFilmButton.js";
 import { TryAgainButton } from "./TryAgainButton.js";
 
 /**
@@ -46,5 +47,8 @@ export const FailedNote = ({ projectId }: { readonly projectId: string }) => (
       Sometimes trying again is all it takes. If it stops in the same place, the fault is
       ours to fix — we can see that it happened.
     </p>
+    <div className="delete-film">
+      <DeleteFilmButton projectId={projectId} name={null} />
+    </div>
   </main>
 );
