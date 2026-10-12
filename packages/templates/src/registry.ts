@@ -87,6 +87,12 @@ export const validateTemplate = (t: Template): TemplateIssue[] => {
     }
   }
 
+  for (const q of t.questions) {
+    if (q.shareSeconds !== undefined && !(q.shareSeconds > 0)) {
+      issues.push({ severity: "error", message: `"${q.id}" has a share of the film that is not positive` });
+    }
+  }
+
   if (!t.questionPrompt.supportedModes.includes(t.questionPrompt.defaultMode)) {
     issues.push({
       severity: "error",

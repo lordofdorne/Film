@@ -586,6 +586,41 @@ Still to do before a real person can use it: **custom SMTP**. Confirmations,
 resets and links all go through it, and the built-in sender allows about two
 an hour.
 
+### Long answers are shaped to fit — Phase 9, Block 3
+
+Each question declares `shareSeconds`, the most of the film its answer gets,
+agreed with the owner on 2026-10-12: identity answers 5 s each, the greatest
+lesson 45 s (its cold open counts against it), the closing message 30 s,
+every other answer 22 s. The life-advice editor (version 6) fits each answer
+to its share with `shapeAnswer` (`packages/editors/src/shaping.ts`):
+
+- **Within its share, or with no word times: untouched.** A short answer is a
+  good short answer. Every film made before Block 2 has no word times, so all
+  five real films still cut byte-identically.
+- **Over its share: tighten, then choose.** Pauses over 1.2 s come out first
+  (often enough on their own, every word kept). Then the strongest whole
+  sentences are kept in the order they were said: the opening, the phrase
+  marked as the point, the conclusion; restarts full of "um" and "you know"
+  go first. The first thought is kept whole even when it alone is over.
+- **Never mid-word, never mid-thought.** A cut only falls in silence ingest
+  measured; the unit that can be kept or dropped is one or more whole
+  sentences starting and ending in that silence. Sentences said without a
+  pause between them stay together.
+- **Pieces are placed as their own beats** joined by a cut; the scale cycle
+  gives each the next framing, so a cut inside an answer reads as a punch-in.
+  The question card goes on the first piece, the insert on the longest.
+- **Notes say what happened**, e.g. `"love_lesson": 82 s shaped to 22 s
+  (share 22 s): kept 6 of 20 sentences` — in the compose log for now; Block 5
+  shows them beside the preview.
+- **An optional answer does not lengthen the film** (`sharesFor`): when the
+  bonus is given, every share shrinks so the total stays the required
+  answers' total (owner's choice, 2026-10-12).
+- **Checked:** a film of ten 82-second answers (14 minutes said, bonus
+  included) cuts to 3:38 — inside the 3:30–3:50 target — and passes the
+  validator.
+- Changing a share must come with an editor version bump: compose's hash does
+  not include template content.
+
 ### Words have times now — Phase 9, Block 2
 
 - **Transcription runs whisper twice** (`media/whisper.ts`): the untimed pass

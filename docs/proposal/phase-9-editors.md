@@ -1,6 +1,6 @@
 # Phase 9 — An editor per film: shaping what people give us
 
-**Status: approved 2026-10-12 ("start phase 9 editors"). Block 1 built: `@film/editors`, byte-identical. Block 2 built: word times and phrases.**
+**Status: approved 2026-10-12 ("start phase 9 editors"). Block 1 built: `@film/editors`, byte-identical. Block 2 built: word times and phrases. Block 3 built: shaping to shares.**
 
 ## What was asked
 

@@ -2,6 +2,7 @@ import type { EDL, QuestionPromptSegment, SpeechSegment } from "@film/edl";
 import { questionTextKey } from "@film/templates";
 
 import type { ComposeInput, ComposeResult, IngestedAnswer, SpeechRun, StillAsset } from "../material.js";
+import { shapeAnswer, sharesFor } from "../shaping.js";
 import { alignToRuns, captionsWithin, timedWordsOf } from "../words.js";
 import { READING_BASE_MS, READING_MS_PER_WORD, questionTextOf, grid, gridDown, clamp, openingWords, distributeWords, findPhrase, VisualTimeline, unusedAssetNotes } from "../toolkit.js";
 
@@ -333,14 +334,21 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
   let beatIndex = 0;
   const scaleCycle: (1 | 1.06 | 1.1)[] = [1, 1.06, 1, 1.1];
 
-  const addAnswerBeat = (
+  type BeatOptions = {
+    runs?: readonly SpeechRun[];
+    insert?: InsertPlan;
+    transitionIn?: { type: "cut" | "crossfade" | "fade"; durationMs: number };
+    idSuffix?: string;
+    /** Speech this beat may use, when the answer's share is partly spent
+     *  elsewhere (the greatest lesson's cold open). */
+    budgetMs?: number;
+  };
+
+  /** One continuous stretch of an answer on screen: the card, the shot, any
+   *  insert, the captions. Every beat was exactly this until Phase 9. */
+  const placeAnswer = (
     questionId: string,
-    options: {
-      runs?: readonly SpeechRun[];
-      insert?: InsertPlan;
-      transitionIn?: { type: "cut" | "crossfade" | "fade"; durationMs: number };
-      idSuffix?: string;
-    } = {},
+    options: BeatOptions & { card?: boolean } = {},
   ): void => {
     const a = answer(questionId);
     const runs = options.runs ?? a.runs;
@@ -395,7 +403,7 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
      * The cost is honest and was accepted deliberately: roughly fifteen
      * seconds on a two-minute film, and a more sectioned rhythm.
      */
-    if (input.promptQuestionIds.includes(questionId)) {
+    if (options.card !== false && input.promptQuestionIds.includes(questionId)) {
       visual.push({
         id: `v_card_${questionId}${suffix}`,
         kind: "black",
@@ -625,6 +633,78 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
 
   };
 
+  /** Every answer's share, shrunk to fit when an optional one was given. */
+  const shares = sharesFor(
+    template,
+    new Set(input.answers.filter((a) => a.runs.length > 0).map((a) => a.questionId)),
+  );
+
+  /**
+   * An answer, fitted to its share of the film.
+   *
+   * Within its share — or with no word times to shape by, which is every film
+   * made before Phase 9 — it is placed exactly as it always was. Over its
+   * share, it is shaped (`shapeAnswer`): long pauses out, then the strongest
+   * whole sentences kept, and each kept stretch is placed as its own piece.
+   *
+   * Pieces join on a cut, and every piece gets the next framing in the scale
+   * cycle, so a cut inside an answer reads as a punch-in rather than a jump —
+   * the documentary convention for exactly this. Only the first piece gets
+   * the question card, and the insert goes on the longest piece, the one most
+   * likely to have room for it.
+   */
+  const addAnswerBeat = (questionId: string, options: BeatOptions = {}): void => {
+    const a = answer(questionId);
+    const share = shares.get(questionId);
+    const timed = timedWordsOf(a);
+    const runs = options.runs ?? a.runs;
+    const first = runs[0];
+    const last = runs[runs.length - 1];
+    if (share === undefined || timed === undefined || first === undefined || last === undefined) {
+      placeAnswer(questionId, options);
+      return;
+    }
+
+    const words = alignToRuns(timed, a.runs).filter((w) => {
+      const middle = (w.startMs + w.endMs) / 2;
+      return middle >= first.startMs && middle <= last.endMs;
+    });
+    const budgetMs = options.budgetMs ?? share;
+    const shaped = shapeAnswer(words, budgetMs, a.emphasis?.phrase);
+    if (shaped.untouched || shaped.spans.length === 0) {
+      placeAnswer(questionId, options);
+      return;
+    }
+
+    const longest = shaped.spans.reduce(
+      (best, span, i) => (span.endMs - span.startMs > (shaped.spans[best]?.endMs ?? 0) - (shaped.spans[best]?.startMs ?? 0) ? i : best),
+      0,
+    );
+    const suffix = options.idSuffix ?? "";
+    shaped.spans.forEach((span, i) => {
+      // The measured speech inside this piece: its runs, clipped to it.
+      const pieceRuns = runs
+        .filter((r) => r.endMs > span.startMs && r.startMs < span.endMs)
+        .map((r) => ({ startMs: Math.max(r.startMs, span.startMs), endMs: Math.min(r.endMs, span.endMs) }));
+      const { insert: _insert, transitionIn: _transition, ...rest } = options;
+      placeAnswer(questionId, {
+        ...rest,
+        runs: pieceRuns,
+        idSuffix: `${suffix}_${String(i + 1)}`,
+        card: i === 0,
+        ...(i === 0 && options.transitionIn !== undefined ? { transitionIn: options.transitionIn } : {}),
+        ...(i === longest && options.insert !== undefined ? { insert: options.insert } : {}),
+      });
+    });
+
+    const seconds = (ms: number): string => `${String(Math.round(ms / 1000))} s`;
+    notes.push(
+      shaped.keptUnits === shaped.units
+        ? `"${questionId}": ${seconds(shaped.spokenMs)} tightened to ${seconds(shaped.keptMs)} by taking out long pauses; every word kept`
+        : `"${questionId}": ${seconds(shaped.spokenMs)} shaped to ${seconds(shaped.keptMs)} (share ${seconds(budgetMs)}): kept ${String(shaped.keptUnits)} of ${String(shaped.units)} sentences`,
+    );
+  };
+
   /* ── 4. identity ───────────────────────────────────────────────────── */
   addAnswerBeat("identity_name", { transitionIn: FADE });
   addAnswerBeat("identity_age");
@@ -636,6 +716,8 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
   });
   addAnswerBeat("greatest_lesson", {
     runs: lesson.runs.slice(1),
+    // The cold open is the first part of this answer's share.
+    budgetMs: Math.max(0, (shares.get("greatest_lesson") ?? 0) - (coldRun.endMs - coldRun.startMs)),
     idSuffix: "_main",
     insert: { kind: "broll", slotId: "video_group" },
   });

@@ -63,6 +63,13 @@ export type Question = {
    *  from it, and recording stops at its `max`. Required: every answer is a
    *  recording. */
   readonly take: TakeLength;
+  /**
+   * The most of the film this answer gets, in seconds of speech. An answer
+   * longer than this is shaped to fit (`@film/editors`, shaping.ts) — long
+   * pauses out first, then its strongest whole sentences kept; a shorter one
+   * is left exactly as it was said. Absent: never shaped.
+   */
+  readonly shareSeconds?: number;
 };
 
 export type MediaSlot = {
