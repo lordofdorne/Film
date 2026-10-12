@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 
 import { describe, expect, it } from "vitest";
@@ -19,9 +20,10 @@ import { editorFor, type ComposeInput } from "../src/index.js";
  * films it affects), then `UPDATE_GOLDEN=1 pnpm test packages/editors` and
  * read the diff of these files as the review of what changed in the films.
  *
- * The six cover how people actually differ: an average talker, a very short
- * one, a very long one, the optional photo and clip skipped, clips shorter than
- * a beat wants, and every question on a card.
+ * They cover how people actually differ: an average talker, a very short one,
+ * a very long one, the optional photo and clip skipped, clips shorter than a
+ * beat wants, every question on a card — and, since version 5, answers with
+ * word times from transcription.
  */
 const template = getTemplate("life-advice", 1);
 const QUESTION_IDS = template.questions.map((q) => q.id);
@@ -74,6 +76,28 @@ const film = (
   };
 };
 
+/**
+ * Every answer the recorded take from takes/, with its word times: the
+ * editor's timed-caption path (version 5), which the other six never reach.
+ */
+const recorded = JSON.parse(
+  readFileSync(new URL("./takes/take-recorded.json", import.meta.url), "utf8"),
+) as { text: string; words: { text: string; startMs: number; endMs: number }[]; runs: { startMs: number; endMs: number }[] };
+
+const timedFilm = (): ComposeInput => {
+  const base = film([], 20_001, 40_000, []);
+  return {
+    ...base,
+    answers: base.answers.map((a) => ({
+      ...a,
+      durationMs: 20_001,
+      runs: recorded.runs,
+      spoken: recorded.text,
+      words: recorded.words,
+    })),
+  };
+};
+
 const FILMS: Record<string, ComposeInput> = {
   "everything-average": film([], 30_000, 40_000, []),
   "short-talker": film([], 6_000, 40_000, []),
@@ -81,6 +105,7 @@ const FILMS: Record<string, ComposeInput> = {
   "no-optional-slots": film(["keepsake", "video_environment"], 30_000, 40_000, []),
   "short-clips": film([], 30_000, 2_500, []),
   "with-question-cards": film([], 30_000, 40_000, QUESTION_IDS),
+  "timed-words": timedFilm(),
 };
 
 const goldenPath = (name: string): URL => new URL(`./golden/life-advice.${name}.json`, import.meta.url);

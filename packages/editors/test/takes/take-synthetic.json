@@ -1,0 +1,452 @@
+{
+ "text": "The kettle was always on. And we would sit by the window talking about nothing in particular while the rain. Came down over the garden. And the dog, slept by the door every morning, she made toast for everyone even. When there was hardly any bread left. And somehow it was, enough for. All of us the kettle was always on and we would sit by. The window talking about nothing in particular while the, rain came.",
+ "words": [
+  {
+   "text": "The",
+   "startMs": 30,
+   "endMs": 550
+  },
+  {
+   "text": "kettle",
+   "startMs": 550,
+   "endMs": 890
+  },
+  {
+   "text": "was",
+   "startMs": 890,
+   "endMs": 1090
+  },
+  {
+   "text": "always",
+   "startMs": 1090,
+   "endMs": 1290
+  },
+  {
+   "text": "on.",
+   "startMs": 1290,
+   "endMs": 1950
+  },
+  {
+   "text": "And",
+   "startMs": 1950,
+   "endMs": 2450
+  },
+  {
+   "text": "we",
+   "startMs": 2450,
+   "endMs": 2670
+  },
+  {
+   "text": "would",
+   "startMs": 2670,
+   "endMs": 2890
+  },
+  {
+   "text": "sit",
+   "startMs": 2890,
+   "endMs": 3000
+  },
+  {
+   "text": "by",
+   "startMs": 3000,
+   "endMs": 3330
+  },
+  {
+   "text": "the",
+   "startMs": 3330,
+   "endMs": 3560
+  },
+  {
+   "text": "window",
+   "startMs": 3560,
+   "endMs": 3600
+  },
+  {
+   "text": "talking",
+   "startMs": 3600,
+   "endMs": 3760
+  },
+  {
+   "text": "about",
+   "startMs": 3760,
+   "endMs": 3950
+  },
+  {
+   "text": "nothing",
+   "startMs": 3950,
+   "endMs": 4230
+  },
+  {
+   "text": "in",
+   "startMs": 4230,
+   "endMs": 4980
+  },
+  {
+   "text": "particular",
+   "startMs": 4980,
+   "endMs": 5160
+  },
+  {
+   "text": "while",
+   "startMs": 5160,
+   "endMs": 5920
+  },
+  {
+   "text": "the",
+   "startMs": 5920,
+   "endMs": 6340
+  },
+  {
+   "text": "rain.",
+   "startMs": 6340,
+   "endMs": 6680
+  },
+  {
+   "text": "Came",
+   "startMs": 6680,
+   "endMs": 6930
+  },
+  {
+   "text": "down",
+   "startMs": 6930,
+   "endMs": 7410
+  },
+  {
+   "text": "over",
+   "startMs": 7410,
+   "endMs": 7610
+  },
+  {
+   "text": "the",
+   "startMs": 7610,
+   "endMs": 8010
+  },
+  {
+   "text": "garden.",
+   "startMs": 8010,
+   "endMs": 8320
+  },
+  {
+   "text": "And",
+   "startMs": 8320,
+   "endMs": 8490
+  },
+  {
+   "text": "the",
+   "startMs": 8490,
+   "endMs": 8840
+  },
+  {
+   "text": "dog,",
+   "startMs": 8840,
+   "endMs": 9660
+  },
+  {
+   "text": "slept",
+   "startMs": 9660,
+   "endMs": 9790
+  },
+  {
+   "text": "by",
+   "startMs": 9790,
+   "endMs": 10150
+  },
+  {
+   "text": "the",
+   "startMs": 10150,
+   "endMs": 10280
+  },
+  {
+   "text": "door",
+   "startMs": 10280,
+   "endMs": 10440
+  },
+  {
+   "text": "every",
+   "startMs": 10440,
+   "endMs": 10970
+  },
+  {
+   "text": "morning,",
+   "startMs": 10970,
+   "endMs": 10990
+  },
+  {
+   "text": "she",
+   "startMs": 10990,
+   "endMs": 11190
+  },
+  {
+   "text": "made",
+   "startMs": 11190,
+   "endMs": 11490
+  },
+  {
+   "text": "toast",
+   "startMs": 11490,
+   "endMs": 11640
+  },
+  {
+   "text": "for",
+   "startMs": 11640,
+   "endMs": 12010
+  },
+  {
+   "text": "everyone",
+   "startMs": 12010,
+   "endMs": 12890
+  },
+  {
+   "text": "even.",
+   "startMs": 12890,
+   "endMs": 13040
+  },
+  {
+   "text": "When",
+   "startMs": 13040,
+   "endMs": 13680
+  },
+  {
+   "text": "there",
+   "startMs": 13680,
+   "endMs": 13970
+  },
+  {
+   "text": "was",
+   "startMs": 13970,
+   "endMs": 14120
+  },
+  {
+   "text": "hardly",
+   "startMs": 14120,
+   "endMs": 14400
+  },
+  {
+   "text": "any",
+   "startMs": 14400,
+   "endMs": 14460
+  },
+  {
+   "text": "bread",
+   "startMs": 14460,
+   "endMs": 14580
+  },
+  {
+   "text": "left.",
+   "startMs": 14580,
+   "endMs": 15130
+  },
+  {
+   "text": "And",
+   "startMs": 15130,
+   "endMs": 15780
+  },
+  {
+   "text": "somehow",
+   "startMs": 15780,
+   "endMs": 17030
+  },
+  {
+   "text": "it",
+   "startMs": 17030,
+   "endMs": 17160
+  },
+  {
+   "text": "was,",
+   "startMs": 17160,
+   "endMs": 17850
+  },
+  {
+   "text": "enough",
+   "startMs": 17850,
+   "endMs": 18530
+  },
+  {
+   "text": "for.",
+   "startMs": 18530,
+   "endMs": 18810
+  },
+  {
+   "text": "All",
+   "startMs": 18810,
+   "endMs": 19570
+  },
+  {
+   "text": "of",
+   "startMs": 19570,
+   "endMs": 19740
+  },
+  {
+   "text": "us",
+   "startMs": 19740,
+   "endMs": 20840
+  },
+  {
+   "text": "the",
+   "startMs": 20840,
+   "endMs": 21830
+  },
+  {
+   "text": "kettle",
+   "startMs": 21830,
+   "endMs": 22110
+  },
+  {
+   "text": "was",
+   "startMs": 22110,
+   "endMs": 22440
+  },
+  {
+   "text": "always",
+   "startMs": 22440,
+   "endMs": 22680
+  },
+  {
+   "text": "on",
+   "startMs": 22680,
+   "endMs": 22840
+  },
+  {
+   "text": "and",
+   "startMs": 22840,
+   "endMs": 22940
+  },
+  {
+   "text": "we",
+   "startMs": 22940,
+   "endMs": 23040
+  },
+  {
+   "text": "would",
+   "startMs": 23570,
+   "endMs": 23620
+  },
+  {
+   "text": "sit",
+   "startMs": 23620,
+   "endMs": 24630
+  },
+  {
+   "text": "by.",
+   "startMs": 24630,
+   "endMs": 25490
+  },
+  {
+   "text": "The",
+   "startMs": 25490,
+   "endMs": 25510
+  },
+  {
+   "text": "window",
+   "startMs": 25510,
+   "endMs": 26390
+  },
+  {
+   "text": "talking",
+   "startMs": 26390,
+   "endMs": 26990
+  },
+  {
+   "text": "about",
+   "startMs": 26990,
+   "endMs": 27300
+  },
+  {
+   "text": "nothing",
+   "startMs": 27300,
+   "endMs": 28140
+  },
+  {
+   "text": "in",
+   "startMs": 28140,
+   "endMs": 28720
+  },
+  {
+   "text": "particular",
+   "startMs": 28720,
+   "endMs": 29160
+  },
+  {
+   "text": "while",
+   "startMs": 29160,
+   "endMs": 29590
+  },
+  {
+   "text": "the,",
+   "startMs": 29590,
+   "endMs": 30290
+  },
+  {
+   "text": "rain",
+   "startMs": 30290,
+   "endMs": 30470
+  },
+  {
+   "text": "came.",
+   "startMs": 30470,
+   "endMs": 30840
+  }
+ ],
+ "runs": [
+  {
+   "endMs": 1833,
+   "startMs": 649
+  },
+  {
+   "endMs": 4325,
+   "startMs": 2566
+  },
+  {
+   "endMs": 6238,
+   "startMs": 5107
+  },
+  {
+   "endMs": 8332,
+   "startMs": 7373
+  },
+  {
+   "endMs": 9660,
+   "startMs": 8928
+  },
+  {
+   "endMs": 10978,
+   "startMs": 10086
+  },
+  {
+   "endMs": 12953,
+   "startMs": 11698
+  },
+  {
+   "endMs": 15379,
+   "startMs": 13694
+  },
+  {
+   "endMs": 17275,
+   "startMs": 16584
+  },
+  {
+   "endMs": 18820,
+   "startMs": 18360
+  },
+  {
+   "endMs": 21681,
+   "startMs": 20149
+  },
+  {
+   "endMs": 23933,
+   "startMs": 22394
+  },
+  {
+   "endMs": 26319,
+   "startMs": 25544
+  },
+  {
+   "endMs": 27917,
+   "startMs": 26961
+  },
+  {
+   "endMs": 29019,
+   "startMs": 28647
+  }
+ ]
+}
