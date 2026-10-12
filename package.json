@@ -36,7 +36,9 @@
     "//screens": "Every screen at phone and laptop width into out/screens/, against a running `pnpm web`, using the installed Chrome. Presses Start once per viewport, so it leaves two anonymous films in the dev database.",
     "screens": "tsx scripts/screens.ts",
     "//perf": "How long each tap in the wizard takes, as feedback (screen changes) and ready (next screen's heading), median of three walks. Run against a production build: `next dev` does not prefetch. Leaves one anonymous film per walk.",
-    "perf": "tsx scripts/perf.ts"
+    "perf": "tsx scripts/perf.ts",
+    "//site": "The site as a customer gets it: a production build, served on :3300. `pnpm web` compiles every page on first visit and never prefetches, so a tap there takes 0.3 to 11 seconds where the same tap here takes 30 to 260 ms. Built into .next-site so it can run beside `pnpm web` without taking it down. Rebuild to see new changes.",
+    "site": "pnpm build:packages && NEXT_DIST_DIR=.next-site pnpm --filter @film/web exec next build && NEXT_DIST_DIR=.next-site pnpm --filter @film/web exec next start --port 3300"
   },
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1106.0",
