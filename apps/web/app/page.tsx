@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { FAQ, HOW_IT_WORKS, PRODUCT_BLURB, PRODUCT_SUB } from "../src/product.js";
-import { authConfigured, currentUser, sessionIdentity } from "../src/server/auth.js";
+import { authConfigured, currentUser, sessionClaims } from "../src/server/auth.js";
 import { loadWalkthroughView, thumbnailUrl } from "../src/server/capture.js";
 import { listProjects, type FilmListing } from "../src/server/project.js";
 import { progressOf } from "../src/server/wizard.js";
@@ -36,7 +36,7 @@ export default async function Home() {
   const open = !authConfigured();
   const user = await currentUser();
   const projects = user === null && !open ? [] : await listProjects(user?.id);
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
   const settled = identity?.email !== null && identity?.email !== undefined;
 
   if (projects.length === 0) return <Landing open={open} />;

@@ -10,9 +10,11 @@ import { NextResponse, type NextRequest } from "next/server";
  * would let it quietly expire — and somebody would be signed out in the middle
  * of recording an interview.
  *
- * `getUser()` rather than `getSession()`: it verifies with the auth server
- * rather than trusting what the browser sent, and its side effect is the
- * refresh this exists for. Do nothing else here — middleware runs on every
+ * `getClaims()` rather than `getSession()`: it verifies the token's signature
+ * rather than trusting what the browser sent, and on the way it refreshes an
+ * expired session, which is what this exists for. It used to be `getUser()`,
+ * which asked the auth server on every request — prefetches included — for
+ * 200–535 ms each (see `sessionClaims` in src/server/auth.ts). Do nothing else here — middleware runs on every
  * matched request, and authorisation decisions belong next to the data they
  * protect, not in a file that is easy to forget when adding a route.
  */
@@ -36,7 +38,7 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  await supabase.auth.getClaims();
   return response;
 }
 
