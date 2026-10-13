@@ -5,7 +5,6 @@ import { useState, useTransition } from "react";
 
 import { startTheFilm } from "../../../src/server/captureActions.js";
 import { useCapture } from "./CaptureProvider.js";
-import { SaveFilmSheet } from "./SaveFilmSheet.js";
 
 /**
  * The bottom of the hub. Enabled by the same readiness that drew the cards —
@@ -15,18 +14,13 @@ import { SaveFilmSheet } from "./SaveFilmSheet.js";
 export const MakeFilmButton = ({
   projectId,
   stillMissing,
-  suggestedEmail,
-  pendingEmail,
 }: {
   readonly projectId: string;
   readonly stillMissing: number;
-  readonly suggestedEmail: string;
-  readonly pendingEmail: string | null;
 }) => {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
-  const [needsAccount, setNeedsAccount] = useState(false);
   /**
    * Takes still going up are not in the film yet. Handing it over now would
    * cut it without them, so the button waits and says why.
@@ -34,18 +28,6 @@ export const MakeFilmButton = ({
   const { uploads } = useCapture();
   const saving = uploads.pending - uploads.failed;
   const ready = stillMissing === 0 && saving === 0;
-
-  // Made anonymously: the film is not handed over until there is an address
-  // to keep it behind. The sheet's link hands it over when it is opened.
-  if (needsAccount) {
-    return (
-      <SaveFilmSheet
-        projectId={projectId}
-        suggestedEmail={suggestedEmail}
-        pendingEmail={pendingEmail}
-      />
-    );
-  }
 
   return (
     <div className="row">
@@ -57,7 +39,6 @@ export const MakeFilmButton = ({
           startTransition(async () => {
             const result = await startTheFilm(projectId);
             if (result.ok) router.refresh();
-            else if ("needsAccount" in result) setNeedsAccount(true);
             else setError(result.error);
           });
         }}

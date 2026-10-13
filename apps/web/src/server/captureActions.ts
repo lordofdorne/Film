@@ -3,10 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { hasAccount } from "@film/db";
-
-import { accessToProject, authConfigured, currentUser, ensureUser } from "./auth.js";
-import { sendMagicLink, type SendResult } from "./authActions.js";
+import { accessToProject, currentUser, ensureUser } from "./auth.js";
+import { sendMagicLink } from "./authActions.js";
 import { retryFilm } from "./project.js";
 import { nextHref } from "./wizard.js";
 import {
@@ -183,49 +181,22 @@ export const finishUpload = async (
   return result;
 };
 
-export type StartFilmResult =
-  | { readonly ok: true }
-  | { readonly ok: false; readonly error: string }
-  /** Made anonymously, and a film is not handed over without an address:
-   *  the button opens the save sheet instead. */
-  | { readonly ok: false; readonly needsAccount: true };
+export type StartFilmResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
 export const startTheFilm = async (projectId: string): Promise<StartFilmResult> => {
   const refused = await mine(projectId);
   if (refused !== null) return refused;
 
   /**
-   * The gate. Capture is anonymous so that starting costs nothing; handing
-   * over is where a film starts to exist outside this browser, and from here
-   * on it is only shown to an identity with a proved address (accessToFilm).
-   * Letting an anonymous owner hand over would make a film they then could
-   * not open.
+   * No email asked for. It used to be: an anonymous owner was sent a link
+   * that handed the film over when opened, and with no email provider the
+   * link never came, so "Make my film" made nothing. The browser that made a
+   * film can watch it (accessToFilm); saving it to an email is offered on
+   * home, never required.
    */
-  if (authConfigured()) {
-    const user = await currentUser();
-    if (user === null || !hasAccount(user)) return { ok: false, needsAccount: true };
-  }
-
   const result = await startTheFilmFor(projectId);
   if (result.ok) revalidatePath(`/projects/${projectId}`);
   return result;
-};
-
-/**
- * The save sheet: email a link that proves the address and comes back here.
- *
- * `make` says whether opening the link should also hand the film over — true
- * from the "Make my film" button, false for a film already handed over that is
- * waiting for its owner to save it before they can watch it.
- */
-export const saveFilm = async (
-  projectId: string,
-  email: string,
-  make: boolean,
-): Promise<SendResult> => {
-  const refused = await mine(projectId);
-  if (refused !== null) return refused;
-  return sendMagicLink(email, `/projects/${projectId}`, make ? projectId : undefined);
 };
 
 /**

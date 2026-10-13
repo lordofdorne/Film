@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { guardProject, sessionIdentity } from "../../../../src/server/auth.js";
+import { guardProject } from "../../../../src/server/auth.js";
 import { loadWalkthroughView, withThumbnails } from "../../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../../src/server/project.js";
 import { DeliveryPanel } from "../DeliveryPanel.js";
@@ -40,9 +40,6 @@ export default async function ProjectPage({
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
 
-  const identity = await sessionIdentity();
-  const pendingEmail = identity?.pendingEmail ?? null;
-
   /**
    * The URLs are minted here, after the status is known, and only on the
    * branch that draws them.
@@ -52,7 +49,7 @@ export default async function ProjectPage({
    * on it at all, so it mints nothing.
    */
   if (walkthrough.status === "capturing") {
-    return <Hub walkthrough={await withThumbnails(walkthrough)} pendingEmail={pendingEmail} />;
+    return <Hub walkthrough={await withThumbnails(walkthrough)} />;
   }
 
   /**
