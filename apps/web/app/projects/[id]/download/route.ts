@@ -53,6 +53,13 @@ export async function GET(
     edlVersion: film.edlVersion,
   });
 
+  /**
+   * `?view` plays it in the page instead of saving it: the same file, the same
+   * checks, with no "attachment" telling the browser to download it. The
+   * finished film's own <video> on the ready screen points here.
+   */
+  const view = new URL(request.url).searchParams.has("view");
+
   const objects = store();
 
   /**
@@ -68,7 +75,7 @@ export async function GET(
   if (!(objects instanceof LocalObjectStore)) {
     const url = await objects.signedGetUrl(film.outputKey, {
       expiresInSeconds: 900,
-      downloadAs: filename,
+      ...(view ? {} : { downloadAs: filename }),
     });
     return NextResponse.redirect(url, 302);
   }
@@ -95,7 +102,7 @@ export async function GET(
   const range = request.headers.get("range");
   const headers = {
     "content-type": "video/mp4",
-    "content-disposition": contentDisposition(filename),
+    "content-disposition": view ? "inline" : contentDisposition(filename),
     "accept-ranges": "bytes",
     // Private storage behind a URL that is not itself a credential yet. Keep
     // it out of shared caches regardless.

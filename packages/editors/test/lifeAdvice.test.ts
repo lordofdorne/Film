@@ -262,64 +262,8 @@ describe("a keepsake filmed rather than photographed", () => {
   it("produces an EDL the validator accepts", () => {
     const input = filmed();
     const { edl } = editLifeAdvice(input);
+    expect(problemsWith(input)).toEqual([]);
 
-    const manifest = {
-      assets: [
-        ...input.answers.map((a) => ({
-          id: a.assetId,
-          kind: "interview" as const,
-          questionId: a.questionId,
-          durationMs: input.assetDurationMs[a.assetId] ?? 40_000,
-          width: 1920,
-          height: 1080,
-        })),
-        ...input.stills.map((s) => ({
-          id: s.assetId,
-          kind: "photo" as const,
-          slotId: s.slotId,
-          width: 1920,
-          height: 1080,
-        })),
-        ...Object.entries(input.brollAssetIds).map(([slotId, assetId]) => ({
-          id: assetId,
-          kind: "video" as const,
-          slotId,
-          durationMs: input.assetDurationMs[assetId] ?? 40_000,
-          width: 1920,
-          height: 1080,
-        })),
-      ],
-    };
-
-    const result = validateEdl(edl, {
-      manifest,
-      format: getFormat(template.defaultFormatId),
-      conformance: toConformance(template),
-      // A whole cue sheet, not just the one cue compose reads. The validator
-      // checks every cue lands inside the track.
-      resolveMusicTrack: () => ({
-        id: "temp",
-        durationMs: 400_000,
-        beatGridMs: input.track.beatGridMs,
-        cues: {
-          openingMs: 0,
-          titleMs: input.track.cues.titleMs,
-          lifts: [60_000, 120_000, 180_000],
-          resolutionMs: 240_000,
-          endingMs: 300_000,
-        },
-        licenseRef: null,
-        usage: "fixture-only",
-        available: true,
-      }),
-      allowPlaceholderMusic: true,
-    });
-
-    // `errors` exists only on the failing branch, so asserting on it directly
-    // passes against `undefined` and proves nothing. Assert `ok`, and print
-    // what went wrong when it is not.
-    expect(result.ok ? [] : result.errors.map((e) => `${e.code} at ${e.path}`)).toEqual([]);
-    expect(result.ok).toBe(true);
 
     // The clip is there, and the validator agrees it is a real piece of media.
     const keepsake = edl.visualSegments.find((s) => "slotId" in s && s.slotId === "keepsake");
@@ -518,5 +462,102 @@ describe("b-roll shorter than the beat it fills", () => {
     const inserts = edl.visualSegments.filter((s) => s.id.endsWith("_insert"));
     expect(inserts.every((s) => s.kind !== "broll")).toBe(true);
     expect(notes.join(" ")).toContain("too short to cut to");
+  });
+});
+
+/** What the validator says about this input's cut: [] when it would render. */
+const problemsWith = (input: ComposeInput): string[] => {
+  const { edl } = editLifeAdvice(input);
+  const manifest = {
+    assets: [
+      ...input.answers.map((a) => ({
+        id: a.assetId,
+        kind: "interview" as const,
+        questionId: a.questionId,
+        durationMs: input.assetDurationMs[a.assetId] ?? 40_000,
+        width: 1920,
+        height: 1080,
+      })),
+      ...input.stills.map((s) => ({
+        id: s.assetId,
+        kind: "photo" as const,
+        slotId: s.slotId,
+        width: 1920,
+        height: 1080,
+      })),
+      ...Object.entries(input.brollAssetIds).map(([slotId, assetId]) => ({
+        id: assetId,
+        kind: "video" as const,
+        slotId,
+        durationMs: input.assetDurationMs[assetId] ?? 40_000,
+        width: 1920,
+        height: 1080,
+      })),
+    ],
+  };
+
+  const result = validateEdl(edl, {
+    manifest,
+    format: getFormat(template.defaultFormatId),
+    conformance: toConformance(template),
+    // A whole cue sheet, not just the one cue compose reads. The validator
+    // checks every cue lands inside the track.
+    resolveMusicTrack: () => ({
+      id: "temp",
+      durationMs: 400_000,
+      beatGridMs: input.track.beatGridMs,
+      cues: {
+        openingMs: 0,
+        titleMs: input.track.cues.titleMs,
+        lifts: [60_000, 120_000, 180_000],
+        resolutionMs: 240_000,
+        endingMs: 300_000,
+      },
+      licenseRef: null,
+      usage: "fixture-only",
+      available: true,
+    }),
+    allowPlaceholderMusic: true,
+  });
+
+  return result.ok ? [] : result.errors.map((e) => `${e.code} at ${e.path}`);
+};
+
+describe("the optional bonus", () => {
+  it("makes a film when the bonus was skipped", () => {
+    const input = inputWith([]);
+    const without = { ...input, answers: input.answers.filter((a) => a.questionId !== "bonus_interviewer") };
+    const { edl } = editLifeAdvice(without);
+    expect(edl.speechSegments.some((s) => s.questionId === "bonus_interviewer")).toBe(false);
+    expect(problemsWith(without)).toEqual([]);
+  });
+
+  it("puts it in the film when it was given", () => {
+    const { edl } = editLifeAdvice(inputWith([]));
+    expect(edl.speechSegments.some((s) => s.questionId === "bonus_interviewer")).toBe(true);
+  });
+});
+
+describe("an answer that is talked right to its last moment", () => {
+  /**
+   * Somebody presses stop the instant they finish a sentence, so the speech
+   * runs to the end of the take, which ends on no round number. Start and
+   * length were each rounded up to the grid and together asked for 67ms of
+   * audio past the end of the file; the film failed validation.
+   */
+  it("never asks for sound past the end of the take", () => {
+    const input = inputWith([]);
+    const takeMs = 30_433;
+    const answers = input.answers.map((a) =>
+      a.questionId === "longevity"
+        ? { ...a, durationMs: takeMs, runs: [{ startMs: 650, endMs: 14_000 }, { startMs: 14_350, endMs: takeMs }] }
+        : a,
+    );
+    const tight = {
+      ...input,
+      answers,
+      assetDurationMs: { ...input.assetDurationMs, "asset-longevity": takeMs },
+    };
+    expect(problemsWith(tight)).toEqual([]);
   });
 });

@@ -1,12 +1,11 @@
 import { notFound } from "next/navigation";
-import { guardProject, sessionIdentity } from "../../../../src/server/auth.js";
+import { guardProject } from "../../../../src/server/auth.js";
 import { loadWalkthroughView, withThumbnails } from "../../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../../src/server/project.js";
 import { DeliveryPanel } from "../DeliveryPanel.js";
 import { FailedNote } from "../FailedNote.js";
-import { Hub, ownerEmailOf } from "../Hub.js";
+import { Hub } from "../Hub.js";
 import { PreviewClient } from "../PreviewClient.js";
-import { SaveFilmSheet } from "../SaveFilmSheet.js";
 import { WorkingNote } from "../WorkingNote.js";
 
 /**
@@ -36,32 +35,10 @@ export default async function ProjectPage({
    * mattered most. Signed out sends them to get a link; somebody else's film
    * is a 404, because "not yours" confirms there is something there.
    */
-  const guard = await guardProject(id, `/projects/${id}`);
+  await guardProject(id, `/projects/${id}`);
 
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();
-
-  const identity = await sessionIdentity();
-  const pendingEmail = identity?.pendingEmail ?? null;
-
-  /**
-   * Their own film, handed over while they had no account — before the gate
-   * at "Make my film" existed, or by a confirmation they never opened. Nothing
-   * below this line is shown to an identity that lives in one browser's
-   * cookie: not the preview, not the download, not even whether it failed.
-   */
-  if (guard.needsAccount) {
-    return (
-      <main className="auth">
-        <SaveFilmSheet
-          projectId={id}
-          purpose="watch"
-          suggestedEmail={ownerEmailOf(walkthrough)}
-          pendingEmail={pendingEmail}
-        />
-      </main>
-    );
-  }
 
   /**
    * The URLs are minted here, after the status is known, and only on the
@@ -72,7 +49,7 @@ export default async function ProjectPage({
    * on it at all, so it mints nothing.
    */
   if (walkthrough.status === "capturing") {
-    return <Hub walkthrough={await withThumbnails(walkthrough)} pendingEmail={pendingEmail} />;
+    return <Hub walkthrough={await withThumbnails(walkthrough)} />;
   }
 
   /**

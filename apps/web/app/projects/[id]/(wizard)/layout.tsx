@@ -26,8 +26,7 @@ export default async function WizardLayout({
   children: React.ReactNode;
 }) {
   const { id } = await params;
-  const guard = await guardProject(id, `/projects/${id}`);
-  if (guard.needsAccount) redirect(`/projects/${id}`);
+  await guardProject(id, `/projects/${id}`);
 
   const view = await loadWalkthroughView(id);
   if (view === null) notFound();

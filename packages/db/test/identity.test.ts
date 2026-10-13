@@ -351,7 +351,7 @@ describe("accessToFilm", () => {
     expect(await accessToFilm(db, nobody, await addProject(nobody.id, "capturing"))).toBe("owner");
   });
 
-  it("asks an anonymous owner for an address once the film is handed over", async () => {
+  it("lets an anonymous owner watch their film once it is handed over", async () => {
     needsDb();
     const nobody = await anonymous();
     for (const status of [
@@ -362,9 +362,7 @@ describe("accessToFilm", () => {
       "delivered",
       "failed",
     ] as const) {
-      expect(await accessToFilm(db, nobody, await addProject(nobody.id, status))).toBe(
-        "needs-account",
-      );
+      expect(await accessToFilm(db, nobody, await addProject(nobody.id, status))).toBe("owner");
     }
   });
 
@@ -374,10 +372,6 @@ describe("accessToFilm", () => {
     expect(await accessToFilm(db, me, await addProject(me.id, "delivered"))).toBe("owner");
   });
 
-  /**
-   * "needs-account" must never be a way to learn that somebody else's film
-   * exists: it is reserved for the owner.
-   */
   it("is none for anybody else's film, whatever its state", async () => {
     needsDb();
     const me = await linkIdentity(db, { authId: randomUUID(), email: EMAIL });

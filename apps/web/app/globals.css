@@ -1276,3 +1276,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 
 /* "Delete this film": last on the page, centred, quiet. */
 .delete-film { display: flex; justify-content: center; padding-top: var(--s-2); }
+
+/* The finished film on the ready screen: the whole width, never taller than the screen. */
+.delivery__film { display: block; width: 100%; max-height: 80vh; border-radius: var(--radius); background: #000; }

@@ -22,9 +22,8 @@ export default async function StepPage({
   params: Promise<{ id: string; stepId: string }>;
 }) {
   const { id, stepId } = await params;
-  const guard = await guardProject(id, `/projects/${id}/step/${stepId}`);
+  await guardProject(id, `/projects/${id}/step/${stepId}`);
   // Handed over without an account: the film's own page asks for one.
-  if (guard.needsAccount) redirect(`/projects/${id}`);
 
   const walkthrough = await loadWalkthroughView(id);
   if (walkthrough === null) notFound();

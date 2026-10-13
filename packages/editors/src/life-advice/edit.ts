@@ -265,7 +265,11 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
   });
 
   const coldSpeechStart = grid(coldStart + (coldRun.startMs - coldSourceIn));
-  const coldSpeechDur = grid(coldRun.endMs - coldRun.startMs);
+  // Capped at the take's end, like every source range (see `speechDur`).
+  const coldSpeechDur = Math.min(
+    grid(coldRun.endMs - coldRun.startMs),
+    gridDown(lesson.durationMs) - grid(coldRun.startMs),
+  );
   /**
    * The cold open's words, and a fallback that is not optional.
    *
@@ -588,7 +592,17 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
     }
 
     const speechStartMs = grid(beatStart + (speechStart - sourceIn));
-    const speechDur = grid(speechEnd - speechStart);
+    /**
+     * Never past the end of the take, for the same reason `sourceOut` is
+     * capped: start and length are each rounded to the grid, and two round-ups
+     * together overshot a take whose speech ran to its last moment — an answer
+     * stopped the instant it was finished — by up to 100ms, and the film
+     * failed validation. Anything that composed before is unchanged.
+     */
+    const speechDur = Math.min(
+      grid(speechEnd - speechStart),
+      gridDown(a.durationMs) - grid(speechStart),
+    );
     /**
      * The words spoken in THIS piece, at the times they were spoken.
      *
@@ -826,7 +840,12 @@ export const editLifeAdvice = (input: ComposeInput): ComposeResult => {
   });
 
   /* ── 13. optional bonus ────────────────────────────────────────────── */
-  addAnswerBeat("bonus_interviewer", { transitionIn: FADE });
+  // Optional means a film without it: skipped, it is simply not here. This
+  // used to place it regardless, and every film whose bonus was skipped —
+  // as the hub invites — failed to compose.
+  if (byQuestion.has("bonus_interviewer")) {
+    addAnswerBeat("bonus_interviewer", { transitionIn: FADE });
+  }
 
   /* ── 14. dedication ────────────────────────────────────────────────── */
   visual.push({
