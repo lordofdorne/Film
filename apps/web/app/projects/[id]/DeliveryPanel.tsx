@@ -115,6 +115,30 @@ export const DeliveryPanel = ({
           </p>
         </div>
       </div>
+      {/*
+        The finished file itself, playable here. Seeking asks the route again
+        for a range of bytes; on R2 that is a signed URL with fifteen minutes
+        of life, so a film left paused longer than that is pointed back at
+        the route — which signs a fresh one — and carries on where it was.
+      */}
+      <video
+        className="delivery__film"
+        src={`/projects/${projectId}/download?view`}
+        controls
+        playsInline
+        preload="metadata"
+        onError={(event) => {
+          const video = event.currentTarget;
+          // Once a minute at most: a file that is really missing must not
+          // become a tight loop of requests.
+          const last = Number(video.dataset["retried"] ?? 0);
+          if (Date.now() - last < 60_000) return;
+          video.dataset["retried"] = String(Date.now());
+          const at = video.currentTime;
+          video.src = `/projects/${projectId}/download?view&t=${String(Date.now())}`;
+          video.currentTime = at;
+        }}
+      />
       <div className="delivery__actions">
         {/*
           A plain link, not a fetch-and-blob. The browser's own download
