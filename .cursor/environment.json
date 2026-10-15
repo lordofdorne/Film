@@ -1,0 +1,25 @@
+{
+  "name": "Life Advice",
+  "user": "ubuntu",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "install": "bash .cursor/install.sh",
+  "start": "bash .cursor/start.sh",
+  "terminals": [
+    {
+      "name": "worker",
+      "command": "pnpm worker",
+      "description": "Pipeline worker: ingest, transcribe, thumbnail, compose, render, deliver. Claims stages and dispatches every 5s."
+    },
+    {
+      "name": "web",
+      "command": "pnpm web",
+      "description": "Next.js capture/preview/approval app on http://localhost:3200 (/make starts a film)."
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 3200 },
+    { "name": "postgres", "port": 55432 }
+  ]
+}
