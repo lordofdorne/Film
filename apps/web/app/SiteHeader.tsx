@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { PRODUCT_NAME } from "../src/product.js";
-import { authConfigured, sessionIdentity } from "../src/server/auth.js";
+import { authConfigured, sessionClaims } from "../src/server/auth.js";
 import { Avatar, Button, Logo } from "../src/ui/index.js";
 
 /**
@@ -10,12 +10,11 @@ import { Avatar, Button, Logo } from "../src/ui/index.js";
  *
  * Signed in, it is "Your films" and an avatar that opens the account page —
  * the sign-out and the password live there rather than crowding every page.
- * Not signed in, it is one button. An address waiting for confirmation says
- * so, because that is the one state where somebody is mid-way through
- * something and might not know it.
+ * Not signed in — including somebody making a film anonymously — it is one
+ * button.
  */
 export const SiteHeader = async () => {
-  const identity = await sessionIdentity();
+  const identity = await sessionClaims();
   const open = !authConfigured();
 
   return (
@@ -39,10 +38,6 @@ export const SiteHeader = async () => {
                 <Avatar name={identity.email} size={34} />
               </Link>
             </>
-          ) : identity?.pendingEmail !== null && identity?.pendingEmail !== undefined ? (
-            <Link href="/account" className="site-header__link">
-              Confirm your email
-            </Link>
           ) : (
             <Button variant="secondary" asChild className="site-header__signin">
               <Link href="/signin">Sign in</Link>

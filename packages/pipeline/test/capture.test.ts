@@ -47,7 +47,6 @@ const DETAILS: Record<string, string> = {
   displayName: "Ada",
   age: "94",
   relationshipLabel: "grandmother",
-  ownerEmail: EMAIL,
 };
 
 const fillDetails = async (): Promise<void> => {
@@ -209,12 +208,12 @@ describe("details", () => {
     needsDb();
     const before = await loadWalkthrough(deps, projectId);
     expect(before?.missing).toContain("subjectName");
-    expect(before?.missing).toContain("ownerEmail");
+    expect(before?.missing).toContain("age");
 
     await fillDetails();
     const after = await loadWalkthrough(deps, projectId);
     expect(after?.missing).not.toContain("subjectName");
-    expect(after?.missing).not.toContain("ownerEmail");
+    expect(after?.missing).not.toContain("age");
     expect(after?.steps.find((s) => s.id === "age")?.value).toBe(94);
   });
 
@@ -231,25 +230,12 @@ describe("details", () => {
     expect(walkthrough?.subject.displayName).toBe("Nana");
   });
 
-  /**
-   * The address lands on the project, never on users.email: that column is
-   * unique and decides who owns which films, and this address is unverified.
-   */
-  it("stores the delivery address on the project, not the identity column", async () => {
-    needsDb();
-    await saveDetail(deps, { projectId, fieldId: "ownerEmail", value: "Someone@Example.COM " });
-    const project = (await db.select().from(projects).where(eq(projects.id, projectId)))[0];
-    expect(project?.deliverTo).toBe("someone@example.com");
-    expect((project?.subjectData as Record<string, unknown>)["ownerEmail"]).toBeUndefined();
-  });
-
   it("refuses what the field's own rules refuse", async () => {
     needsDb();
     for (const [fieldId, value] of [
       ["age", "ninety-four"],
       ["age", "0"],
       ["age", "121"],
-      ["ownerEmail", "not-an-address"],
       ["shoeSize", "9"],
     ] as const) {
       const result = await saveDetail(deps, { projectId, fieldId, value });
@@ -257,31 +243,15 @@ describe("details", () => {
     }
   });
 
-  /**
-   * Saving the address is what sends a sign-in email, so a re-save that sends
-   * another one is a way to mail-bomb a stranger through our server.
-   */
-  it("reports whether an answer actually changed, so the link is sent once", async () => {
+  it("reports whether an answer actually changed", async () => {
     needsDb();
-    const first = await saveDetail(deps, {
-      projectId,
-      fieldId: "ownerEmail",
-      value: "someone@example.com",
-    });
+    const first = await saveDetail(deps, { projectId, fieldId: "subjectName", value: "Ada Lovelace" });
     expect(first).toMatchObject({ ok: true, changed: true });
 
-    const again = await saveDetail(deps, {
-      projectId,
-      fieldId: "ownerEmail",
-      value: "  Someone@Example.com ",
-    });
+    const again = await saveDetail(deps, { projectId, fieldId: "subjectName", value: "  Ada Lovelace " });
     expect(again).toMatchObject({ ok: true, changed: false });
 
-    const moved = await saveDetail(deps, {
-      projectId,
-      fieldId: "ownerEmail",
-      value: "elsewhere@example.com",
-    });
+    const moved = await saveDetail(deps, { projectId, fieldId: "subjectName", value: "Grace Hopper" });
     expect(moved).toMatchObject({ ok: true, changed: true });
   });
 
@@ -289,10 +259,10 @@ describe("details", () => {
     needsDb();
     await fillDetails();
     await saveDetail(deps, { projectId, fieldId: "relationshipLabel", value: "  " });
-    await saveDetail(deps, { projectId, fieldId: "ownerEmail", value: "" });
+    await saveDetail(deps, { projectId, fieldId: "age", value: "" });
     const walkthrough = await loadWalkthrough(deps, projectId);
     expect(walkthrough?.subject.relationshipLabel).toBeUndefined();
-    expect(walkthrough?.missing).toContain("ownerEmail");
+    expect(walkthrough?.missing).toContain("age");
   });
 
   it("refuses once the film has been handed to the pipeline", async () => {

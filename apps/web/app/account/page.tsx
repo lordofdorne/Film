@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { authConfigured, currentUser, sessionIdentity } from "../../src/server/auth.js";
+import { authConfigured, currentUser, sessionClaims } from "../../src/server/auth.js";
 import { listProjects } from "../../src/server/project.js";
 import { Avatar, Button, Icon } from "../../src/ui/index.js";
 import { AuthShell } from "../AuthShell.js";
@@ -19,24 +19,7 @@ export const metadata = { title: "Your account" };
 export default async function AccountPage() {
   if (!authConfigured()) redirect("/");
 
-  const identity = await sessionIdentity();
-
-  // Waiting on a confirmation: say what to do, which is open one email.
-  if (identity !== null && identity.email === null && identity.pendingEmail !== null) {
-    return (
-      <AuthShell
-        title="Confirm your email"
-        lede={
-          <>
-            We sent a link to <strong>{identity.pendingEmail}</strong>. Open it in this browser
-            and your films, and your password, are saved to that address.
-          </>
-        }
-      >
-        <SignOutButton />
-      </AuthShell>
-    );
-  }
+  const identity = await sessionClaims();
 
   if (identity === null || identity.email === null) redirect("/signin?next=/account");
 

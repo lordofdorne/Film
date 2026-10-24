@@ -4,20 +4,21 @@ import { authConfigured, sessionClaims } from "../../src/server/auth.js";
 import { safeNext } from "../../src/server/origin.js";
 import { AuthShell } from "../AuthShell.js";
 import { LinkTrouble } from "./LinkTrouble.js";
-import { SignInForm } from "./SignInForm.js";
+import { AccountForm } from "../AccountForm.js";
 
+/** Only a password-reset link can bring anybody here with an error now. */
 const MESSAGES: Readonly<Record<string, string>> = {
-  link: "That link was not one we recognise. Ask for another below.",
+  link: "That reset link was not one we recognise. Ask for another below.",
   expired:
-    "That link has expired or was already used. They are good for one sign-in — here is another.",
+    "That reset link has expired or was already used. They are good for one use — ask for another below.",
 };
 
 export default async function SignInPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string; error?: string }>;
+  searchParams: Promise<{ next?: string; error?: string; new?: string }>;
 }) {
-  const { next, error } = await searchParams;
+  const { next, error, new: fresh } = await searchParams;
 
   if (!authConfigured()) {
     return (
@@ -31,7 +32,7 @@ export default async function SignInPage({
   }
 
   /**
-   * Already signed in, meaning an address has actually been proved.
+   * Already signed in, meaning to an account.
    *
    * Not `currentUser() !== null`, which is also true of somebody who pressed
    * Start five minutes ago: an anonymous session is a real identity, and
@@ -45,12 +46,12 @@ export default async function SignInPage({
   return (
     <AuthShell
       title="Sign in to your films"
-      lede="New here, or never set a password? We will email you a link — it works just as well."
+      lede="Your films are kept in your account. Sign in with your email and password to watch and download them."
     >
-      {/* Supabase leaves the real reason in the URL fragment, which never
-          reaches here — so the server's message is only the fallback. */}
+      {/* Supabase leaves the real reason a reset link failed in the URL
+          fragment, which never reaches here — so this is only the fallback. */}
       <LinkTrouble {...(error !== undefined && MESSAGES[error] !== undefined ? { fallback: MESSAGES[error] } : {})} />
-      <SignInForm {...(next === undefined ? {} : { next })} />
+      <AccountForm initial={fresh === undefined ? "signin" : "create"} {...(next === undefined ? {} : { next })} />
     </AuthShell>
   );
 }

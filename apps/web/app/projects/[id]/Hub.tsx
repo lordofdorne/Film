@@ -22,9 +22,11 @@ import { Button, Card, ChapterProgress, Icon, StatusMark } from "../../../src/ui
  */
 export const Hub = ({
   walkthrough,
+  hasAccount,
 }: {
   readonly walkthrough: HubView;
-  /** A confirmation already in this person's inbox, if any. */
+  /** Signed in to an account: Make my film can start it without asking. */
+  readonly hasAccount: boolean;
 }) => {
   const steps = walkthrough.steps;
   const progress = progressOf(steps);
@@ -122,6 +124,7 @@ export const Hub = ({
         <MakeFilmButton
           projectId={walkthrough.projectId}
           stillMissing={walkthrough.missing.length}
+          hasAccount={hasAccount}
         />
       </footer>
     </main>

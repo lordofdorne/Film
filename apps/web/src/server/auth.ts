@@ -164,52 +164,41 @@ export const ensureUser = async (): Promise<AppUser | null> => {
 };
 
 /**
- * The session as the auth provider describes it, before it is mapped to a row.
+ * The application's row for an identity that has just gained an account.
  *
- * `currentUser` answers "who is this, to the application". This answers "what
- * state is their identity in", which is a different question and only two
- * surfaces ask it: the offer to set a password, and the decision whether
- * sending a magic link would collide with a confirmation already in flight.
- *
- * `pendingEmail` is the one that matters. Setting a password on an anonymous
- * session gives Supabase an address it will not attach until somebody proves
- * they can read that mailbox — it sits in `new_email` meanwhile, and the
- * application's own row still says null, correctly. Anything that would send
- * a second email to that address has to know it is there.
+ * Creating an account or signing in happens inside a server action, after
+ * `currentUser` may already have been read (and cached) for the session it
+ * replaces. This maps the new identity directly rather than through that
+ * cache.
  */
-export type SessionIdentity = {
-  readonly authId: string;
-  /** Proved, and therefore ours to use. */
-  readonly email: string | null;
-  /** Given, not yet proved. Never treated as an address we may rely on. */
-  readonly pendingEmail: string | null;
-  readonly anonymous: boolean;
-};
-
-export const sessionIdentity = cache(async (): Promise<SessionIdentity | null> => {
-  const claims = await sessionClaims();
-  if (claims === null) return null;
-
-  /**
-   * The one thing the token cannot tell us. A pending address lives only on
-   * the auth server, so this is the one place that still asks it — and only
-   * for an identity with no proved address, the only kind that can have one
-   * pending. Somebody signed in with an address never pays for it.
-   */
-  if (claims.email !== null) return { ...claims, pendingEmail: null };
-
-  const client = await supabase();
-  const { data, error } = await client.auth.getUser();
-  const pending = error === null ? (data.user?.new_email ?? "") : "";
-  return { ...claims, pendingEmail: pending === "" ? null : pending };
-});
+export const linkAccount = (authId: string, email: string): Promise<AppUser> =>
+  linkIdentity(db(), { authId, email });
 
 /**
- * The films made before an address was proved follow the person.
+ * Signed in to an account — an identity with an address — rather than only
+ * holding the anonymous session that Start makes.
  *
- * Shared by every route a proving link can land on — the magic link and the
- * password-recovery link both arrive as an exchanged code, and both may be
- * clicked in a browser that has been making a film anonymously all along.
+ * Capture needs nothing more than that session. A film that has been made
+ * does: it is watched, approved and downloaded from an account, so a browser
+ * that only made it anonymously is sent to sign in. True on a server with no
+ * auth at all, where there is nobody to sign in as.
+ */
+export const signedInToAccount = async (): Promise<boolean> => {
+  if (!authConfigured()) return true;
+  const user = await currentUser();
+  return user !== null && user.email !== null;
+};
+
+/** Whether this user owns this film, asked fresh rather than from the cache. */
+export const ownsFilm = async (user: AppUser, projectId: string): Promise<boolean> =>
+  (await accessToFilm(db(), user, projectId)) === "owner";
+
+/**
+ * The films made before signing in follow the person.
+ *
+ * Somebody can make a film anonymously and then sign in to an account they
+ * already have — at Make my film, or from a password-reset link opened in the
+ * same browser. Either way the films this browser made go with them.
  *
  * The caller reads `before` from the session it is holding, ahead of the
  * exchange that replaces it. `adoptFilms` itself refuses any source row that
@@ -229,9 +218,9 @@ export const carryFilmsOver = async (
   fromAuthId: string | null,
   user: AppUser | null,
 ): Promise<void> => {
-  // Same identity on both sides is the ordinary case now: confirming an
-  // address on an anonymous session keeps its auth id, so there is nothing to
-  // move and moving would be wrong.
+  // Same identity on both sides is the ordinary case: creating an account on
+  // an anonymous session keeps its auth id, so there is nothing to move and
+  // moving would be wrong.
   if (fromAuthId === null || user === null || user.authId === fromAuthId) return;
   await adoptFilms(db(), { fromAuthId, toUserId: user.id });
 };
@@ -246,8 +235,8 @@ export type Access =
 /**
  * May the person asking see this project?
  *
- * The refusals are deliberately different. "Signed out" is answerable — go and
- * click the link in your email. "Not yours" is not answerable, and it must not leak whether the project
+ * The refusals are deliberately different. "Signed out" is answerable — sign
+ * in. "Not yours" is not answerable, and it must not leak whether the project
  * exists: somebody probing project ids should learn nothing from the
  * difference between a film that is not theirs and one that is not there, so
  * callers render it as 404.

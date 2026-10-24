@@ -450,19 +450,6 @@ const config: Template = {
         examples: ["Grandmother", "Dad", "Oldest friend"],
       },
     },
-    {
-      id: "ownerEmail",
-      kind: "email",
-      required: true,
-      target: "owner",
-      estimatedSeconds: 15,
-      guidance: {
-        ask: "Where should we send it?",
-        coaching:
-          "The finished film goes to this address, and it is how you get back " +
-          "to this page from another phone or another day.",
-      },
-    },
   ],
 
   /**
@@ -475,16 +462,13 @@ const config: Template = {
       {
         id: "details",
         title: "The film",
-        prepare: ["Two minutes", "The address the film should go to"],
-        blurb:
-          "A few quick answers before the camera comes out — who this is " +
-          "about, and where the finished film should go.",
+        prepare: ["Two minutes"],
+        blurb: "A few quick answers before the camera comes out — who this is about.",
         steps: [
           { kind: "detail", fieldId: "subjectName" },
           { kind: "detail", fieldId: "displayName" },
           { kind: "detail", fieldId: "age" },
           { kind: "detail", fieldId: "relationshipLabel" },
-          { kind: "detail", fieldId: "ownerEmail" },
         ],
       },
       {

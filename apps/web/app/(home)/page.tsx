@@ -80,9 +80,9 @@ export default async function Home() {
       )}
 
       {!settled && !open && (
-        <Notice tone="info" title="Your films are kept in this browser">
-          Clearing it, or switching phone, would lose them.{" "}
-          <Link href="/signin">Save them to your email</Link> and they are yours anywhere.
+        <Notice tone="info" title="Your films are kept in this browser for now">
+          Making one asks you to create an account, and from then on it is yours anywhere.
+          Already have one? <Link href="/signin">Sign in</Link> and these come with you.
         </Notice>
       )}
 
@@ -204,7 +204,7 @@ const Landing = ({ open }: { readonly open: boolean }) => (
         <h2 id="promises-title" className="display">Made carefully, kept privately</h2>
         <ul className="list promises__grid">
           <Pledge icon="lock" title="Only you can watch it">
-            The finished film is kept behind your email address. Nobody else can open it.
+            The finished film is kept in your account. Nobody else can open it.
           </Pledge>
           <Pledge icon="heart" title="You see it first">
             You watch the first cut before anything is final, and approve it when it is right.

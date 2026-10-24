@@ -18,7 +18,7 @@ export default function NotFound() {
       <h1 className="display">Nothing here</h1>
       <p className="lede">
         This page does not exist, or it belongs to somebody else. If you followed a link to
-        your own film, sign in with the email you saved it under.
+        your own film, sign in to the account you made it with.
       </p>
       <div className="state-page__actions">
         <Button asChild>

@@ -3,7 +3,7 @@ import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
 import { deliverableFilm, filmFilename, subjectNameOf } from "@film/db";
 import { LocalObjectStore, contentDisposition } from "@film/storage";
-import { accessToProject } from "../../../../src/server/auth.js";
+import { accessToProject, signedInToAccount } from "../../../../src/server/auth.js";
 import { store } from "../../../../src/server/project.js";
 import { webDb } from "../../../../src/server/db.js";
 
@@ -32,8 +32,10 @@ export async function GET(
 
   // Same 404 as a project with no film. A download endpoint should not be a way
   // to find out whose projects exist.
+  // A made film is kept behind an account, not the anonymous session that
+  // made it — the same rule as the film's page.
   const access = await accessToProject(id);
-  if (!access.allowed) {
+  if (!access.allowed || !(await signedInToAccount())) {
     return NextResponse.json({ error: "no film is ready for this project" }, { status: 404 });
   }
 

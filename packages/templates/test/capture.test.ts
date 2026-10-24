@@ -107,9 +107,8 @@ describe("resolveCaptureSteps", () => {
     expect(name?.accepts).toEqual([]);
     expect(name?.field?.kind).toBe("text");
     expect(name?.field?.target).toBe("subject");
-    const email = steps.find((s) => s.id === "ownerEmail");
-    expect(email?.field?.kind).toBe("email");
-    expect(email?.field?.target).toBe("owner");
+    // No delivery address: the film is kept in an account, made at Make my film.
+    expect(steps.find((s) => s.field?.target === "owner")).toBeUndefined();
   });
 
   it("gives every step an honest time estimate for the hub to sum", () => {
@@ -167,10 +166,10 @@ describe("validateTemplate: the walk-through and the film cannot drift apart", (
 
   it("rejects a required detail the walk-through never asks for", () => {
     const short = LIFE_ADVICE_V1.capture.chapters.flatMap((c) => c.steps).filter(
-      (s) => !(s.kind === "detail" && s.fieldId === "ownerEmail"),
+      (s) => !(s.kind === "detail" && s.fieldId === "age"),
     );
     expect(messages(withChapters(short)).join("\n")).toContain(
-      'detail "ownerEmail" is required but capture never asks for it',
+      'detail "age" is required but capture never asks for it',
     );
   });
 

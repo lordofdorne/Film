@@ -149,13 +149,11 @@ enabled = true
 # in emails.
 site_url = "http://localhost:3200"
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-# /auth/recovery is a separate door from /auth/callback because every proving
-# link comes back as `?code=` with nothing to say which kind it was, and the
-# route that adopts an anonymous browser's films must not grow a second mode.
+# The one email the product sends is a password reset, and it lands here.
 additional_redirect_urls = [
   "http://localhost:3200",
-  "http://localhost:3200/auth/callback",
   "http://localhost:3200/auth/recovery",
+  "http://localhost:3300/auth/recovery",
 ]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
@@ -214,11 +212,14 @@ enable_signup = true
 # addresses. If disabled, only the new email is required to confirm.
 double_confirm_changes = true
 # If enabled, users need to confirm their email address before signing in.
-# On: an address is not attached to an identity until somebody proves they can
-# read the mailbox. It is what stops a password account being opened in
-# somebody else's name, and it is why setting a password on an anonymous
-# session leaves the address pending until the confirmation link is clicked.
-enable_confirmations = true
+# Off, by the owner's decision of 2026-10-24: an account is an email and a
+# password, made at "Make my film", and it works the moment it is made. No
+# email is sent to open one. What is given up: nothing proves the address is
+# the person's own, so it is a username they can reset a password through,
+# not a verified contact. The hosted project must match ("Confirm email" off
+# under Authentication → Providers → Email), or accounts made there wait on
+# an email nobody asked for.
+enable_confirmations = false
 # If enabled, users will need to reauthenticate or have logged in recently to change their password.
 #
 # Off, after trying it on. It does not only guard a password CHANGE — GoTrue
