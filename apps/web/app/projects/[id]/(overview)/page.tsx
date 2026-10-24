@@ -1,6 +1,5 @@
 import { notFound } from "next/navigation";
-import { guardProject } from "../../../../src/server/auth.js";
-import { loadWalkthroughView, withThumbnails } from "../../../../src/server/capture.js";
+import { guardedWalkthrough, withThumbnails } from "../../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../../src/server/project.js";
 import { DeliveryPanel } from "../DeliveryPanel.js";
 import { FailedNote } from "../FailedNote.js";
@@ -33,11 +32,10 @@ export default async function ProjectPage({
    * Before anything is read, let alone rendered. This page approves films and
    * links to the download, so it is the surface where "anyone with the URL"
    * mattered most. Signed out sends them to get a link; somebody else's film
-   * is a 404, because "not yours" confirms there is something there.
+   * is a 404, because "not yours" confirms there is something there. The
+   * rows are read alongside the check, and handed over only once it passes.
    */
-  await guardProject(id, `/projects/${id}`);
-
-  const walkthrough = await loadWalkthroughView(id);
+  const walkthrough = await guardedWalkthrough(id, `/projects/${id}`);
   if (walkthrough === null) notFound();
 
   /**
@@ -63,14 +61,15 @@ export default async function ProjectPage({
    */
   if (walkthrough.status === "failed") return <FailedNote projectId={id} />;
 
-  const loaded = await loadProjectForPreview(id);
+  // Side by side: neither needs the other, and both are several queries.
+  const [loaded, delivered] = await Promise.all([loadProjectForPreview(id), loadDelivery(id)]);
   if (loaded === null) {
     // Handed to the pipeline, nothing composed yet. The page between capture
     // and preview that used to be a 404.
     return <WorkingNote />;
   }
 
-  const delivery = (await loadDelivery(id)) ?? { kind: "unapproved" as const };
+  const delivery = delivered ?? { kind: "unapproved" as const };
 
   return (
     <PreviewClient

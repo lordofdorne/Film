@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 
 import { discardStep } from "../../../../../../src/server/captureActions.js";
 import { clock, spokenRange, takeZone, type TakeLength } from "@film/templates/take";
 
 import type { StepView } from "../../../../../../src/server/capture.js";
-import { useCapture, type UploadState } from "../../../CaptureProvider.js";
+import { useCamera, useUpload, useUploads, type UploadState } from "../../../CaptureProvider.js";
 import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 
@@ -62,8 +62,16 @@ export const StepClient = ({
   readonly nextHref: string;
 }) => {
   const router = useRouter();
-  const { camera, uploads } = useCapture();
-  const upload = uploads.byStep[step.id];
+  const camera = useCamera();
+  /**
+   * The camera's functions, not the camera: they keep one identity for the
+   * life of the film, so the handlers below are built once per step rather
+   * than again whenever the stream changes.
+   */
+  const { acquire, letGo, stop: stopCamera } = camera;
+  const { enqueue, retry, cancel } = useUploads();
+  // This step's take only: another step's progress does not re-render this one.
+  const upload = useUpload(step.id);
 
   /**
    * What the screen is doing with the camera.
@@ -110,7 +118,7 @@ export const StepClient = ({
   const openPreview = useCallback(async () => {
     setCameraError(null);
     try {
-      await camera.acquire("video");
+      await acquire("video");
       setPhase("preview");
     } catch {
       // Almost always a refused permission, and there is a way round it.
@@ -119,7 +127,7 @@ export const StepClient = ({
       );
       setPhase("idle");
     }
-  }, [camera]);
+  }, [acquire]);
 
   const autoOpened = useRef(false);
   useEffect(() => {
@@ -129,7 +137,6 @@ export const StepClient = ({
   }, [takesVideo, shownUrl, camera.allowed, openPreview]);
 
   // Leaving the screen lets the camera go; the next question picks it up.
-  const { letGo } = camera;
   useEffect(() => letGo, [letGo]);
 
   /**
@@ -175,7 +182,7 @@ export const StepClient = ({
     }
     let stream: MediaStream;
     try {
-      stream = await camera.acquire("video");
+      stream = await acquire("video");
     } catch {
       setCameraError(
         "No camera or microphone available. Check the browser’s permission, or use Upload instead.",
@@ -199,9 +206,9 @@ export const StepClient = ({
      */
     recorder.onstop = () => {
       const blob = new Blob(chunksRef.current, { type: mimeType });
-      if (blob.size > 0) uploads.enqueue(step.id, blob, mimeType, false);
+      if (blob.size > 0) enqueue(step.id, blob, mimeType, false);
       setPhase("idle");
-      camera.letGo();
+      letGo();
     };
 
     recorderRef.current = recorder;
@@ -210,7 +217,7 @@ export const StepClient = ({
     setLastTake(null);
     setPhase("recording");
     recorder.start(CHUNK_MS);
-  }, [camera, step.id, uploads]);
+  }, [acquire, enqueue, letGo, step.id]);
 
   const stopRecording = useCallback((atMax = false) => {
     setLastTake({ seconds: (Date.now() - startedAtRef.current) / 1000, atMax });
@@ -249,12 +256,12 @@ export const StepClient = ({
   const startPhoto = useCallback(async () => {
     setCameraError(null);
     try {
-      await camera.acquire("photo");
+      await acquire("photo");
       setPhase("photo");
     } catch {
       setCameraError("No camera available. Check the browser’s permission, or use Choose a photo instead.");
     }
-  }, [camera]);
+  }, [acquire]);
 
   /** Freeze the frame that is on screen, and send that. */
   const takePhoto = useCallback(() => {
@@ -280,23 +287,23 @@ export const StepClient = ({
       (blob) => {
         if (blob === null) return;
         // The back camera goes off as soon as it has done its job.
-        camera.stop();
+        stopCamera();
         setPhase("idle");
-        uploads.enqueue(step.id, blob, "image/jpeg", true);
+        enqueue(step.id, blob, "image/jpeg", true);
       },
       "image/jpeg",
       // Ingest re-encodes anyway; this only has to survive that without
       // adding artefacts of its own.
       0.92,
     );
-  }, [camera, step.id, uploads]);
+  }, [enqueue, step.id, stopCamera]);
 
   /** Changed their mind with the camera open. */
   const cancelCamera = useCallback(() => {
-    if (phase === "photo") camera.stop();
-    else camera.letGo();
+    if (phase === "photo") stopCamera();
+    else letGo();
     setPhase("idle");
-  }, [camera, phase]);
+  }, [letGo, phase, stopCamera]);
 
   const chooseFile = useCallback(
     (file: File | undefined) => {
@@ -304,10 +311,10 @@ export const StepClient = ({
       setCameraError(null);
       setLastTake(null);
       setPhase("idle");
-      camera.letGo();
-      uploads.enqueue(step.id, file, file.type, file.type.startsWith("image/"));
+      letGo();
+      enqueue(step.id, file, file.type, file.type.startsWith("image/"));
     },
-    [camera, step.id, uploads],
+    [enqueue, letGo, step.id],
   );
 
   /**
@@ -317,9 +324,11 @@ export const StepClient = ({
    */
   const removeCapture = useCallback(() => {
     setLastTake(null);
-    uploads.cancel(step.id);
+    cancel(step.id);
     void discardStep(projectId, step.id).then(() => { router.refresh(); });
-  }, [projectId, router, step.id, uploads]);
+  }, [cancel, projectId, router, step.id]);
+
+  const retryUpload = useCallback(() => { retry(step.id); }, [retry, step.id]);
 
   const fileButton = (label: string) => (
     <label className="ui-btn ui-btn--ghost ui-file">
@@ -416,7 +425,7 @@ export const StepClient = ({
           <Reassurance
             upload={upload}
             stored={step.asset !== null}
-            onRetry={() => { uploads.retry(step.id); }}
+            onRetry={retryUpload}
           />
         )}
         {cameraError !== null && (
@@ -533,7 +542,7 @@ export const StepClient = ({
  * worry about answered: it is kept. While the take is still going up, it
  * says that too, and that they need not wait for it.
  */
-const Reassurance = ({
+const Reassurance = memo(function Reassurance({
   upload,
   stored,
   onRetry,
@@ -541,7 +550,7 @@ const Reassurance = ({
   readonly upload: UploadState | undefined;
   readonly stored: boolean;
   readonly onRetry: () => void;
-}) => {
+}) {
   if (upload !== undefined && (upload.state === "queued" || upload.state === "saving")) {
     const percent =
       upload.state === "saving" && upload.progress !== undefined ? Math.round(upload.progress * 100) : null;
@@ -577,7 +586,7 @@ const Reassurance = ({
       </p>
     </div>
   );
-};
+});
 
 /**
  * The clock while recording, drawn across the bottom of the picture: how long

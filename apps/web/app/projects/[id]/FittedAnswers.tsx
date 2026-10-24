@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import type { FittedNote } from "../../../src/server/project.js";
 import { Disclosure } from "../../../src/ui/index.js";
 
@@ -14,7 +16,11 @@ import { Disclosure } from "../../../src/ui/index.js";
  * one: shaping always keeps the opening of an answer, so saying the important
  * thing first, in a new take, keeps it. "Put it back" waits for request-a-change.
  */
-export const FittedAnswers = ({ fitted }: { readonly fitted: readonly FittedNote[] }) => {
+export const FittedAnswers = memo(function FittedAnswers({
+  fitted,
+}: {
+  readonly fitted: readonly FittedNote[];
+}) {
   if (fitted.length === 0) return null;
   return (
     <section className="ui-card stack-4" aria-labelledby="fitted-title">
@@ -57,7 +63,7 @@ export const FittedAnswers = ({ fitted }: { readonly fitted: readonly FittedNote
       </p>
     </section>
   );
-};
+});
 
 const clock = (ms: number): string => {
   const seconds = Math.round(ms / 1000);

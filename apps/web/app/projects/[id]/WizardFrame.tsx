@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSelectedLayoutSegments } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 
 import type { FrameMap, OutlineChapter, Progress } from "../../../src/server/wizard.js";
 import { OfflineNotice } from "./OfflineNotice.js";
@@ -59,20 +59,30 @@ export const WizardFrame = ({
    * walk-through order, so comparing positions is enough. Read during render
    * against the previous screen's position, which the effect then moves on.
    */
-  const position = Object.keys(map.stops).indexOf(key);
+  const order = useMemo(() => Object.keys(map.stops), [map.stops]);
+  const position = order.indexOf(key);
   const previous = useRef(position);
   const direction = position < previous.current ? "back" : "forward";
   useEffect(() => {
     previous.current = position;
   }, [position]);
 
-  const progress: Progress = {
-    ...map.progress,
-    segments: map.progress.segments.map((segment) => ({
-      ...segment,
-      current: segment.id === stop?.chapterId,
-    })),
-  };
+  /**
+   * Rebuilt only when the chapter changes or a save sends a new map, so moving
+   * between two questions of one chapter leaves the progress — and the All
+   * steps sheet, which draws every step of the film — exactly as it was.
+   */
+  const chapterId = stop?.chapterId;
+  const progress = useMemo<Progress>(
+    () => ({
+      ...map.progress,
+      segments: map.progress.segments.map((segment) => ({
+        ...segment,
+        current: segment.id === chapterId,
+      })),
+    }),
+    [map.progress, chapterId],
+  );
 
   return (
     <div className="wz" data-direction={direction}>
@@ -116,7 +126,7 @@ export const WizardFrame = ({
  * Every step is a link, so the wizard's order is a suggestion rather than a
  * rule.
  */
-const AllSteps = ({
+const AllSteps = memo(function AllSteps({
   projectId,
   progress,
   outline,
@@ -126,49 +136,51 @@ const AllSteps = ({
   readonly progress: Progress;
   readonly outline: readonly OutlineChapter[];
   readonly currentStepId?: string;
-}) => (
-  <Sheet
-    title="All steps"
-    description={`${String(progress.done)} of ${String(progress.total)} done · ${progress.timeLeft.toLowerCase()}`}
-    trigger={
-      <button type="button" className="ui-btn ui-btn--ghost wz-bar__all">
-        <Icon name="list" size={18} />
-        <span>All steps</span>
-      </button>
-    }
-    footer={
-      <div className="wz-sheet-foot">
-        <Button variant="secondary" block asChild>
-          <Link href={`/projects/${projectId}`}>See the overview</Link>
-        </Button>
-        <Button variant="quiet" block asChild>
-          <Link href="/">Save and leave</Link>
-        </Button>
-        <p className="tiny centred">Everything is saved as you go. Come back any time.</p>
-      </div>
-    }
-  >
-    {outline.map((chapter) => (
-      <section key={chapter.id} className="wz-outline">
-        <h3 className="eyebrow">{chapter.title}</h3>
-        <ul className="list wz-outline__list">
-          {chapter.steps.map((step) => (
-            <li key={step.id}>
-              <SheetClose asChild>
-                <Link
-                  href={step.href}
-                  className="wz-outline__row"
-                  aria-current={step.id === currentStepId ? "step" : undefined}
-                >
-                  <StatusMark done={step.done} />
-                  <span className="wz-outline__ask">{step.ask}</span>
-                  {!step.required && !step.done && <span className="tiny">Optional</span>}
-                </Link>
-              </SheetClose>
-            </li>
-          ))}
-        </ul>
-      </section>
-    ))}
-  </Sheet>
-);
+}) {
+  return (
+    <Sheet
+      title="All steps"
+      description={`${String(progress.done)} of ${String(progress.total)} done · ${progress.timeLeft.toLowerCase()}`}
+      trigger={
+        <button type="button" className="ui-btn ui-btn--ghost wz-bar__all">
+          <Icon name="list" size={18} />
+          <span>All steps</span>
+        </button>
+      }
+      footer={
+        <div className="wz-sheet-foot">
+          <Button variant="secondary" block asChild>
+            <Link href={`/projects/${projectId}`}>See the overview</Link>
+          </Button>
+          <Button variant="quiet" block asChild>
+            <Link href="/">Save and leave</Link>
+          </Button>
+          <p className="tiny centred">Everything is saved as you go. Come back any time.</p>
+        </div>
+      }
+    >
+      {outline.map((chapter) => (
+        <section key={chapter.id} className="wz-outline">
+          <h3 className="eyebrow">{chapter.title}</h3>
+          <ul className="list wz-outline__list">
+            {chapter.steps.map((step) => (
+              <li key={step.id}>
+                <SheetClose asChild>
+                  <Link
+                    href={step.href}
+                    className="wz-outline__row"
+                    aria-current={step.id === currentStepId ? "step" : undefined}
+                  >
+                    <StatusMark done={step.done} />
+                    <span className="wz-outline__ask">{step.ask}</span>
+                    {!step.required && !step.done && <span className="tiny">Optional</span>}
+                  </Link>
+                </SheetClose>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+    </Sheet>
+  );
+});

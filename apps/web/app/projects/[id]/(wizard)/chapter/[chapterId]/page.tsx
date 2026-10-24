@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-import { guardProject } from "../../../../../../src/server/auth.js";
-import { loadWalkthroughView } from "../../../../../../src/server/capture.js";
+import { guardedWalkthrough } from "../../../../../../src/server/capture.js";
 import {
   beginHref,
   chaptersOf,
@@ -28,9 +27,7 @@ export default async function ChapterPage({
   params: Promise<{ id: string; chapterId: string }>;
 }) {
   const { id, chapterId } = await params;
-  await guardProject(id, `/projects/${id}/chapter/${chapterId}`);
-
-  const view = await loadWalkthroughView(id);
+  const view = await guardedWalkthrough(id, `/projects/${id}/chapter/${chapterId}`);
   if (view === null) notFound();
   if (view.status !== "capturing") redirect(`/projects/${id}`);
 

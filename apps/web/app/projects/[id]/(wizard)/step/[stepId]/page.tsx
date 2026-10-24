@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { guardProject } from "../../../../../../src/server/auth.js";
-import { loadWalkthroughView, stepWithMedia } from "../../../../../../src/server/capture.js";
+import { guardedWalkthrough, stepWithMedia } from "../../../../../../src/server/capture.js";
 import { nextHref } from "../../../../../../src/server/wizard.js";
 import { DetailStepClient } from "./DetailStepClient.js";
 import { StepClient } from "./StepClient.js";
@@ -22,10 +21,8 @@ export default async function StepPage({
   params: Promise<{ id: string; stepId: string }>;
 }) {
   const { id, stepId } = await params;
-  await guardProject(id, `/projects/${id}/step/${stepId}`);
   // Handed over without an account: the film's own page asks for one.
-
-  const walkthrough = await loadWalkthroughView(id);
+  const walkthrough = await guardedWalkthrough(id, `/projects/${id}/step/${stepId}`);
   if (walkthrough === null) notFound();
 
   // Handed over already: every step is read-only history now, and the hub —

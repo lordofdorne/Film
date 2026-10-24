@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 
 import { finishUpload, mintUploadFor } from "../../../src/server/captureActions.js";
 
@@ -24,6 +33,14 @@ import { finishUpload, mintUploadFor } from "../../../src/server/captureActions.
  * goes up behind them, one at a time so a phone's thin uplink is not split
  * three ways, retried when the connection drops, and the browser's own
  * "leave site?" warning stands guard while anything is still on its way.
+ *
+ * The two are separate contexts, and the uploads' state is a store that each
+ * screen reads only the part of. A take going up reports progress dozens of
+ * times a second, and when that progress was one context value every screen
+ * under the film re-rendered on every report — the camera preview, the
+ * recording clock, the whole step — for a take that belonged to the question
+ * before. Now a step re-renders for its own take, the status line for the
+ * summary, and nothing else hears about it.
  */
 
 /* ── camera ─────────────────────────────────────────────────────────── */
@@ -78,28 +95,92 @@ export type UploadState = {
   readonly isPhoto: boolean;
 };
 
-type Uploads = {
-  readonly byStep: Readonly<Record<string, UploadState>>;
+/** The queue's numbers, for the status line and Make my film. */
+export type UploadSummary = {
   /** Not yet saved: queued, going up, or failed. */
   readonly pending: number;
   readonly failed: number;
+  /** The steps whose take failed every retry, for one "Try again" over all. */
+  readonly failedSteps: readonly string[];
   /** Progress of the one going up now, 0–1. */
   readonly current?: number;
+  /** Queued or going up: closing the tab now would lose it. */
+  readonly unsaved: boolean;
+};
+
+/** What a screen can do with the queue. Never changes identity. */
+type Uploads = {
   readonly enqueue: (stepId: string, blob: Blob, contentType: string, isPhoto: boolean) => void;
   readonly retry: (stepId: string) => void;
   /** Forget a take that has not finished going up (Remove, or replaced). */
   readonly cancel: (stepId: string) => void;
 };
 
+type UploadStore = {
+  readonly byStep: () => Readonly<Record<string, UploadState>>;
+  readonly summary: () => UploadSummary;
+  readonly subscribe: (listener: () => void) => () => void;
+};
+
 type Capture = { readonly camera: Camera; readonly uploads: Uploads };
 
-const CaptureContext = createContext<Capture | null>(null);
+const CameraContext = createContext<Camera | null>(null);
+const UploadsContext = createContext<(Uploads & { readonly store: UploadStore }) | null>(null);
 
-export const useCapture = (): Capture => {
-  const capture = useContext(CaptureContext);
-  if (capture === null) throw new Error("useCapture outside CaptureProvider");
-  return capture;
+const useUploadsContext = () => {
+  const uploads = useContext(UploadsContext);
+  if (uploads === null) throw new Error("used outside CaptureProvider");
+  return uploads;
 };
+
+export const useCamera = (): Camera => {
+  const camera = useContext(CameraContext);
+  if (camera === null) throw new Error("useCamera outside CaptureProvider");
+  return camera;
+};
+
+/** The queue's actions. Reading them re-renders nothing. */
+export const useUploads = (): Uploads => useUploadsContext();
+
+/** One step's take on its way up, or undefined. Re-renders only for that step. */
+export const useUpload = (stepId: string): UploadState | undefined => {
+  const { store } = useUploadsContext();
+  const read = useCallback(() => store.byStep()[stepId], [store, stepId]);
+  return useSyncExternalStore(store.subscribe, read, noUpload);
+};
+
+/** The queue's numbers. Re-renders only when one of them changes. */
+export const useUploadSummary = (): UploadSummary => {
+  const { store } = useUploadsContext();
+  return useSyncExternalStore(store.subscribe, store.summary, emptySummary);
+};
+
+export const useCapture = (): Capture => ({ camera: useCamera(), uploads: useUploads() });
+
+const noUpload = (): undefined => undefined;
+const EMPTY_SUMMARY: UploadSummary = { pending: 0, failed: 0, failedSteps: [], unsaved: false };
+const emptySummary = (): UploadSummary => EMPTY_SUMMARY;
+
+const summarise = (byStep: Readonly<Record<string, UploadState>>): UploadSummary => {
+  const values = Object.values(byStep);
+  const failedSteps = values.filter((u) => u.state === "failed").map((u) => u.stepId);
+  const current = values.find((u) => u.state === "saving")?.progress;
+  return {
+    pending: values.filter((u) => u.state !== "saved").length,
+    failed: failedSteps.length,
+    failedSteps,
+    ...(current === undefined ? {} : { current }),
+    unsaved: values.some((u) => u.state === "queued" || u.state === "saving"),
+  };
+};
+
+/** Same numbers, same object: what lets a subscriber skip the render. */
+const sameSummary = (a: UploadSummary, b: UploadSummary): boolean =>
+  a.pending === b.pending &&
+  a.failed === b.failed &&
+  a.current === b.current &&
+  a.unsaved === b.unsaved &&
+  a.failedSteps.join("\n") === b.failedSteps.join("\n");
 
 /** Backoff between automatic retries; after the last, it waits for Retry. */
 const RETRY_DELAYS_MS = [2_000, 6_000, 15_000];
@@ -228,7 +309,35 @@ export const CaptureProvider = ({
   }, [stop]);
 
   /* uploads */
-  const [byStep, setByStep] = useState<Record<string, UploadState>>({});
+  const byStepRef = useRef<Readonly<Record<string, UploadState>>>({});
+  const summaryRef = useRef<UploadSummary>(EMPTY_SUMMARY);
+  const listeners = useRef(new Set<() => void>());
+
+  const setByStep = useCallback(
+    (change: (all: Readonly<Record<string, UploadState>>) => Readonly<Record<string, UploadState>>) => {
+      const before = byStepRef.current;
+      const after = change(before);
+      if (after === before) return;
+      byStepRef.current = after;
+      const summary = summarise(after);
+      if (!sameSummary(summary, summaryRef.current)) summaryRef.current = summary;
+      for (const listener of listeners.current) listener();
+    },
+    [],
+  );
+
+  const store = useMemo<UploadStore>(
+    () => ({
+      byStep: () => byStepRef.current,
+      summary: () => summaryRef.current,
+      subscribe: (listener) => {
+        listeners.current.add(listener);
+        return () => { listeners.current.delete(listener); };
+      },
+    }),
+    [],
+  );
+
   const queue = useRef<Job[]>([]);
   const running = useRef(false);
   /** Each take's bytes, kept until saved so Retry has something to send. */
@@ -239,7 +348,7 @@ export const CaptureProvider = ({
       const before = all[stepId];
       return before === undefined ? all : { ...all, [stepId]: { ...before, ...change } };
     });
-  }, []);
+  }, [setByStep]);
 
   const pump = useCallback(async (): Promise<void> => {
     if (running.current) return;
@@ -276,11 +385,19 @@ export const CaptureProvider = ({
        * MediaRecorder says `video/webm;codecs=vp9,opus`; sending that would be
        * a 403 on every recording, and one local development cannot reproduce.
        */
+      // Whole percents only: the browser reports far more often than a
+      // number on screen can change, and each report is a render.
+      let shown = 0;
       const landed = await put(
         uploadUrl,
         job.blob,
         signedType,
-        (fraction) => { patch(job.stepId, { progress: fraction }); },
+        (fraction) => {
+          const percent = Math.floor(fraction * 100);
+          if (percent === shown) return;
+          shown = percent;
+          patch(job.stepId, { progress: percent / 100 });
+        },
         job.controller.signal,
       );
       if (job.controller.signal.aborted) return fail("cancelled");
@@ -311,7 +428,7 @@ export const CaptureProvider = ({
       if (gone !== undefined) URL.revokeObjectURL(gone.localUrl);
       return rest;
     });
-  }, []);
+  }, [setByStep]);
 
   const enqueue = useCallback(
     (stepId: string, blob: Blob, contentType: string, isPhoto: boolean) => {
@@ -329,7 +446,7 @@ export const CaptureProvider = ({
       queue.current.push({ stepId, blob, contentType, attempts: 0, controller: new AbortController() });
       void pump();
     },
-    [pump],
+    [pump, setByStep],
   );
 
   const enqueueKeeping = useCallback(
@@ -340,27 +457,23 @@ export const CaptureProvider = ({
     [enqueue],
   );
 
+  // Read from the store rather than closed over, so Retry keeps one identity.
   const retry = useCallback(
     (stepId: string) => {
       const kept = blobs.current[stepId];
-      const was = byStep[stepId];
+      const was = byStepRef.current[stepId];
       if (kept === undefined || was === undefined) return;
       enqueue(stepId, kept.blob, kept.contentType, was.isPhoto);
     },
-    [byStep, enqueue],
+    [enqueue],
   );
-
-  const values = Object.values(byStep);
-  const pending = values.filter((u) => u.state !== "saved").length;
-  const failed = values.filter((u) => u.state === "failed").length;
-  const current = values.find((u) => u.state === "saving")?.progress;
 
   /**
    * Closing the tab with a take still on its way loses it, and nothing on the
    * page can say so in time. The browser's own "leave site?" is the one
    * warning that arrives before it is too late.
    */
-  const unsaved = values.some((u) => u.state === "queued" || u.state === "saving");
+  const unsaved = useSyncExternalStore(store.subscribe, () => store.summary().unsaved, () => false);
   useEffect(() => {
     if (!unsaved) return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); };
@@ -368,21 +481,18 @@ export const CaptureProvider = ({
     return () => { window.removeEventListener("beforeunload", warn); };
   }, [unsaved]);
 
-  const capture = useMemo<Capture>(
-    () => ({
-      camera: { stream, mode, allowed, acquire, letGo, stop },
-      uploads: {
-        byStep,
-        pending,
-        failed,
-        ...(current === undefined ? {} : { current }),
-        enqueue: enqueueKeeping,
-        retry,
-        cancel,
-      },
-    }),
-    [stream, mode, allowed, acquire, letGo, stop, byStep, pending, failed, current, enqueueKeeping, retry, cancel],
+  const camera = useMemo<Camera>(
+    () => ({ stream, mode, allowed, acquire, letGo, stop }),
+    [stream, mode, allowed, acquire, letGo, stop],
+  );
+  const uploads = useMemo(
+    () => ({ enqueue: enqueueKeeping, retry, cancel, store }),
+    [enqueueKeeping, retry, cancel, store],
   );
 
-  return <CaptureContext.Provider value={capture}>{children}</CaptureContext.Provider>;
+  return (
+    <CameraContext.Provider value={camera}>
+      <UploadsContext.Provider value={uploads}>{children}</UploadsContext.Provider>
+    </CameraContext.Provider>
+  );
 };

@@ -3,7 +3,7 @@
 import type { FilmProps } from "@film/render/composition";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useState, useTransition, type ReactNode } from "react";
+import { useCallback, useMemo, useState, useTransition, type ReactNode } from "react";
 import { approveEdlVersion } from "../../../src/server/actions.js";
 import type { AssetWarning, ProjectSummary } from "../../../src/server/project.js";
 import { Button, Chip, Icon, Notice, Skeleton } from "../../../src/ui/index.js";
@@ -58,7 +58,10 @@ export const PreviewClient = ({
   const [approved, setApproved] = useState(summary.approved);
   const [acknowledged, setAcknowledged] = useState<Set<string>>(new Set());
 
-  const outstanding = summary.warnings.filter((w) => !acknowledged.has(warningKey(w)));
+  const outstanding = useMemo(
+    () => summary.warnings.filter((w) => !acknowledged.has(warningKey(w))),
+    [acknowledged, summary.warnings],
+  );
 
   const acknowledge = useCallback((w: AssetWarning) => {
     setAcknowledged((prev) => new Set(prev).add(warningKey(w)));
