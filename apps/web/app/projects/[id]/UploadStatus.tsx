@@ -1,6 +1,6 @@
 "use client";
 
-import { useCapture } from "./CaptureProvider.js";
+import { useUploadSummary, useUploads } from "./CaptureProvider.js";
 
 /**
  * Takes still on their way up, said once, where it stays visible: in the
@@ -11,10 +11,11 @@ import { useCapture } from "./CaptureProvider.js";
  * every retry can be sent again from without hunting for its step.
  */
 export const UploadStatus = () => {
-  const { uploads } = useCapture();
-  if (uploads.pending === 0) return null;
+  const summary = useUploadSummary();
+  const { retry } = useUploads();
+  if (summary.pending === 0) return null;
 
-  const failed = Object.values(uploads.byStep).filter((u) => u.state === "failed");
+  const failed = summary.failedSteps;
   if (failed.length > 0) {
     return (
       <p className="upload-status upload-status--failed" role="alert">
@@ -22,7 +23,7 @@ export const UploadStatus = () => {
         <button
           type="button"
           className="linklike"
-          onClick={() => { for (const u of failed) uploads.retry(u.stepId); }}
+          onClick={() => { for (const stepId of failed) retry(stepId); }}
         >
           Try again
         </button>
@@ -30,8 +31,8 @@ export const UploadStatus = () => {
     );
   }
 
-  const going = uploads.pending;
-  const percent = uploads.current === undefined ? null : Math.round(uploads.current * 100);
+  const going = summary.pending;
+  const percent = summary.current === undefined ? null : Math.round(summary.current * 100);
   return (
     <p className="upload-status" role="status">
       <span className="upload-status__dot" aria-hidden />

@@ -3,7 +3,6 @@ import "server-only";
 import { createHmac, randomBytes } from "node:crypto";
 import { cache } from "react";
 
-import { createDb, type Db } from "@film/db";
 import {
   attachUpload,
   clearStep,
@@ -23,6 +22,8 @@ import {
 } from "@film/pipeline/capture";
 import { storeFromEnv, usingLocalStore } from "@film/storage";
 import type { PartialSubject } from "@film/templates";
+import { guardProject } from "./auth.js";
+import { webDb } from "./db.js";
 
 /**
  * The web app's side of capture: URLs, and nothing else.
@@ -34,11 +35,7 @@ import type { PartialSubject } from "@film/templates";
  * something a browser can fetch, and minting an upload URL.
  */
 
-let cached: Db | undefined;
-const deps = (): CaptureDeps => {
-  cached ??= createDb("web").db;
-  return { db: cached, store: storeFromEnv() };
-};
+const deps = (): CaptureDeps => ({ db: webDb(), store: storeFromEnv() });
 
 /** Which bed a project made in the browser is scored with. */
 const BED_TRACK_ID = process.env["CAPTURE_BED_TRACK_ID"] ?? "temp-end-of-august";
@@ -249,6 +246,27 @@ export const loadWalkthroughView = cache(async (projectId: string): Promise<Walk
 });
 
 /**
+ * The ownership check and the walk-through, read at the same time.
+ *
+ * Every film page asked one and then the other: the guard's two queries, then
+ * the walk-through's, three round trips to Postgres in a row before anything
+ * could render. The walk-through does not depend on the guard's answer, only
+ * on whether anybody may SEE it — so it is read alongside, and handed over
+ * only once the guard has passed. A refusal still redirects or 404s before a
+ * single row reaches the page.
+ */
+export const guardedWalkthrough = async (
+  projectId: string,
+  backTo: string,
+): Promise<WalkthroughView | null> => {
+  const view = loadWalkthroughView(projectId);
+  // A refusal leaves this read unawaited; its failure is not the page's news.
+  view.catch(() => undefined);
+  await guardProject(projectId, backTo);
+  return view;
+};
+
+/**
  * Every card's thumbnail, and nothing else.
  *
  * Seventeen small signed URLs where there used to be seventeen small ones AND
@@ -257,23 +275,21 @@ export const loadWalkthroughView = cache(async (projectId: string): Promise<Walk
  * ignored.
  */
 export const withThumbnails = async (view: WalkthroughView): Promise<HubView> => {
-  const steps: HubStep[] = [];
-  for (const step of view.steps) {
-    const { asset, ...rest } = step;
-    steps.push({
-      ...rest,
-      asset:
-        asset === null
-          ? null
-          : {
-              id: asset.id,
-              kind: asset.kind,
-              ...(asset.thumbnailKey === null
-                ? {}
-                : { thumbUrl: await thumbnailUrl(asset.thumbnailKey) }),
-            },
-    });
-  }
+  // Signed side by side, not one after another: each is its own await.
+  const steps = await Promise.all(
+    view.steps.map(async (step): Promise<HubStep> => {
+      const { asset, ...rest } = step;
+      if (asset === null) return { ...rest, asset: null };
+      return {
+        ...rest,
+        asset: {
+          id: asset.id,
+          kind: asset.kind,
+          ...(asset.thumbnailKey === null ? {} : { thumbUrl: await thumbnailUrl(asset.thumbnailKey) }),
+        },
+      };
+    }),
+  );
   return { ...view, steps };
 };
 
@@ -298,15 +314,17 @@ export const stepWithMedia = async (
   const { asset, ...rest } = step;
   if (asset === null) return { ...rest, asset: null };
 
+  const [url, thumbUrl] = await Promise.all([
+    mediaUrl(asset.storageKey),
+    asset.thumbnailKey === null ? undefined : thumbnailUrl(asset.thumbnailKey),
+  ]);
   return {
     ...rest,
     asset: {
       id: asset.id,
       kind: asset.kind,
-      url: await mediaUrl(asset.storageKey),
-      ...(asset.thumbnailKey === null
-        ? {}
-        : { thumbUrl: await thumbnailUrl(asset.thumbnailKey) }),
+      url,
+      ...(thumbUrl === undefined ? {} : { thumbUrl }),
     },
   };
 };

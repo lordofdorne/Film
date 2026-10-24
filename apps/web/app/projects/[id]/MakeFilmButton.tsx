@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 
 import { startTheFilm } from "../../../src/server/captureActions.js";
-import { useCapture } from "./CaptureProvider.js";
+import { useUploadSummary } from "./CaptureProvider.js";
 
 /**
  * The bottom of the hub. Enabled by the same readiness that drew the cards —
@@ -25,7 +25,7 @@ export const MakeFilmButton = ({
    * Takes still going up are not in the film yet. Handing it over now would
    * cut it without them, so the button waits and says why.
    */
-  const { uploads } = useCapture();
+  const uploads = useUploadSummary();
   const saving = uploads.pending - uploads.failed;
   const ready = stillMissing === 0 && saving === 0;
 

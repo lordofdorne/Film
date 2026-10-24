@@ -1,16 +1,13 @@
 import { createReadStream } from "node:fs";
 import { Readable } from "node:stream";
 import { NextResponse } from "next/server";
-import { createDb, deliverableFilm, filmFilename, subjectNameOf, type Db } from "@film/db";
+import { deliverableFilm, filmFilename, subjectNameOf } from "@film/db";
 import { LocalObjectStore, contentDisposition } from "@film/storage";
 import { accessToProject } from "../../../../src/server/auth.js";
 import { store } from "../../../../src/server/project.js";
+import { webDb } from "../../../../src/server/db.js";
 
-let cached: Db | undefined;
-const db = (): Db => {
-  cached ??= createDb("web").db;
-  return cached;
-};
+const db = webDb;
 
 /**
  * The end of the line: the customer gets their film.
@@ -40,7 +37,9 @@ export async function GET(
     return NextResponse.json({ error: "no film is ready for this project" }, { status: 404 });
   }
 
-  const film = await deliverableFilm(db(), id);
+  // The name is a cheap read and the film is the one that matters: ask both
+  // at once rather than one after the other.
+  const [film, subjectName] = await Promise.all([deliverableFilm(db(), id), subjectNameOf(db(), id)]);
   if (film === null) {
     // One answer for "no such project", "not approved yet" and "still
     // rendering". The page says which; a bare URL learns nothing from a
@@ -48,10 +47,7 @@ export async function GET(
     return NextResponse.json({ error: "no film is ready for this project" }, { status: 404 });
   }
 
-  const filename = filmFilename({
-    subjectName: await subjectNameOf(db(), id),
-    edlVersion: film.edlVersion,
-  });
+  const filename = filmFilename({ subjectName, edlVersion: film.edlVersion });
 
   /**
    * `?view` plays it in the page instead of saving it: the same file, the same

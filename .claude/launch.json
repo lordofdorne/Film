@@ -4,8 +4,20 @@
     {
       "name": "web",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@film/web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@film/web",
+        "dev"
+      ],
       "port": 3200
+    },
+    {
+      "name": "site",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "site"
+      ],
+      "port": 3300
     }
   ]
 }

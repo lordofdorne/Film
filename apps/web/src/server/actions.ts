@@ -2,17 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
-import { approveVersion, createDb, projects, type Db } from "@film/db";
+import { approveVersion, projects } from "@film/db";
 import { getFormat } from "@film/formats";
 import { getTemplate } from "@film/templates";
 
 import { accessToProject } from "./auth.js";
+import { webDb } from "./db.js";
 
-let cached: Db | undefined;
-const db = (): Db => {
-  cached ??= createDb("web").db;
-  return cached;
-};
+const db = webDb;
 
 export type ApprovalResult =
   | { readonly ok: true }

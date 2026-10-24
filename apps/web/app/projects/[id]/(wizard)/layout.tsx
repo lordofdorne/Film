@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 
-import { guardProject } from "../../../../src/server/auth.js";
-import { loadWalkthroughView } from "../../../../src/server/capture.js";
+import { guardedWalkthrough } from "../../../../src/server/capture.js";
 import { frameMapOf } from "../../../../src/server/wizard.js";
 import { WizardFrame } from "../WizardFrame.js";
 
@@ -26,9 +25,7 @@ export default async function WizardLayout({
   children: React.ReactNode;
 }) {
   const { id } = await params;
-  await guardProject(id, `/projects/${id}`);
-
-  const view = await loadWalkthroughView(id);
+  const view = await guardedWalkthrough(id, `/projects/${id}`);
   if (view === null) notFound();
   if (view.status !== "capturing") redirect(`/projects/${id}`);
 

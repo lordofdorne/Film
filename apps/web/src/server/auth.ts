@@ -8,11 +8,11 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   accessToFilm,
   adoptFilms,
-  createDb,
   linkIdentity,
   type AppUser,
   type Db,
 } from "@film/db";
+import { webDb } from "./db.js";
 
 /**
  * Who is asking, and may they.
@@ -42,11 +42,7 @@ const KEY_VAR = "NEXT_PUBLIC_SUPABASE_ANON_KEY";
 export const authConfigured = (): boolean =>
   (process.env[URL_VAR] ?? "") !== "" && (process.env[KEY_VAR] ?? "") !== "";
 
-let cached: Db | undefined;
-const db = (): Db => {
-  cached ??= createDb("web").db;
-  return cached;
-};
+const db = webDb;
 
 /** The same connection, for the one route that adopts films after sign-in. */
 export const dbForAuth = (): Db => db();

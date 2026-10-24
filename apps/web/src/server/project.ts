@@ -4,7 +4,6 @@ import { and, desc, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import {
   approvals,
   assets,
-  createDb,
   deliverableFilm,
   deliveryRenders,
   edlVersions,
@@ -39,6 +38,7 @@ import { wordedWarning } from "./capture.js";
 // on a missing createContext. The props builder needs none of that.
 import { buildProjectProps } from "@film/render/props";
 import type { FilmProps } from "@film/render/composition";
+import { webDb } from "./db.js";
 
 /**
  * The browser never talks to Postgres.
@@ -48,12 +48,7 @@ import type { FilmProps } from "@film/render/composition";
  * from a client component a build error rather than a runtime surprise.
  */
 
-let cached: Db | undefined;
-
-const db = (): Db => {
-  cached ??= createDb("web").db;
-  return cached;
-};
+const db = webDb;
 
 /**
  * The same store the worker writes to.
@@ -179,20 +174,25 @@ export const loadProjectForPreview = async (
   // Not found, not a server error: the id came from the URL bar.
   if (!isProjectId(projectId)) return null;
 
-  const projectRows = await db().select().from(projects).where(eq(projects.id, projectId)).limit(1);
+  /**
+   * The three reads that need only the project id, at once. They were four
+   * round trips in a row; now two, because only the approval waits on the
+   * version it belongs to.
+   */
+  const [projectRows, versionRows, assetRows] = await Promise.all([
+    db().select().from(projects).where(eq(projects.id, projectId)).limit(1),
+    db()
+      .select()
+      .from(edlVersions)
+      .where(eq(edlVersions.projectId, projectId))
+      .orderBy(desc(edlVersions.version))
+      .limit(1),
+    db().select().from(assets).where(eq(assets.projectId, projectId)),
+  ]);
   const project = projectRows[0];
   if (project === undefined) return null;
-
-  const versionRows = await db()
-    .select()
-    .from(edlVersions)
-    .where(eq(edlVersions.projectId, projectId))
-    .orderBy(desc(edlVersions.version))
-    .limit(1);
   const latest = versionRows[0];
   if (latest === undefined) return null;
-
-  const assetRows = await db().select().from(assets).where(eq(assets.projectId, projectId));
 
   const approvalRows = await db()
     .select({ id: approvals.id })
@@ -329,25 +329,24 @@ export const loadDelivery = async (projectId: string): Promise<DeliveryState | n
   // Null means "no such project", which is not the same as "no film yet" —
   // otherwise the polling route answers happily about projects that do not
   // exist, and a real state becomes indistinguishable from a typo.
-  const statusRows = await db()
-    .select({ status: projects.status })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
+  // Asked together: the delivery panel polls this, so each round trip saved
+  // is saved every few seconds for as long as somebody waits.
+  const [statusRows, film] = await Promise.all([
+    db().select({ status: projects.status }).from(projects).where(eq(projects.id, projectId)).limit(1),
+    deliverableFilm(db(), projectId),
+  ]);
   const status = statusRows[0]?.status;
   if (status === undefined) return null;
 
-  const film = await deliverableFilm(db(), projectId);
-
   if (film !== null) {
-    const filename = filmFilename({
-      subjectName: await subjectNameOf(db(), projectId),
-      edlVersion: film.edlVersion,
-    });
     // Heading the object rather than trusting the row. A half-failed upload
     // leaves a row pointing at nothing, and the download button should not be
     // the thing that discovers it.
-    const head = await store().head(film.outputKey);
+    const [subjectName, head] = await Promise.all([
+      subjectNameOf(db(), projectId),
+      store().head(film.outputKey),
+    ]);
+    const filename = filmFilename({ subjectName, edlVersion: film.edlVersion });
     return { kind: "ready", filename, byteSize: head?.byteSize ?? null };
   }
 
