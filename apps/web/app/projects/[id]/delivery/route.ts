@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { accessToProject } from "../../../../src/server/auth.js";
+import { accessToProject, signedInToAccount } from "../../../../src/server/auth.js";
 import { loadDelivery } from "../../../../src/server/project.js";
 
 /**
@@ -23,8 +23,9 @@ export async function GET(
 
   // Polled a few hundred times per film, so it is also the cheapest way to
   // enumerate other people's projects if it does not check.
+  // And behind the account, like the film's page and its download.
   const access = await accessToProject(id);
-  if (!access.allowed) {
+  if (!access.allowed || !(await signedInToAccount())) {
     return NextResponse.json({ error: "no such project" }, { status: 404 });
   }
 

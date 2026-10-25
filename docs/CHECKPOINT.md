@@ -585,9 +585,36 @@ rather type one.
   a 422, and mapping the status told people their own unused address already
   had an account.
 
-Still to do before a real person can use it: **custom SMTP**. Confirmations,
-resets and links all go through it, and the built-in sender allows about two
-an hour.
+(Superseded below: there are no links or confirmations now, only password
+resets, so custom SMTP matters only for those.)
+
+### An account makes the film — email and password, nothing emailed
+
+Owner's decision of 2026-10-24, replacing the magic link and the delivery
+address. Capture still needs no account: Start signs the browser in
+anonymously. **Make my film** opens a sheet — create an account or sign in,
+email and password — and the film starts in the same step. Past capture, a
+film's page, its download and its delivery poll all need that account
+(`signedInToAccount`); signed out, they send you to sign in and back.
+
+- **Email confirmation is off** (`supabase/config.toml`). An account works the
+  moment it is made. The hosted project must match: Authentication →
+  Providers → Email → "Confirm email" off. What is given up: nothing proves
+  the address is the person's own.
+- **Creating an account on the anonymous session keeps its auth id**
+  (`updateUser({ email, password })`, then `refreshSession()` so the token
+  carries the address). Walked against local GoTrue: same id, not anonymous,
+  password works. `signUp()` only when there is no session at all.
+- **Signing in from an anonymous session carries its films over**
+  (`anonymousHolder` before, `carryFilmsOver` after).
+- **Gone:** the magic link (`sendMagicLink`, `/auth/callback`), the
+  "Where should we send it?" step (`ownerEmail` in life-advice v1), the
+  set-a-password offer, and every "check your email" state but one.
+- **The one email left is a password reset**, on request. It goes through the
+  built-in sender (about two an hour) until custom SMTP is set — no longer a
+  launch blocker, but resets will be throttled without it.
+- The pipeline still supports a detail with `target: "owner"`
+  (`projects.deliver_to`); no template uses one now.
 
 ### Shortening is never a surprise — Phase 9, Block 5
 
@@ -941,8 +968,9 @@ that browser could watch it with nobody signed in. Now:
   not carry `make`: somebody who takes it lands home and presses the button
   again.
 
-Every film now passes through an email, so **custom SMTP is a launch
-blocker**. Design and the remaining blocks: `docs/proposal/phase-7-product-and-design-system.md`.
+Every film then passed through an email, so custom SMTP was a launch
+blocker. Superseded on 2026-10-24: accounts are email and password, made at
+Make my film, with nothing to confirm. Design and the remaining blocks: `docs/proposal/phase-7-product-and-design-system.md`.
 
 ### The film is as long as what somebody actually said
 

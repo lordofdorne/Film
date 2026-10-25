@@ -1,4 +1,5 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { signedInToAccount } from "../../../../src/server/auth.js";
 import { guardedWalkthrough, withThumbnails } from "../../../../src/server/capture.js";
 import { loadDelivery, loadProjectForPreview } from "../../../../src/server/project.js";
 import { DeliveryPanel } from "../DeliveryPanel.js";
@@ -31,7 +32,7 @@ export default async function ProjectPage({
   /**
    * Before anything is read, let alone rendered. This page approves films and
    * links to the download, so it is the surface where "anyone with the URL"
-   * mattered most. Signed out sends them to get a link; somebody else's film
+   * mattered most. Signed out sends them to sign in; somebody else's film
    * is a 404, because "not yours" confirms there is something there. The
    * rows are read alongside the check, and handed over only once it passes.
    */
@@ -47,8 +48,16 @@ export default async function ProjectPage({
    * on it at all, so it mints nothing.
    */
   if (walkthrough.status === "capturing") {
-    return <Hub walkthrough={await withThumbnails(walkthrough)} />;
+    const [hub, hasAccount] = await Promise.all([withThumbnails(walkthrough), signedInToAccount()]);
+    return <Hub walkthrough={hub} hasAccount={hasAccount} />;
   }
+
+  /**
+   * Past capture, the film belongs to an account. Making it asked for one, so
+   * this is somebody signed out since — or a film handed over before accounts
+   * were required. Either way: sign in, and come straight back here.
+   */
+  if (!(await signedInToAccount())) redirect(`/signin?next=${encodeURIComponent(`/projects/${id}`)}`);
 
   /**
    * A film that failed says so, before anything reassuring is rendered.

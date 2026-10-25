@@ -313,18 +313,16 @@ const speechSecondsOf = (qcMetrics: unknown): number | null => {
  */
 export type SavedDetail = {
   readonly ok: true;
-  /** What kind of thing was saved — the caller that fires a sign-in link when
-   *  an owner address lands needs to know without a second query. */
+  /** What kind of thing was saved: about the subject, or the owner's own. */
   readonly target: "subject" | "owner";
   /** The canonical stored value, post-trim and lower-casing. */
   readonly value: string | number | null;
   /**
    * Whether this actually differs from what was already stored.
    *
-   * Load-bearing for the address: saving it is what sends a sign-in email, and
-   * without this every re-save of the same address sends another one — which
-   * is a way to mail-bomb a stranger through our server, and a way to burn the
-   * mail quota, using nothing but a project anyone can create.
+   * Load-bearing for anything a save would trigger: without it every re-save
+   * of the same answer triggers it again. (A saved address once sent a
+   * sign-in email; nothing does now, and no template asks for one.)
    */
   readonly changed: boolean;
 };

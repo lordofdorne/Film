@@ -3,8 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { accessToProject, currentUser, ensureUser } from "./auth.js";
-import { sendMagicLink } from "./authActions.js";
+import { accessToProject, authConfigured, currentUser, ensureUser } from "./auth.js";
 import { retryFilm } from "./project.js";
 import { nextHref } from "./wizard.js";
 import {
@@ -76,24 +75,11 @@ export const chooseFilm = async (
   );
 };
 
-export type DetailResult =
-  | {
-      readonly ok: true;
-      readonly linkSentTo: string | null;
-      /** The link was already in their inbox — a confirmation from setting a
-       *  password — so nothing new went out. */
-      readonly already: boolean;
-    }
-  | { readonly ok: false; readonly error: string };
+export type DetailResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 
 /**
  * One typed answer from a step sheet. Validation is the template's, in
  * @film/pipeline/capture, where it is tested against a real database.
- *
- * Saving the owner's address is also the moment sign-in becomes possible, so
- * the magic link goes out here — once, non-blocking, and only when the session
- * has no verified address of its own. Clicking it is what turns the typed
- * address into ownership; not clicking it costs nothing today.
  */
 export const submitDetail = async (
   projectId: string,
@@ -108,48 +94,19 @@ export const submitDetail = async (
   const saved = await saveDetailFor(projectId, fieldId, value);
   if (!saved.ok) return saved;
 
-  /**
-   * The link goes out only when the address is NEW to this project.
-   *
-   * Sending on every save would let anyone with a project — which is anyone at
-   * all — mail an arbitrary address as often as they can press a button, using
-   * our sender's reputation and our quota. Re-saving the same address is a
-   * no-op, and someone who never got the first link can ask for another from
-   * the sign-in page, where asking is the whole point.
-   */
-  let linkSentTo: string | null = null;
-  let already = false;
-  if (saved.target === "owner" && saved.changed && typeof saved.value === "string") {
-    const user = await currentUser();
-    if (user === null || user.email === null) {
-      // sendMagicLink refuses to send a second email to an address this
-      // session is already waiting to confirm — that is what would create a
-      // duplicate account and leave the film behind on the first one.
-      const sent = await sendMagicLink(saved.value, `/projects/${projectId}`);
-      if (sent.ok) {
-        linkSentTo = saved.value;
-        already = sent.already;
-      }
-    }
-  }
-
   revalidatePath(`/projects/${projectId}`);
 
   /**
-   * Saved, and nothing to stop for: go on from here.
+   * Saved: go on from here.
    *
    * The client used to `router.push` after this returned. Redirecting from the
    * action is Next's documented "save, then go", and it is one round trip
    * instead of two: the next page comes back in this response.
    *
-   * (It was first written to escape a Continue that saved and stayed put on a
-   * production build. That turned out to be a loading screen above the step,
-   * not the push — see usePrefetchNext — but this is still the better shape.)
-   *
    * Only within this film, so the parameter cannot send anybody elsewhere.
    */
-  if (linkSentTo === null && then !== undefined && withinFilm(projectId, then)) redirect(then);
-  return { ok: true, linkSentTo, already };
+  if (then !== undefined && withinFilm(projectId, then)) redirect(then);
+  return { ok: true };
 };
 
 const withinFilm = (projectId: string, href: string): boolean =>
@@ -181,19 +138,29 @@ export const finishUpload = async (
   return result;
 };
 
-export type StartFilmResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
+export type StartFilmResult =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly error: string; readonly needsAccount?: true };
 
+/**
+ * Make my film, for somebody already signed in to an account.
+ *
+ * An anonymous owner is refused, and the button knows to ask them to create
+ * an account or sign in instead — which makes the film in the same step (see
+ * `createAccount`). The finished film is watched and downloaded from that
+ * account, so it is never handed over to a browser that could lose it.
+ */
 export const startTheFilm = async (projectId: string): Promise<StartFilmResult> => {
   const refused = await mine(projectId);
   if (refused !== null) return refused;
 
-  /**
-   * No email asked for. It used to be: an anonymous owner was sent a link
-   * that handed the film over when opened, and with no email provider the
-   * link never came, so "Make my film" made nothing. The browser that made a
-   * film can watch it (accessToFilm); saving it to an email is offered on
-   * home, never required.
-   */
+  if (authConfigured()) {
+    const user = await currentUser();
+    if (user === null || user.email === null) {
+      return { ok: false, error: "Create an account or sign in to make your film.", needsAccount: true };
+    }
+  }
+
   const result = await startTheFilmFor(projectId);
   if (result.ok) revalidatePath(`/projects/${projectId}`);
   return result;

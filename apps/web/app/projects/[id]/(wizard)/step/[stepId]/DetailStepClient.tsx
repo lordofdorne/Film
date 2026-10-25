@@ -8,7 +8,6 @@ import type { StepView } from "../../../../../../src/server/capture.js";
 import { usePrefetchNext } from "../../usePrefetchNext.js";
 import { Button, Chip, Icon, Tip } from "../../../../../../src/ui/index.js";
 import { startNavigation, stopNavigation, useNavigate } from "../../../../../NavProgress.js";
-import { SetPasswordOffer } from "../../../../../SetPasswordOffer.js";
 
 /**
  * A typed answer, dressed exactly like a capture: the ask, the coaching, one
@@ -33,7 +32,6 @@ export const DetailStepClient = ({
   const [pending, startTransition] = useTransition();
   const { leaving, go } = useNavigate();
   const [error, setError] = useState<string | null>(null);
-  const [linkSentTo, setLinkSentTo] = useState<{ email: string; already: boolean } | null>(null);
 
   // The next screen is known; fetch it now so Continue feels instant.
   usePrefetchNext(nextHref);
@@ -59,58 +57,9 @@ export const DetailStepClient = ({
         setError(result.error);
         return;
       }
-      if (result.linkSentTo !== null) {
-        // Stay: the one message worth reading before moving on.
-        stopNavigation();
-        setLinkSentTo({ email: result.linkSentTo, already: result.already });
-        return;
-      }
       go(nextHref);
     });
   };
-
-  if (linkSentTo !== null) {
-    return (
-      <>
-        <main className="wz-body">
-          <p className="eyebrow wz-eyebrow">{step.chapterTitle}</p>
-          <h1 className="wz-ask">One click, whenever suits</h1>
-          <p className="lede">
-            {linkSentTo.already ? (
-              <>
-                There is already a link waiting in <strong>{linkSentTo.email}</strong> from when
-                you set a password. Open that one — it does the same job, and a second would
-                make a second account.
-              </>
-            ) : (
-              <>
-                We sent a link to <strong>{linkSentTo.email}</strong>. Opening it saves this film
-                to your email, so it is yours on any phone or laptop. No rush — carry on, and
-                open it whenever suits.
-              </>
-            )}
-          </p>
-          {!linkSentTo.already && (
-            /* Beside the link, never in front of it. Nothing here waits on it. */
-            <SetPasswordOffer
-              defaultEmail={linkSentTo.email}
-              prompt="…or set a password now, so you can just sign in"
-            />
-          )}
-        </main>
-        <footer className="wz-foot">
-          <div className="wz-foot__row">
-            <Button size="lg" asChild className="wz-foot__main">
-              <Link href={nextHref}>
-                Continue
-                <Icon name="forward" size={18} />
-              </Link>
-            </Button>
-          </div>
-        </footer>
-      </>
-    );
-  }
 
   const inputId = `detail-${step.id}`;
 
